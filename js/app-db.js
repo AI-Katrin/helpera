@@ -253,6 +253,21 @@
       }));
   }
 
+  async function getTask(taskId) {
+    if (!taskId) return null;
+    if (client) {
+      const { data, error } = await client
+        .from('tasks')
+        .select('*, ngo_profiles(org_name, about, contacts)')
+        .eq('id', taskId)
+        .single();
+      if (error) return null;
+      return data;
+    }
+
+    return (await listTasks()).find((task) => task.id === taskId) || null;
+  }
+
   async function createApplication(application) {
     if (client) {
       const { data, error } = await client.from('applications').insert(application).select().single();
@@ -267,16 +282,63 @@
     return item;
   }
 
-  async function listApplications() {
+  async function getApplication(applicationId) {
+    if (!applicationId) return null;
     if (client) {
       const { data, error } = await client
         .from('applications')
-        .select('*, tasks(title, format, ngo_profiles(org_name, about))')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
+        .select('*, tasks(id, title, format, ngo_profile_id, ngo_profiles(org_name, about, contacts)), volunteer_profiles(id, contact, account, about, skills, interests)')
+        .eq('id', applicationId)
+        .single();
+      if (error) return null;
+      return data;
     }
-    return getLocal(localKeys.applications);
+    return getLocal(localKeys.applications).find((item) => item.id === applicationId) || null;
+  }
+
+  async function updateApplication(applicationId, patch) {
+    if (!applicationId) return null;
+    if (client) {
+      const { data, error } = await client
+        .from('applications')
+        .update(patch)
+        .eq('id', applicationId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+
+    const applications = getLocal(localKeys.applications);
+    const index = applications.findIndex((item) => item.id === applicationId);
+    if (index === -1) return null;
+    applications[index] = { ...applications[index], ...patch };
+    setLocal(localKeys.applications, applications);
+    return applications[index];
+  }
+
+  async function listApplications(filters = {}) {
+    if (client) {
+      let query = client
+        .from('applications')
+        .select('*, tasks(id, title, format, ngo_profile_id, ngo_profiles(org_name, about, contacts)), volunteer_profiles(id, contact, account, about, skills, interests)')
+        .order('created_at', { ascending: false });
+      if (filters.volunteerProfileId) query = query.eq('volunteer_profile_id', filters.volunteerProfileId);
+      if (filters.status) query = query.eq('status', filters.status);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []).filter((item) => {
+        if (filters.ngoProfileId && item.tasks?.ngo_profile_id !== filters.ngoProfileId) return false;
+        if (filters.includeDrafts === false && item.status === 'draft') return false;
+        return true;
+      });
+    }
+    return getLocal(localKeys.applications).filter((item) => {
+      if (filters.volunteerProfileId && item.volunteer_profile_id !== filters.volunteerProfileId) return false;
+      if (filters.status && item.status !== filters.status) return false;
+      if (filters.includeDrafts === false && item.status === 'draft') return false;
+      return true;
+    });
   }
 
   window.helperaDb = {
@@ -291,7 +353,10 @@
     updateNgoProfile,
     createTask,
     listTasks,
+    getTask,
     createApplication,
+    getApplication,
+    updateApplication,
     listApplications
   };
 })();

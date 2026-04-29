@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Helpera — Все задачи</title>
+<title>Helpera — Поиск задач</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,10 +18,10 @@
       </a>
 
       <nav class="nav">
-        <a href="index.html">Главная</a>
-        <a href="volunteer-tasks.html" id="nav-tasks">Все задачи</a>
-        <a href="volunteer-applications.html">Мои отклики</a>
-        <a href="volunteer-profile.html" id="nav-profile">Профиль</a>
+        <a href="volunteer-lk.html" id="nav-profile">Профиль</a>
+        <a href="volunteer-tasks.html" id="nav-tasks">Поиск задач</a>
+        <a href="volunteer-applications.html" id="nav-applications">Мои отклики</a>
+        <a href="volunteer-dashboard.html" id="nav-dashboard">Аналитика</a>
         <div class="avatar-mini">Е</div>
       </nav>
     </header>
@@ -29,7 +29,7 @@
     <section class="hero">
       <div>
         <div class="hero-badge">Подборка задач для волонтёра</div>
-        <h1 class="hero-title">Все задачи</h1>
+        <h1 class="hero-title">Поиск задач</h1>
         <p class="hero-text">Сначала мы показываем 10 наиболее подходящих задач, а затем — остальные доступные варианты. Используйте фильтры, чтобы сузить подборку.</p>
       </div>
       <button class="btn-primary" id="back-profile-btn">Вернуться в кабинет</button>
@@ -47,7 +47,7 @@
         <div class="filter-group">
           <label class="filter-label">Формат</label>
           <div class="chip-row filter-format" data-select="multiple">
-            <button class="chip active" type="button">Онлайн</button>
+            <button class="chip" type="button">Онлайн</button>
             <button class="chip" type="button">Оффлайн</button>
           </div>
         </div>
@@ -56,7 +56,9 @@
           <label class="filter-label">Длительность</label>
           <div class="chip-row filter-duration" data-select="multiple">
             <button class="chip" type="button">Разово</button>
-            <button class="chip active" type="button">Короткие</button>
+            <button class="chip" type="button">Короткие</button>
+            <button class="chip" type="button">Проектные</button>
+            <button class="chip" type="button">Долгосрочные</button>
           </div>
         </div>
 
@@ -69,7 +71,7 @@
             </button>
             <div class="dropdown-menu">
               <label class="check-option">
-                <input type="checkbox" value="Образование" checked />
+                <input type="checkbox" value="Образование" />
                 <span class="check-box"></span>
                 <span>Образование</span>
               </label>
@@ -79,7 +81,7 @@
                 <span>Экология</span>
               </label>
               <label class="check-option">
-                <input type="checkbox" value="Соц. проекты" checked />
+                <input type="checkbox" value="Соц. проекты" />
                 <span class="check-box"></span>
                 <span>Социальные проекты</span>
               </label>
@@ -101,12 +103,12 @@
             </button>
             <div class="dropdown-menu">
               <label class="check-option">
-                <input type="checkbox" value="Аналитика" checked />
+                <input type="checkbox" value="Аналитика" />
                 <span class="check-box"></span>
                 <span>Аналитика</span>
               </label>
               <label class="check-option">
-                <input type="checkbox" value="SMM" checked />
+                <input type="checkbox" value="SMM" />
                 <span class="check-box"></span>
                 <span>SMM</span>
               </label>
@@ -139,12 +141,7 @@
           <div class="sort">Сортировка: сначала более подходящие</div>
         </div>
 
-        <div id="activeFilters" class="active-filters">
-          <span class="tag-chip">Онлайн ×</span>
-          <span class="tag-chip">Образование ×</span>
-          <span class="tag-chip">Аналитика ×</span>
-          <a class="reset-link" href="#">Сбросить фильтры</a>
-        </div>
+        <div id="activeFilters" class="active-filters" style="display:none;"></div>
 
         <article class="task-card task-item" data-title="Анализ обратной связи участников образовательной программы" data-org="АНО Открытые знания" data-format="Онлайн" data-duration="Разово" data-directions="Образование" data-skills="Аналитика">
           <div>
@@ -261,36 +258,55 @@
   const urlParams = new URLSearchParams(window.location.search);
   const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
   const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  })[char]);
 
   document.getElementById('nav-tasks').href = withProfileId('volunteer-tasks.html');
-  document.getElementById('nav-profile').href = withProfileId('volunteer-profile.html');
+  document.getElementById('nav-profile').href = withProfileId('volunteer-lk.html');
+  document.getElementById('nav-applications').href = withProfileId('volunteer-applications.html');
+  document.getElementById('nav-dashboard').href = withProfileId('volunteer-dashboard.html');
   document.getElementById('back-profile-btn').addEventListener('click', () => {
-    window.location.href = withProfileId('volunteer-profile.html');
+    window.location.href = withProfileId('volunteer-lk.html');
   });
 
   function renderTaskCard(task) {
     const orgName = task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName || 'НКО';
     const payload = task.payload || {};
+    const format = task.format || payload.format || '';
+    const duration = payload.duration || payload.taskDuration || payload.participationType || 'Проектные';
     const skills = String(task.skills || payload.skills || '')
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean)
       .slice(0, 3);
+    const searchableDirections = [
+      payload.direction,
+      payload.directions,
+      payload.category,
+      payload.comment,
+      task.title,
+      task.description
+    ].filter(Boolean).join(', ');
     const article = document.createElement('article');
     article.className = 'task-card task-item';
     article.dataset.title = task.title || '';
     article.dataset.org = orgName;
-    article.dataset.format = task.format || payload.format || '';
-    article.dataset.duration = 'Проектные';
-    article.dataset.directions = payload.comment || '';
+    article.dataset.description = task.description || payload.description || '';
+    article.dataset.format = format;
+    article.dataset.duration = duration;
+    article.dataset.directions = searchableDirections;
     article.dataset.skills = skills.join(',');
     article.innerHTML = `
       <div>
-        <h3 class="task-title">${task.title || 'Задача без названия'}</h3>
-        <p class="task-meta">${orgName} • ${task.format || payload.format || 'Формат не указан'} • ${payload.dateStart || ''}${payload.dateEnd ? ` — ${payload.dateEnd}` : ''}</p>
+        <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
+        <p class="task-meta">${escapeHtml(orgName)} • ${escapeHtml(format || 'Формат не указан')} • ${escapeHtml(payload.dateStart || '')}${payload.dateEnd ? ` — ${escapeHtml(payload.dateEnd)}` : ''}</p>
         <div class="chip-row">
-          <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Из базы Supabase</span>
-          ${skills.map((skill) => `<span class="chip active">${skill}</span>`).join('')}
+          ${skills.map((skill) => `<span class="chip active">${escapeHtml(skill)}</span>`).join('')}
         </div>
       </div>
       <div class="task-actions">
@@ -319,6 +335,7 @@
 
   function toggleChip(button) {
     button.classList.toggle('active');
+    applyFilters();
   }
 
   formatButtons.forEach(btn => btn.addEventListener('click', () => toggleChip(btn)));
@@ -362,24 +379,26 @@
   function renderActiveFilters(filters) {
     activeFiltersBox.innerHTML = '';
     const chips = [];
-    filters.formats.forEach(v => chips.push(v));
-    filters.durations.forEach(v => chips.push(v));
-    filters.directions.forEach(v => chips.push(v));
-    filters.skills.forEach(v => chips.push(v));
+    filters.formats.forEach(v => chips.push({ type: 'format', value: v }));
+    filters.durations.forEach(v => chips.push({ type: 'duration', value: v }));
+    filters.directions.forEach(v => chips.push({ type: 'direction', value: v }));
+    filters.skills.forEach(v => chips.push({ type: 'skill', value: v }));
+    if (filters.search) chips.push({ type: 'search', value: filters.search, label: 'Поиск: ' + filters.search });
 
-    chips.forEach(text => {
+    if (!chips.length) {
+      activeFiltersBox.style.display = 'none';
+      return;
+    }
+
+    activeFiltersBox.style.display = 'flex';
+    chips.forEach(filter => {
       const el = document.createElement('span');
       el.className = 'tag-chip';
-      el.textContent = text + ' ×';
+      el.textContent = (filter.label || filter.value) + ' ×';
+      el.title = 'Убрать фильтр';
+      el.addEventListener('click', () => removeFilter(filter));
       activeFiltersBox.appendChild(el);
     });
-
-    if (filters.search) {
-      const el = document.createElement('span');
-      el.className = 'tag-chip';
-      el.textContent = 'Поиск: ' + filters.search + ' ×';
-      activeFiltersBox.appendChild(el);
-    }
 
     const reset = document.createElement('a');
     reset.href = '#';
@@ -390,6 +409,23 @@
       resetAllFilters();
     });
     activeFiltersBox.appendChild(reset);
+  }
+
+  function removeFilter(filter) {
+    if (filter.type === 'search') searchInput.value = '';
+    if (filter.type === 'format') Array.from(formatButtons).forEach(btn => {
+      if (btn.textContent.trim() === filter.value) btn.classList.remove('active');
+    });
+    if (filter.type === 'duration') Array.from(durationButtons).forEach(btn => {
+      if (btn.textContent.trim() === filter.value) btn.classList.remove('active');
+    });
+    if (filter.type === 'direction') directionDropdown.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      if (input.value === filter.value) input.checked = false;
+    });
+    if (filter.type === 'skill') skillDropdown.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      if (input.value === filter.value) input.checked = false;
+    });
+    applyFilters();
   }
 
   function applyFilters() {
@@ -410,18 +446,17 @@
     taskCards.forEach(card => {
       const title = (card.dataset.title || '').toLowerCase();
       const org = (card.dataset.org || '').toLowerCase();
-      const searchMatch = !filters.search || title.includes(filters.search) || org.includes(filters.search);
+      const description = (card.dataset.description || '').toLowerCase();
+      const skills = (card.dataset.skills || '').toLowerCase();
+      const directions = (card.dataset.directions || '').toLowerCase();
+      const searchMatch = !filters.search || title.includes(filters.search) || org.includes(filters.search) || description.includes(filters.search) || skills.includes(filters.search) || directions.includes(filters.search);
 
       const formatMatch = !filters.formats.length || filters.formats.includes(card.dataset.format);
       const durationValue = card.dataset.duration;
-      const durationMatch = !filters.durations.length || filters.durations.some(v => {
-        if (v === 'Разово') return durationValue === 'Разово';
-        if (v === 'Короткие') return durationValue === 'Короткие';
-        return false;
-      });
+      const durationMatch = !filters.durations.length || filters.durations.includes(durationValue);
 
-      const directionMatch = !filters.directions.length || filters.directions.some(v => (card.dataset.directions || '').includes(v));
-      const skillMatch = !filters.skills.length || filters.skills.some(v => (card.dataset.skills || '').includes(v));
+      const directionMatch = !filters.directions.length || filters.directions.some(v => directions.includes(v.toLowerCase()));
+      const skillMatch = !filters.skills.length || filters.skills.some(v => skills.includes(v.toLowerCase()));
 
       const show = searchMatch && formatMatch && durationMatch && directionMatch && skillMatch;
       card.style.display = show ? 'flex' : 'none';
@@ -445,6 +480,9 @@
   applyButton.addEventListener('click', applyFilters);
   resetButton.addEventListener('click', resetAllFilters);
   searchInput.addEventListener('input', applyFilters);
+  document.querySelectorAll('.dropdown input[type="checkbox"]').forEach(input => {
+    input.addEventListener('change', applyFilters);
+  });
 
   updateDropdownLabel(directionDropdown, 'Выбрать направления');
   updateDropdownLabel(skillDropdown, 'Выбрать навыки');

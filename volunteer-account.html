@@ -107,7 +107,7 @@
               <input id="password" type="password" placeholder="Не менее 8 символов" autocomplete="new-password" required />
               <button class="password-toggle" id="password-toggle" type="button" aria-label="Показать пароль" aria-pressed="false"></button>
             </div>
-            <p class="field-hint" id="password-hint">Минимум 8 символов: английская буква, цифра и символ.</p>
+            <p class="field-hint" id="password-hint">Пароль должен содержать минимум 8 символов: латинские буквы, хотя бы одну цифру и один специальный символ.</p>
           </div>
 
           <div class="agreement">
@@ -186,8 +186,8 @@
         passwordInput,
         passwordHint,
         isPasswordValid,
-        'Минимум 8 символов: английская буква, цифра и символ.',
-        'Используйте только латиницу, минимум 8 символов, одну букву, цифру и спецсимвол.'
+        'Минимум 8 символов: английские буквы, 1 цифра и 1 специальный символ.',
+        'Пароль должен содержать минимум 8 символов: латинские буквы, хотя бы одну цифру и один специальный символ.'
       );
       passwordWrap.classList.toggle('is-invalid', !isPasswordValid && passwordInput.value.length > 0);
       passwordWrap.classList.toggle('is-valid', isPasswordValid);

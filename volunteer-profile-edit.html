@@ -18,10 +18,10 @@
       </a>
 
       <nav class="nav">
-        <a href="index.html">Главная</a>
-        <a href="volunteer-tasks.html" id="nav-tasks">Все задачи</a>
-        <a href="volunteer-applications.html">Мои отклики</a>
-        <a href="volunteer-profile.html" id="nav-profile">Профиль</a>
+        <a href="volunteer-lk.html" id="nav-profile">Профиль</a>
+        <a href="volunteer-tasks.html" id="nav-tasks">Поиск задач</a>
+        <a href="volunteer-applications.html" id="nav-applications">Мои отклики</a>
+        <a href="volunteer-dashboard.html" id="nav-dashboard">Аналитика</a>
         <div class="avatar-mini" id="avatar-mini">?</div>
       </nav>
     </header>
@@ -32,7 +32,7 @@
         <h1 class="hero-title">Данные волонтёра</h1>
         <p class="hero-text">Здесь можно изменить информацию, которую волонтёр указывал при регистрации. После сохранения кабинет обновится из Supabase.</p>
       </div>
-      <a class="btn-primary" href="volunteer-profile.html" id="back-profile-top">Вернуться в профиль</a>
+      <a class="btn-primary" href="volunteer-lk.html" id="back-profile-top">Вернуться в профиль</a>
     </section>
 
     <form id="edit-form">
@@ -157,7 +157,7 @@
 
       <div class="edit-actions">
         <button class="btn-primary" type="submit" id="save-btn">Сохранить</button>
-        <a class="btn-outline-green" href="volunteer-profile.html" id="back-profile-bottom">Отмена</a>
+        <a class="btn-outline-green" href="volunteer-lk.html" id="back-profile-bottom">Отмена</a>
         <span class="save-status" id="save-status"></span>
       </div>
     </form>
@@ -225,10 +225,12 @@
       document.getElementById('notify-email-digest').checked = Boolean(notifications.emailDigest);
       document.getElementById('avatar-mini').textContent = firstName.slice(0, 1).toUpperCase();
 
-      document.getElementById('nav-profile').href = withProfileId('volunteer-profile.html');
+      document.getElementById('nav-profile').href = withProfileId('volunteer-lk.html');
       document.getElementById('nav-tasks').href = withProfileId('volunteer-tasks.html');
-      document.getElementById('back-profile-top').href = withProfileId('volunteer-profile.html');
-      document.getElementById('back-profile-bottom').href = withProfileId('volunteer-profile.html');
+      document.getElementById('nav-applications').href = withProfileId('volunteer-applications.html');
+      document.getElementById('nav-dashboard').href = withProfileId('volunteer-dashboard.html');
+      document.getElementById('back-profile-top').href = withProfileId('volunteer-lk.html');
+      document.getElementById('back-profile-bottom').href = withProfileId('volunteer-lk.html');
     }
 
     form.addEventListener('submit', async (event) => {
@@ -264,7 +266,7 @@
           },
           registrationStep: 'completed'
         });
-        window.location.href = withProfileId('volunteer-profile.html');
+        window.location.href = withProfileId('volunteer-lk.html');
       } catch (error) {
         console.error(error);
         saveStatus.textContent = `Не удалось сохранить: ${error?.message || 'проверьте Supabase.'}`;

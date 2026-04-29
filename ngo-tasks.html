@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1440, initial-scale=1.0" />
+<title>Helpera — Мои задачи НКО</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-dashboard.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a href="index.html" class="brand"><span class="brand-icon"></span><span>Helpera</span></a>
+      <nav class="nav">
+        <a href="ngo-lk.html" id="navProfile">Профиль</a>
+        <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="navApplications">Отклики</a>
+        <a href="ngo-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar" id="avatarMini">Н</div>
+      </nav>
+    </header>
+
+    <div class="container">
+      <section class="hero panel">
+        <div>
+          <div class="pill">Мои задачи</div>
+          <h1>Задачи вашей организации</h1>
+          <p>Список опубликованных задач, которые видят волонтёры. Данные загружаются из Supabase.</p>
+        </div>
+        <button class="btn btn-primary" id="createTaskBtn" type="button">Создать новую задачу</button>
+      </section>
+
+      <section class="panel content" style="margin-top:30px;">
+        <h2>Опубликованные задачи</h2>
+        <p class="subtitle" id="tasksSubtitle">Загружаем задачи...</p>
+        <div class="candidate-list" id="tasksList"></div>
+      </section>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const profileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  })[char]);
+
+  async function initNgoTasks() {
+    document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
+    document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
+    document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
+    document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
+    document.getElementById('createTaskBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-task-create.html'));
+
+    if (!profileId) {
+      document.getElementById('tasksSubtitle').textContent = 'Профиль НКО не выбран.';
+      document.getElementById('tasksList').innerHTML = '<p class="subtitle">Откройте страницу из личного кабинета НКО.</p>';
+      return;
+    }
+
+    const [profile, tasks, applications] = await Promise.all([
+      helperaDb.getNgoProfile(profileId),
+      helperaDb.listTasks(),
+      helperaDb.listApplications({ ngoProfileId: profileId, includeDrafts: false })
+    ]);
+    const ownTasks = tasks.filter((task) => task.ngo_profile_id === profileId);
+    document.getElementById('avatarMini').textContent = (profile?.account?.orgName || profile?.about?.shortName || 'Н').slice(0, 1).toUpperCase();
+    document.getElementById('tasksSubtitle').textContent = `${ownTasks.length} задач • ${applications.length} откликов`;
+    document.getElementById('tasksList').innerHTML = ownTasks.length ? ownTasks.map((task) => {
+      const count = applications.filter((item) => item.task_id === task.id).length;
+      return `
+        <article class="candidate">
+          <div class="cand-left">
+              <div class="initial">З</div>
+            <div>
+              <div class="cand-name">${escapeHtml(task.title)}</div>
+              <div class="cand-meta">${escapeHtml(task.format || 'Формат не указан')} • ${escapeHtml(task.skills || 'Навыки не указаны')}</div>
+              <div class="tags"><span class="tag blue">${count} откликов</span><span class="tag green">${task.status || 'published'}</span></div>
+            </div>
+          </div>
+          <div class="cand-actions">
+            <button class="primary-action" type="button" onclick="window.location.href='task-details.html?taskId=${encodeURIComponent(task.id)}&profileId=${encodeURIComponent(profileId)}&role=ngo'">Подробнее</button>
+          </div>
+        </article>
+      `;
+    }).join('') : '<p class="subtitle">У этой НКО пока нет опубликованных задач.</p>';
+  }
+
+  initNgoTasks().catch((error) => {
+    console.error(error);
+    document.getElementById('tasksSubtitle').textContent = 'Не удалось загрузить задачи.';
+  });
+</script>
+</body>
+</html>

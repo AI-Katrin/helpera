@@ -568,6 +568,12 @@
     padding: 0 28px;
   }
 
+  .btn-primary:disabled {
+    background: #B7C6B8;
+    color: #EEF2EF;
+    cursor: not-allowed;
+  }
+
   .btn-secondary {
     min-width: 162px;
     border: 1px solid var(--gray-300);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Забота AI — Мои отклики</title>
+<title>Helpera — Мои отклики</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,17 +12,17 @@
 <body>
   <div class="page">
     <header class="topbar">
-      <a class="brand" href="#">
+      <a class="brand" href="index.html">
         <span class="brand-mark"></span>
-        <span>Забота AI</span>
+        <span>Helpera</span>
       </a>
 
       <nav class="nav">
-        <a href="#">Главная</a>
-        <a href="#">Все задачи</a>
-        <a href="#">Мои отклики</a>
-        <a href="#">Профиль</a>
-        <div class="avatar-mini">Е</div>
+        <a href="volunteer-lk.html" id="navProfile">Профиль</a>
+        <a href="volunteer-tasks.html" id="navTasks">Поиск задач</a>
+        <a href="volunteer-applications.html" id="navApplications">Мои отклики</a>
+        <a href="volunteer-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">?</div>
       </nav>
     </header>
 
@@ -34,8 +34,8 @@
           <p class="hero-text">Персональная подборка на основе вашего профиля и указанных предпочтений</p>
         </div>
         <div class="hero-actions">
-          <button class="btn-primary">Перейти ко всем задачам</button>
-          <button class="btn-outline-green">Все задачи</button>
+          <button class="btn-primary" id="heroTasksBtn">Перейти к поиску задач</button>
+          <button class="btn-outline-green" id="allTasksBtn">Поиск задач</button>
         </div>
       </section>
 
@@ -137,8 +137,8 @@
         </article>
       </section>
 
-      <section id="emptyDrafts" class="panel tip-panel" style="display:none; margin-bottom: 28px;">
-        <p class="tip-text">Черновиков пока нет. Если вы начнёте отклик и сохраните его позже, он появится здесь.</p>
+      <section id="emptyState" class="panel tip-panel" style="display:none; margin-bottom: 28px;">
+        <p class="tip-text" id="emptyText">Откликов пока нет.</p>
       </section>
 
       <section class="panel tip-panel">
@@ -153,40 +153,71 @@
 <script>
   const filterTabs = document.querySelectorAll('.tab');
   let applicationCards = document.querySelectorAll('.application-card');
-  const emptyDrafts = document.getElementById('emptyDrafts');
+  const emptyState = document.getElementById('emptyState');
+  const emptyText = document.getElementById('emptyText');
+  const params = new URLSearchParams(window.location.search);
+  const profileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+  const initialFilter = params.get('filter') || 'all';
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+  const statusLabels = {
+    draft: ['Черновик', 'status-invite'],
+    review: ['На рассмотрении', 'status-review'],
+    invite: ['Приглашение', 'status-invite'],
+    active: ['Выполняется', 'status-active'],
+    rejected: ['Отклонён', 'status-rejected'],
+    done: ['Завершён', 'status-feedback']
+  };
 
   function renderApplicationCard(application) {
     const task = application.tasks || {};
     const orgName = task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName || 'НКО';
+    const status = application.status || 'review';
+    const [label, className] = statusLabels[status] || statusLabels.review;
+    const taskUrl = withProfileId(`task-details.html?taskId=${encodeURIComponent(application.task_id || '')}`);
+    const draftUrl = withProfileId(`task-apply.html?taskId=${encodeURIComponent(application.task_id || '')}`);
     const card = document.createElement('article');
     card.className = 'application-card';
-    card.dataset.status = application.status || 'review';
+    card.dataset.status = status;
     card.innerHTML = `
       <div>
-        <h3 class="application-title"><a href="task-details.html?taskId=${encodeURIComponent(application.task_id || '')}" class="application-title-link">${task.title || 'Отклик на задачу'}</a></h3>
-        <p class="application-meta">${orgName} • ${task.format || application.format || 'Формат не указан'} • Отклик отправлен ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}</p>
-        <span class="status-pill status-review">На рассмотрении</span>
+        <h3 class="application-title"><a href="${taskUrl}" class="application-title-link">${task.title || 'Отклик на задачу'}</a></h3>
+        <p class="application-meta">${orgName} • ${task.format || application.format || 'Формат не указан'} • ${status === 'draft' ? 'Черновик сохранён' : 'Отклик отправлен'} ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}</p>
+        <span class="status-pill ${className}">${label}</span>
       </div>
       <div class="card-actions">
-        <a href="task-details.html?taskId=${encodeURIComponent(application.task_id || '')}" class="card-link">Посмотреть задачу</a>
-        <a href="#" class="card-link">Отменить отклик</a>
+        <a href="${taskUrl}" class="card-link">Посмотреть задачу</a>
+        ${status === 'draft' ? `<a href="${draftUrl}" class="card-link">Продолжить отклик</a>` : '<a href="#" class="card-link">Отменить отклик</a>'}
         <a href="#" class="card-link">Чат с организацией</a>
       </div>
     `;
     return card;
   }
 
+  function updateStats(applications) {
+    const values = document.querySelectorAll('.stat-card .stat-value');
+    values[0].textContent = String(applications.length);
+    values[1].textContent = String(applications.filter((item) => item.status === 'review').length);
+    values[2].textContent = String(applications.filter((item) => item.status === 'invite').length);
+    values[3].textContent = String(applications.filter((item) => item.status === 'done').length);
+  }
+
   async function loadApplicationsFromDb() {
     try {
-      const applications = await helperaDb.listApplications();
-      if (!applications.length) return;
+      if (!profileId) {
+        document.querySelector('.list-panel').innerHTML = '';
+        updateStats([]);
+        emptyText.textContent = 'Профиль волонтёра не найден. Откройте страницу из личного кабинета.';
+        emptyState.style.display = 'block';
+        return;
+      }
+      const applications = await helperaDb.listApplications({ volunteerProfileId: profileId });
       const listPanel = document.querySelector('.list-panel');
       listPanel.innerHTML = '';
       applications.forEach((application) => listPanel.appendChild(renderApplicationCard(application)));
       applicationCards = document.querySelectorAll('.application-card');
-      document.querySelectorAll('.stat-card .stat-value')[0].textContent = String(applications.length);
-      document.querySelectorAll('.stat-card .stat-value')[1].textContent = String(applications.filter((item) => item.status === 'review').length);
-      applyApplicationFilter(document.querySelector('.tab.active')?.dataset.filter || 'all');
+      updateStats(applications);
+      applyApplicationFilter(document.querySelector('.tab.active')?.dataset.filter || initialFilter);
     } catch (error) {
       console.error('Не удалось загрузить отклики из Supabase', error);
     }
@@ -211,8 +242,11 @@
       }
     });
 
-    if (emptyDrafts) {
-      emptyDrafts.style.display = filter === 'draft' ? 'block' : 'none';
+    if (emptyState) {
+      emptyText.textContent = filter === 'draft'
+        ? 'Черновиков пока нет. Если вы начнёте отклик и сохраните его позже, он появится здесь.'
+        : 'Откликов с таким статусом пока нет.';
+      emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
     }
   }
 
@@ -224,7 +258,21 @@
     });
   });
 
-  applyApplicationFilter('all');
+  document.getElementById('navTasks').href = withProfileId('volunteer-tasks.html');
+  document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
+  document.getElementById('navProfile').href = withProfileId('volunteer-lk.html');
+  document.getElementById('navDashboard').href = withProfileId('volunteer-dashboard.html');
+  document.getElementById('heroTasksBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-tasks.html'));
+  document.getElementById('allTasksBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-tasks.html'));
+  if (profileId) {
+    helperaDb.getVolunteerProfile(profileId).then((profile) => {
+      document.getElementById('avatarMini').textContent = (profile?.about?.firstName || 'В').slice(0, 1).toUpperCase();
+    });
+  }
+
+  const activeTab = Array.from(filterTabs).find((tab) => tab.dataset.filter === initialFilter) || filterTabs[0];
+  filterTabs.forEach(item => item.classList.remove('active'));
+  activeTab.classList.add('active');
   loadApplicationsFromDb();
 </script>
 

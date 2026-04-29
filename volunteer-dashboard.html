@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Аналитика волонтёра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/pages/volunteer-applications.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark"></span><span>Helpera</span></a>
+      <nav class="nav">
+        <a href="volunteer-lk.html" id="navProfile">Профиль</a>
+        <a href="volunteer-tasks.html" id="navTasks">Поиск задач</a>
+        <a href="volunteer-applications.html" id="navApplications">Мои отклики</a>
+        <a href="volunteer-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">?</div>
+      </nav>
+    </header>
+
+    <main class="content">
+      <section class="panel hero">
+        <div>
+          <div class="badge">Аналитика</div>
+          <h1 class="hero-title" id="heroTitle">Ваша активность</h1>
+          <p class="hero-text">Сводка по откликам, приглашениям и персональным данным профиля.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-primary" id="tasksBtn">Найти задачу</button>
+          <button class="btn-outline-green" id="profileBtn">Профиль</button>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div class="panel stat-card"><p class="stat-label">Всего откликов</p><p class="stat-value">0</p></div>
+        <div class="panel stat-card"><p class="stat-label">На рассмотрении</p><p class="stat-value">0</p></div>
+        <div class="panel stat-card"><p class="stat-label">Приглашения</p><p class="stat-value">0</p></div>
+        <div class="panel stat-card"><p class="stat-label">Черновики</p><p class="stat-value">0</p></div>
+      </section>
+
+      <section class="panel list-panel">
+        <article class="application-card">
+          <div>
+            <h3 class="application-title">Профиль и предпочтения</h3>
+            <p class="application-meta" id="profileSummary">Загружаем данные профиля...</p>
+            <span class="status-pill status-active" id="profileStatus">Профиль</span>
+          </div>
+          <div class="card-actions">
+            <a href="volunteer-lk.html" id="profileLink" class="card-link">Открыть профиль</a>
+            <a href="volunteer-profile-edit.html" id="editLink" class="card-link">Редактировать</a>
+          </div>
+        </article>
+        <article class="application-card">
+          <div>
+            <h3 class="application-title">Последняя активность</h3>
+            <p class="application-meta" id="lastActivity">Откликов пока нет.</p>
+            <span class="status-pill status-review">Активность</span>
+          </div>
+          <div class="card-actions">
+            <a href="volunteer-applications.html" id="applicationsLink" class="card-link">Мои отклики</a>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const profileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+  async function initDashboard() {
+    document.getElementById('navProfile').href = withProfileId('volunteer-lk.html');
+    document.getElementById('navTasks').href = withProfileId('volunteer-tasks.html');
+    document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
+    document.getElementById('navDashboard').href = withProfileId('volunteer-dashboard.html');
+    document.getElementById('tasksBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-tasks.html'));
+    document.getElementById('profileBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-lk.html'));
+    document.getElementById('profileLink').href = withProfileId('volunteer-lk.html');
+    document.getElementById('editLink').href = withProfileId('volunteer-profile-edit.html');
+    document.getElementById('applicationsLink').href = withProfileId('volunteer-applications.html');
+
+    const profile = profileId ? await helperaDb.getVolunteerProfile(profileId) : null;
+    const applications = profileId ? await helperaDb.listApplications({ volunteerProfileId: profileId }) : [];
+    const values = document.querySelectorAll('.stat-value');
+    values[0].textContent = String(applications.length);
+    values[1].textContent = String(applications.filter((item) => item.status === 'review').length);
+    values[2].textContent = String(applications.filter((item) => item.status === 'invite').length);
+    values[3].textContent = String(applications.filter((item) => item.status === 'draft').length);
+
+    const firstName = profile?.about?.firstName || 'В';
+    document.getElementById('avatarMini').textContent = firstName.slice(0, 1).toUpperCase();
+    document.getElementById('heroTitle').textContent = `Аналитика, ${firstName}`;
+    document.getElementById('profileStatus').textContent = profile?.registrationStep === 'completed' ? 'Профиль заполнен' : 'Профиль не завершён';
+    document.getElementById('profileSummary').textContent = [
+      profile?.about?.city,
+      profile?.interests?.format,
+      ...(profile?.skills?.skills || []).slice(0, 3)
+    ].filter(Boolean).join(' • ') || 'Заполните профиль, чтобы получать точнее рекомендации.';
+
+    const latest = applications[0];
+    document.getElementById('lastActivity').textContent = latest
+      ? `${latest.tasks?.title || 'Отклик'} • ${latest.status === 'draft' ? 'черновик' : 'статус: ' + latest.status}`
+      : 'Откликов пока нет.';
+  }
+
+  initDashboard().catch((error) => {
+    console.error(error);
+    document.getElementById('profileSummary').textContent = 'Не удалось загрузить аналитику.';
+  });
+</script>
+</body>
+</html>

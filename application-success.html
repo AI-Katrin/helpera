@@ -18,11 +18,11 @@
       </a>
 
       <nav class="nav">
-        <a href="index.html">Главная</a>
-        <a href="volunteer-tasks.html">Все задачи</a>
-        <a href="volunteer-applications.html">Мои отклики</a>
-        <a href="volunteer-profile.html">Профиль</a>
-        <div class="avatar-mini">Е</div>
+        <a href="volunteer-lk.html" id="navProfile">Профиль</a>
+        <a href="volunteer-tasks.html" id="navTasks">Поиск задач</a>
+        <a href="volunteer-applications.html" id="navApplications">Мои отклики</a>
+        <a href="volunteer-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">?</div>
       </nav>
     </header>
 
@@ -40,12 +40,12 @@
       <section class="panel task-panel">
         <div>
           <h2 class="task-title">Задача, на которую вы откликнулись</h2>
-          <p class="task-name">Анализ обратной связи участников образовательной программы</p>
-          <p class="task-meta">АНО «Открытые знания» • Онлайн • Разовая задача • 2–4 часа</p>
+          <p class="task-name" id="taskName">Загружаем задачу...</p>
+          <p class="task-meta" id="taskMeta"></p>
         </div>
         <div class="task-side">
           <div class="task-chip">Статус: отправлено</div><br>
-          <a href="#" class="task-link">Посмотреть задачу</a>
+          <a href="#" class="task-link" id="taskLink">Посмотреть задачу</a>
         </div>
       </section>
 
@@ -85,11 +85,49 @@
       </section>
 
       <div class="bottom-actions">
-        <button class="btn-primary">Перейти в мои отклики</button>
-        <button class="btn-secondary">Смотреть другие задачи</button>
-        <button class="btn-secondary">В личный кабинет</button>
+        <button class="btn-primary" id="applicationsBtn">Перейти в мои отклики</button>
+        <button class="btn-secondary" id="tasksBtn">Смотреть другие задачи</button>
+        <button class="btn-secondary" id="profileBtn">В личный кабинет</button>
       </div>
     </main>
   </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const applicationId = params.get('applicationId');
+  const profileIdFromUrl = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+  let profileId = profileIdFromUrl;
+
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+  async function initSuccess() {
+    let application = null;
+    if (applicationId) application = await helperaDb.getApplication(applicationId);
+    if (application?.volunteer_profile_id) profileId = application.volunteer_profile_id;
+
+    const task = application?.tasks || (application?.task_id ? await helperaDb.getTask(application.task_id) : null);
+    const orgName = task?.ngo_profiles?.org_name || task?.ngo_profiles?.about?.shortName || 'НКО';
+    const firstName = (await helperaDb.getVolunteerProfile(profileId))?.about?.firstName || 'В';
+    document.getElementById('avatarMini').textContent = firstName.slice(0, 1).toUpperCase();
+    document.getElementById('taskName').textContent = task?.title || 'Отклик отправлен';
+    document.getElementById('taskMeta').textContent = task ? `${orgName} • ${task.format || 'Формат не указан'}` : 'Статус отклика сохранён';
+
+    document.getElementById('navTasks').href = withProfileId('volunteer-tasks.html');
+    document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
+    document.getElementById('navProfile').href = withProfileId('volunteer-lk.html');
+    document.getElementById('navDashboard').href = withProfileId('volunteer-dashboard.html');
+    document.getElementById('taskLink').href = task?.id ? withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`) : withProfileId('volunteer-tasks.html');
+    document.getElementById('applicationsBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-applications.html'));
+    document.getElementById('tasksBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-tasks.html'));
+    document.getElementById('profileBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-lk.html'));
+  }
+
+  initSuccess().catch((error) => {
+    console.error(error);
+    document.getElementById('taskName').textContent = 'Отклик отправлен';
+  });
+</script>
 </body>
 </html>

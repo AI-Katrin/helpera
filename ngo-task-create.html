@@ -179,7 +179,7 @@
   const finishBtn = document.getElementById('finishBtn');
   const backBtn = document.getElementById('backBtn');
   const urlParams = new URLSearchParams(window.location.search);
-  const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  let profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
 
   const titleInput = document.getElementById('taskTitle');
   const descInput = document.getElementById('taskDesc');
@@ -235,6 +235,33 @@
     if (!profile) return null;
     mutator(profile);
     return helperaDb.updateNgoProfile(profileId, profile);
+  }
+
+  async function ensureNgoProfileId() {
+    if (!profileId) return null;
+    const profile = await helperaDb.getNgoProfile(profileId);
+    if (profile || !helperaDb.isSupabaseEnabled) return profileId;
+
+    const localProfile = JSON.parse(localStorage.getItem(helperaDb.localKeys.ngoProfiles) || '[]')
+      .find((item) => item.profileId === profileId);
+    if (!localProfile) return null;
+
+    const migrated = await helperaDb.createNgoProfile({
+      orgName: localProfile.account?.orgName || localProfile.about?.shortName || 'НКО без названия',
+      contact: localProfile.account?.contact || localProfile.contacts?.email || 'ngo@helpera.local'
+    });
+    await helperaDb.updateNgoProfile(migrated.profileId, {
+      about: localProfile.about || {},
+      contacts: localProfile.contacts || {},
+      firstTask: {
+        ...(localProfile.firstTask || {}),
+        ...collectData()
+      },
+      registrationStep: 'firstTask'
+    });
+    profileId = migrated.profileId;
+    window.history.replaceState(null, '', withProfileId('ngo-task-create.html'));
+    return profileId;
   }
 
   function withProfileId(path) {
@@ -518,13 +545,18 @@
     validate();
     if (!finishBtn.disabled) {
       try {
+        const actualProfileId = await ensureNgoProfileId();
+        if (!actualProfileId) {
+          throw new Error('профиль НКО не найден. Начните регистрацию организации заново или откройте страницу по ссылке с profileId.');
+        }
         const task = collectData();
         await saveDraft();
-        await helperaDb.createTask(profileId, task);
-        await helperaDb.updateNgoProfile(profileId, { registrationStep: 'completed', firstTask: task });
+        await helperaDb.createTask(actualProfileId, task);
+        await helperaDb.updateNgoProfile(actualProfileId, { registrationStep: 'completed', firstTask: task });
         window.location.href = withProfileId('ngo-dashboard.html');
       } catch (error) {
-        alert('Не удалось создать задачу. Проверьте подключение к Supabase и попробуйте ещё раз.');
+        const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
+        alert(`Не удалось создать задачу: ${message}`);
         console.error(error);
       }
     }

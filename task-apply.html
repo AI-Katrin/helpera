@@ -18,15 +18,15 @@
       </a>
 
       <nav class="nav">
-        <a href="index.html">Главная</a>
-        <a href="volunteer-tasks.html">Все задачи</a>
-        <a href="volunteer-applications.html">Мои отклики</a>
-        <a href="volunteer-profile.html">Профиль</a>
-        <div class="avatar-mini">Е</div>
+        <a href="volunteer-lk.html" id="navProfile">Профиль</a>
+        <a href="volunteer-tasks.html" id="navTasks">Поиск задач</a>
+        <a href="volunteer-applications.html" id="navApplications">Мои отклики</a>
+        <a href="volunteer-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">?</div>
       </nav>
     </header>
 
-    <div class="breadcrumbs">Все задачи / Подробности задачи / Отклик</div>
+    <div class="breadcrumbs">Поиск задач / Подробности задачи / Отклик</div>
 
     <div class="layout">
       <aside class="panel left-panel">
@@ -71,14 +71,13 @@
 
         <section class="task-box">
           <div class="task-fit">Подходит вам на 93%</div>
-          <h3>Анализ обратной связи участников образовательной программы</h3>
-          <p class="task-meta">АНО «Открытые знания» • Онлайн • Разовая задача • 2–4 часа</p>
+          <h3 id="taskTitle">Загружаем задачу...</h3>
+          <p class="task-meta" id="taskMeta"></p>
         </section>
 
         <div class="field">
-          <label class="label">Сообщение для организации <span class="optional">(необязательно)</span></label>
-          <textarea class="textarea" id="applicationMessage">Здравствуйте! Мне интересна эта задача, потому что у меня есть опыт
-в анализе данных и работе с обратной связью. Буду рада помочь проекту.</textarea>
+          <label class="label">Сообщение для организации <span class="optional">(обязательно)</span></label>
+          <textarea class="textarea" id="applicationMessage" placeholder="Коротко расскажите, почему хотите помочь и какой опыт пригодится"></textarea>
         </div>
 
         <div class="field">
@@ -107,12 +106,12 @@
 
         <div class="checks">
           <label class="check-item">
-            <input type="checkbox" checked />
+            <input type="checkbox" id="confirmParticipation" />
             <span class="check-box"></span>
             <span>Я подтверждаю, что готов(а) участвовать в выполнении этой задачи</span>
           </label>
           <label class="check-item">
-            <input type="checkbox" />
+            <input type="checkbox" id="confirmContact" />
             <span class="check-box"></span>
             <span>Разрешаю организации связаться со мной по контактам из профиля</span>
           </label>
@@ -124,9 +123,9 @@
         </section>
 
         <div class="bottom-actions">
-          <button class="btn-primary" id="sendApplicationBtn">Отправить отклик</button>
+          <button class="btn-primary" id="sendApplicationBtn" disabled>Отправить отклик</button>
           <button class="btn-secondary" id="backBtn" type="button">Назад</button>
-          <a href="#" class="link-draft">Сохранить черновик</a>
+          <a href="#" class="link-draft" id="saveDraftLink">Сохранить черновик</a>
         </div>
       </main>
     </div>
@@ -136,12 +135,63 @@
 <script src="./js/supabase-config.js"></script>
 <script src="./js/app-db.js"></script>
 <script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const taskId = urlParams.get('taskId');
+  const volunteerProfileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+  const withProfileId = (path) => volunteerProfileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(volunteerProfileId)}` : path;
+  const withTaskAndProfile = (path) => taskId ? withProfileId(`${path}${path.includes('?') ? '&' : '?'}taskId=${encodeURIComponent(taskId)}`) : withProfileId(path);
+  const messageInput = document.getElementById('applicationMessage');
+  const sendButton = document.getElementById('sendApplicationBtn');
+  const saveDraftLink = document.getElementById('saveDraftLink');
+  const confirmParticipation = document.getElementById('confirmParticipation');
+  const confirmContact = document.getElementById('confirmContact');
+  let activeTask = null;
+  let activeProfile = null;
+  const uploadedFiles = [];
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    })[char]);
+  }
+
+  function formatDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('ru-RU');
+  }
+
+  function taskDates(task) {
+    const start = task?.date_start || task?.payload?.dateStart;
+    const end = task?.date_end || task?.payload?.dateEnd;
+    if (start && end && start !== end) return `${formatDate(start)} — ${formatDate(end)}`;
+    return start ? formatDate(start) : 'Сроки уточняются';
+  }
+
+  function validateApplication() {
+    const selectedFormat = document.querySelector('.chips[data-select="single"] .chip.active')?.textContent.trim();
+    const valid = Boolean(
+      taskId &&
+      volunteerProfileId &&
+      selectedFormat &&
+      messageInput.value.trim().length >= 20 &&
+      confirmParticipation.checked &&
+      confirmContact.checked
+    );
+    sendButton.disabled = !valid;
+  }
+
   document.querySelectorAll('.chips[data-select="single"]').forEach(group => {
     const chips = group.querySelectorAll('.chip');
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
         chips.forEach(item => item.classList.remove('active'));
         chip.classList.add('active');
+        validateApplication();
       });
     });
   });
@@ -173,30 +223,51 @@
         `;
 
         item.querySelector('.file-remove').addEventListener('click', () => item.remove());
+        uploadedFiles.push({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          uploadedAt: new Date().toISOString(),
+          storageStatus: 'queued_for_db_sync'
+        });
         fileList.appendChild(item);
       });
       fileInput.value = '';
     });
   }
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const taskId = urlParams.get('taskId');
-  const volunteerProfileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+  function selectedFormat() {
+    return document.querySelector('.chips[data-select="single"] .chip.active')?.textContent.trim() || null;
+  }
 
-  document.getElementById('sendApplicationBtn').addEventListener('click', async () => {
-    try {
-      const selectedFormat = document.querySelector('.chips[data-select="single"] .chip.active')?.textContent.trim() || null;
-      await helperaDb.createApplication({
-        task_id: taskId,
-        volunteer_profile_id: volunteerProfileId,
-        message: document.getElementById('applicationMessage').value.trim(),
-        format: selectedFormat,
-        status: 'review',
-        payload: {
-          createdFrom: 'task-apply.html'
+  function collectApplication(status) {
+    return {
+      task_id: taskId,
+      volunteer_profile_id: volunteerProfileId,
+      message: messageInput.value.trim(),
+      format: selectedFormat(),
+      status,
+      payload: {
+        createdFrom: 'task-apply.html',
+        filesDraft: uploadedFiles,
+        confirmations: {
+          participation: confirmParticipation.checked,
+          contact: confirmContact.checked
         }
-      });
-      window.location.href = 'application-success.html';
+      }
+    };
+  }
+
+  async function saveApplication(status) {
+    return helperaDb.createApplication(collectApplication(status));
+  }
+
+  sendButton.addEventListener('click', async () => {
+    validateApplication();
+    if (sendButton.disabled) return;
+    try {
+      const application = await saveApplication('review');
+      window.location.href = withProfileId(`application-success.html?applicationId=${encodeURIComponent(application.id)}`);
     } catch (error) {
       const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
       alert(`Не удалось отправить отклик: ${message}`);
@@ -204,8 +275,62 @@
     }
   });
 
+  saveDraftLink.addEventListener('click', async (event) => {
+    event.preventDefault();
+    if (!taskId || !volunteerProfileId) {
+      alert('Не удалось сохранить черновик: задача или профиль не найдены.');
+      return;
+    }
+    try {
+      await saveApplication('draft');
+      window.location.href = withProfileId('volunteer-applications.html?filter=draft');
+    } catch (error) {
+      const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
+      alert(`Не удалось сохранить черновик: ${message}`);
+      console.error(error);
+    }
+  });
+
   document.getElementById('backBtn').addEventListener('click', () => {
-    window.location.href = taskId ? `task-details.html?taskId=${encodeURIComponent(taskId)}` : 'volunteer-tasks.html';
+    window.location.href = taskId ? withProfileId(`task-details.html?taskId=${encodeURIComponent(taskId)}`) : withProfileId('volunteer-tasks.html');
+  });
+
+  [messageInput, confirmParticipation, confirmContact].forEach((element) => {
+    element.addEventListener('input', validateApplication);
+    element.addEventListener('change', validateApplication);
+  });
+
+  async function hydratePage() {
+    document.getElementById('navTasks').href = withProfileId('volunteer-tasks.html');
+    document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
+    document.getElementById('navProfile').href = withProfileId('volunteer-lk.html');
+    document.getElementById('navDashboard').href = withProfileId('volunteer-dashboard.html');
+    if (volunteerProfileId) {
+      activeProfile = await helperaDb.getVolunteerProfile(volunteerProfileId);
+      document.getElementById('avatarMini').textContent = (activeProfile?.about?.firstName || 'В').slice(0, 1).toUpperCase();
+    }
+    if (taskId) {
+      activeTask = await helperaDb.getTask(taskId);
+      if (activeTask) {
+        const orgName = activeTask.tasks?.ngo_profiles?.org_name || activeTask.ngo_profiles?.org_name || activeTask.ngo_profiles?.about?.shortName || 'НКО';
+        document.getElementById('taskTitle').textContent = activeTask.title || 'Задача без названия';
+        document.getElementById('taskMeta').textContent = `${orgName} • ${activeTask.format || activeTask.payload?.format || 'Формат не указан'} • ${taskDates(activeTask)}`;
+        const format = activeTask.format || activeTask.payload?.format;
+        document.querySelectorAll('.chips[data-select="single"] .chip').forEach((chip) => {
+          chip.classList.toggle('active', chip.textContent.trim() === format);
+        });
+      } else {
+        document.getElementById('taskTitle').textContent = 'Задача не найдена';
+        document.getElementById('taskMeta').textContent = 'Проверьте ссылку или подключение к Supabase';
+      }
+    }
+    validateApplication();
+  }
+
+  hydratePage().catch((error) => {
+    console.error(error);
+    document.getElementById('taskTitle').textContent = 'Не удалось загрузить данные';
+    validateApplication();
   });
 </script>
 </body>

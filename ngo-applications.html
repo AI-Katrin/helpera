@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Отклики НКО</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/pages/volunteer-applications.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="ngo-lk.html" id="navProfile">Профиль</a>
+        <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="navApplications">Отклики</a>
+        <a href="ngo-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">Н</div>
+      </nav>
+    </header>
+
+    <main class="content">
+      <section class="panel hero">
+        <div>
+          <div class="badge">Отклики</div>
+          <h1 class="hero-title">Кандидаты на ваши задачи</h1>
+          <p class="hero-text">Здесь отображаются отклики волонтёров по задачам вашей организации.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-primary" id="dashboardBtn">Аналитика</button>
+          <button class="btn-outline-green" id="tasksBtn">Мои задачи</button>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div class="panel stat-card">
+          <p class="stat-label">Всего откликов</p>
+          <p class="stat-value">0</p>
+        </div>
+        <div class="panel stat-card">
+          <p class="stat-label">На рассмотрении</p>
+          <p class="stat-value">0</p>
+        </div>
+        <div class="panel stat-card">
+          <p class="stat-label">Приглашения</p>
+          <p class="stat-value">0</p>
+        </div>
+        <div class="panel stat-card">
+          <p class="stat-label">Отклонённые</p>
+          <p class="stat-value">0</p>
+        </div>
+      </section>
+
+      <section class="panel tabs-panel">
+        <div class="tabs">
+          <button class="tab active" data-filter="all">Все</button>
+          <button class="tab" data-filter="review">На рассмотрении</button>
+          <button class="tab" data-filter="invite">Приглашения</button>
+          <button class="tab" data-filter="rejected">Отклонённые</button>
+          <button class="tab" data-filter="active">В работе</button>
+        </div>
+      </section>
+
+      <section class="panel list-panel" id="applicationsList"></section>
+
+      <section id="emptyState" class="panel tip-panel" style="display:none; margin-bottom: 28px;">
+        <p class="tip-text" id="emptyText">Откликов пока нет.</p>
+      </section>
+    </main>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const ngoProfileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  const list = document.getElementById('applicationsList');
+  const filterTabs = document.querySelectorAll('.tab');
+  const emptyState = document.getElementById('emptyState');
+  const emptyText = document.getElementById('emptyText');
+  let applicationCards = [];
+
+  const withProfileId = (path) => ngoProfileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(ngoProfileId)}` : path;
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  })[char]);
+  const statusLabels = {
+    review: ['На рассмотрении', 'status-review'],
+    invite: ['Приглашение', 'status-invite'],
+    active: ['В работе', 'status-active'],
+    rejected: ['Отклонён', 'status-rejected'],
+    done: ['Завершён', 'status-feedback']
+  };
+
+  function volunteerName(profile = {}) {
+    const about = profile.about || {};
+    return [about.lastName, about.firstName, about.middleName].filter(Boolean).join(' ') || profile.contact || 'Волонтёр';
+  }
+
+  function renderApplication(application) {
+    const task = application.tasks || {};
+    const volunteer = application.volunteer_profiles || {};
+    const status = application.status || 'review';
+    const [label, className] = statusLabels[status] || statusLabels.review;
+    const card = document.createElement('article');
+    card.className = 'application-card';
+    card.dataset.status = status;
+    card.innerHTML = `
+      <div>
+        <h3 class="application-title"><a href="volunteer-candidate-profile.html" class="application-title-link">${escapeHtml(volunteerName(volunteer))}</a></h3>
+        <p class="application-meta">${escapeHtml(task.title || 'Задача')} • ${escapeHtml(application.format || task.format || 'Формат не указан')} • ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}</p>
+        <p class="application-meta">${escapeHtml(application.message || 'Сообщение не заполнено')}</p>
+        <span class="status-pill ${className}">${label}</span>
+      </div>
+      <div class="card-actions">
+        <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(application.task_id || '')}&role=ngo`)}" class="card-link">Посмотреть задачу</a>
+        <button class="card-link action-link" type="button" data-action="invite" data-id="${application.id}">Пригласить</button>
+        <button class="card-link action-link" type="button" data-action="rejected" data-id="${application.id}">Отклонить</button>
+      </div>
+    `;
+    return card;
+  }
+
+  function updateStats(applications) {
+    const values = document.querySelectorAll('.stat-card .stat-value');
+    values[0].textContent = String(applications.length);
+    values[1].textContent = String(applications.filter((item) => item.status === 'review').length);
+    values[2].textContent = String(applications.filter((item) => item.status === 'invite').length);
+    values[3].textContent = String(applications.filter((item) => item.status === 'rejected').length);
+  }
+
+  function applyFilter(filter) {
+    let visible = 0;
+    applicationCards.forEach((card) => {
+      const show = filter === 'all' || card.dataset.status === filter;
+      card.style.display = show ? 'flex' : 'none';
+      if (show) visible += 1;
+    });
+    emptyText.textContent = 'Откликов с таким статусом пока нет.';
+    emptyState.style.display = visible ? 'none' : 'block';
+  }
+
+  async function changeStatus(id, status) {
+    await helperaDb.updateApplication(id, { status });
+    await loadApplications();
+  }
+
+  async function loadApplications() {
+    if (!ngoProfileId) {
+      emptyText.textContent = 'Профиль НКО не найден.';
+      emptyState.style.display = 'block';
+      return;
+    }
+    const applications = await helperaDb.listApplications({ ngoProfileId, includeDrafts: false });
+    list.innerHTML = '';
+    applications.forEach((application) => list.appendChild(renderApplication(application)));
+    applicationCards = Array.from(document.querySelectorAll('.application-card'));
+    updateStats(applications);
+    applyFilter(document.querySelector('.tab.active')?.dataset.filter || 'all');
+    document.querySelectorAll('.action-link').forEach((button) => {
+      button.addEventListener('click', () => changeStatus(button.dataset.id, button.dataset.action));
+    });
+  }
+
+  filterTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      filterTabs.forEach((item) => item.classList.remove('active'));
+      tab.classList.add('active');
+      applyFilter(tab.dataset.filter);
+    });
+  });
+
+  document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
+  document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
+  document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
+  document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
+  document.getElementById('dashboardBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-dashboard.html'));
+  document.getElementById('tasksBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-tasks.html'));
+
+  loadApplications().catch((error) => {
+    console.error(error);
+    emptyText.textContent = 'Не удалось загрузить отклики из Supabase.';
+    emptyState.style.display = 'block';
+  });
+</script>
+</body>
+</html>

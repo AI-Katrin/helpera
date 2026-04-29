@@ -50,6 +50,9 @@
       </section>
     </main>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
   <script>
     const nativeAlert = window.alert.bind(window);
     window.alert = (message, ...args) => {
@@ -65,23 +68,6 @@
     const togglePassword = document.getElementById('togglePassword');
     const passwordHint = document.getElementById('password-hint');
     const form = document.getElementById('ngoForm');
-    const ngoProfilesStorageKey = 'ngoProfiles';
-    const activeNgoProfileStorageKey = 'activeNgoProfileId';
-
-    function getProfiles() {
-      return JSON.parse(localStorage.getItem(ngoProfilesStorageKey) || '[]');
-    }
-
-    function saveProfiles(profiles) {
-      localStorage.setItem(ngoProfilesStorageKey, JSON.stringify(profiles));
-    }
-
-    function getUniqueProfileId() {
-      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-        return window.crypto.randomUUID();
-      }
-      return `ngo_profile_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-    }
     function isFilled(v) {
       return v.trim().length > 0;
     }
@@ -123,28 +109,24 @@
       togglePassword.setAttribute('aria-pressed', String(isHidden));
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       validateForm();
       if (continueBtn.disabled) return;
+      continueBtn.disabled = true;
 
-      const profileId = getUniqueProfileId();
-      const profiles = getProfiles();
-      profiles.push({
-        profileId,
-        createdAt: new Date().toISOString(),
-        registrationStep: 'account',
-        account: {
+      try {
+        const profile = await helperaDb.createNgoProfile({
           orgName: orgName.value.trim(),
           contact: contact.value.trim()
-        },
-        about: {},
-        contacts: {},
-        firstTask: {}
-      });
-      saveProfiles(profiles);
-      localStorage.setItem(activeNgoProfileStorageKey, profileId);
-      window.location.href = `ngo-about.html?profileId=${encodeURIComponent(profileId)}`;
+        });
+        window.location.href = `ngo-about.html?profileId=${encodeURIComponent(profile.profileId)}`;
+      } catch (error) {
+        const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
+        alert(`Не удалось создать профиль НКО: ${message}`);
+        console.error(error);
+        validateForm();
+      }
     });
     validateForm();
   </script>

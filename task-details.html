@@ -18,76 +18,51 @@
       </a>
 
       <nav class="nav">
-        <a href="index.html">Главная</a>
-        <a href="volunteer-tasks.html">Все задачи</a>
-        <a href="volunteer-applications.html">Мои отклики</a>
-        <a href="volunteer-profile.html">Профиль</a>
-        <div class="avatar-mini">Е</div>
+        <a href="volunteer-lk.html" id="nav-profile">Профиль</a>
+        <a href="volunteer-tasks.html" id="nav-tasks">Поиск задач</a>
+        <a href="volunteer-applications.html" id="nav-applications">Мои отклики</a>
+        <a href="volunteer-dashboard.html" id="nav-dashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatar-mini">?</div>
       </nav>
     </header>
 
-    <div class="breadcrumbs">Все задачи / Подробности задачи</div>
+    <div class="breadcrumbs"><a href="volunteer-tasks.html" id="breadcrumbs-tasks">Поиск задач</a> / Подробности задачи</div>
 
     <div class="layout">
-      <main class="main-panel">
-        <div class="fit-badge">Подходит вам на 93%</div>
-        <h1>Анализ обратной связи участников образовательной программы</h1>
-        <p class="task-meta">АНО «Открытые знания» • Онлайн • Разовая задача</p>
+      <main class="main-panel" id="main-panel">
+        <div class="fit-badge" id="fit-badge">Задача из базы Supabase</div>
+        <h1 id="task-title">Загружаем задачу...</h1>
+        <p class="task-meta" id="task-meta"></p>
 
         <div class="actions">
-          <button class="btn-primary">Откликнуться</button>
-          <button class="btn-secondary">Сохранить</button>
-          <button class="btn-secondary">Не показывать</button>
+          <button class="btn-primary apply-action" type="button">Откликнуться</button>
+          <button class="btn-secondary" type="button">Сохранить</button>
+          <button class="btn-secondary" type="button">Не показывать</button>
         </div>
 
         <section class="section">
           <h2>О задаче</h2>
-          <p>
-            Некоммерческая организация ищет волонтёра, который поможет обработать и
-            структурировать отзывы участников образовательной программы. Необходимо
-            сгруппировать ответы, выделить основные выводы и подготовить краткое
-            аналитическое summary для внутренней команды проекта.
-          </p>
+          <p id="task-description">Подождите, получаем описание задачи.</p>
         </section>
 
         <section class="section">
           <h2>Что нужно будет делать</h2>
-          <ul class="bullets">
-            <li>Собрать и систематизировать отзывы участников</li>
-            <li>Выделить основные темы, проблемы и повторяющиеся ответы</li>
-            <li>Подготовить краткий аналитический вывод по результатам</li>
-            <li>Передать материалы координатору проекта</li>
-          </ul>
+          <ul class="bullets" id="task-bullets"></ul>
         </section>
 
         <section class="section">
           <h2>Какие навыки пригодятся</h2>
-          <div class="chips">
-            <span class="chip green">Аналитика</span>
-            <span class="chip green">Соц. проекты</span>
-            <span class="chip">Работа с текстом</span>
-            <span class="chip">Внимание к деталям</span>
-          </div>
+          <div class="chips" id="task-skills"></div>
         </section>
 
-        <section class="section" style="margin-bottom:0;">
+        <section class="section" style="margin-bottom:0;" id="materials-section">
           <h2>Дополнительные материалы</h2>
-          <div class="files">
-            <div class="file-card">
-              <div class="file-icon"></div>
-              <div>
-                <p class="file-name">ТЗ_мероприятие.pdf</p>
-                <p class="file-meta">PDF • 2.4 MB</p>
-              </div>
-            </div>
-            <div class="file-card">
-              <div class="file-icon"></div>
-              <div>
-                <p class="file-name">схема_площадки.jpg</p>
-                <p class="file-meta">JPG • 3.1 MB</p>
-              </div>
-            </div>
-          </div>
+          <div class="files" id="task-files"></div>
+        </section>
+
+        <section class="similar-panel">
+          <h2>Похожие задачи</h2>
+          <div class="similar-grid" id="similar-grid"></div>
         </section>
       </main>
 
@@ -97,85 +72,279 @@
 
           <div class="side-block">
             <p class="side-label">Организация</p>
-            <p class="side-value">АНО «Открытые знания»</p>
+            <p class="side-value" id="side-org">...</p>
           </div>
 
           <div class="side-block">
             <p class="side-label">Формат</p>
-            <p class="side-value">Онлайн</p>
+            <p class="side-value" id="side-format">...</p>
           </div>
 
           <div class="side-block">
             <p class="side-label">Тип участия</p>
-            <p class="side-value">Разовая задача</p>
+            <p class="side-value" id="side-type">Проектная задача</p>
           </div>
 
           <div class="side-block">
             <p class="side-label">Ожидаемая занятость</p>
-            <p class="side-value">2–4 часа</p>
+            <p class="side-value" id="side-workload">Уточняется у организации</p>
           </div>
 
           <div class="side-block">
-            <p class="side-label">Срок отклика</p>
-            <p class="side-value">До 15 апреля</p>
+            <p class="side-label">Сроки</p>
+            <p class="side-value" id="side-dates">...</p>
           </div>
 
           <div class="side-block">
-            <p class="side-label">Дата начала</p>
-            <p class="side-value">Сразу после подтверждения</p>
+            <p class="side-label">Город</p>
+            <p class="side-value" id="side-city">...</p>
           </div>
 
           <div class="side-actions">
-            <button class="btn-primary">Откликнуться</button>
-            <button class="btn-secondary">Не показывать</button>
+            <button class="btn-primary apply-action" type="button">Откликнуться</button>
+            <button class="btn-secondary" type="button">Не показывать</button>
           </div>
         </section>
 
         <section class="side-panel org-panel">
           <h2>Об организации</h2>
-          <p>
-            АНО «Открытые знания» реализует образовательные и социальные
-            инициативы для подростков и молодых людей.
-          </p>
+          <p id="org-description">Загружаем информацию об организации.</p>
           <div class="org-tags">
             <span class="chip green">Проверенная НКО</span>
-            <span class="chip blue">Рейтинг 4.8</span>
+            <span class="chip blue" id="org-type">Профиль НКО</span>
           </div>
         </section>
 
         <section class="contact-panel">
           <h2>Контактное лицо</h2>
-          <p class="contact-role">Координатор проекта</p>
+          <p class="contact-role" id="contact-role">Координатор проекта</p>
           <div class="contact-avatar"></div>
-          <p class="contact-name">Иванова Елена Игоревна</p>
-          <p class="contact-text">После отклика с вами свяжется представитель организации</p>
-          <button class="btn-question">Задать вопрос</button>
+          <p class="contact-name" id="contact-name">...</p>
+          <p class="contact-text" id="contact-text">После отклика с вами свяжется представитель организации</p>
+          <button class="btn-question" type="button">Задать вопрос</button>
         </section>
       </aside>
     </div>
 
-    <section class="similar-panel">
-      <h2>Похожие задачи</h2>
-      <div class="similar-grid">
-        <article class="mini-card">
-          <h3 class="mini-title">Подготовка отчёта по итогам опроса</h3>
-          <p class="mini-sub">Онлайн • Разовая задача</p>
-          <span class="chip blue">Подходит на 89%</span>
-        </article>
-
-        <article class="mini-card">
-          <h3 class="mini-title">Анализ обратной связи волонтёров</h3>
-          <p class="mini-sub">Онлайн • Короткая задача</p>
-          <span class="chip blue">Подходит на 87%</span>
-        </article>
-
-        <article class="mini-card">
-          <h3 class="mini-title">Систематизация отзывов участников</h3>
-          <p class="mini-sub">Онлайн • Проектная задача</p>
-          <span class="chip blue">Подходит на 85%</span>
-        </article>
-      </div>
-    </section>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const taskId = params.get('taskId');
+    const isNgoView = params.get('role') === 'ngo';
+    const profileId = params.get('profileId') || localStorage.getItem(isNgoView ? helperaDb.localKeys.activeNgoProfileId : helperaDb.localKeys.activeVolunteerProfileId);
+    let activeTask = null;
+    let activeProfile = null;
+
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    })[char]);
+
+    const withParams = (path) => {
+      const url = new URL(path, window.location.href);
+      if (profileId) url.searchParams.set('profileId', profileId);
+      if (isNgoView) url.searchParams.set('role', 'ngo');
+      return `${url.pathname.split('/').pop()}${url.search}`;
+    };
+    const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+    const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
+    function formatDate(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleDateString('ru-RU');
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) return '';
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function getTaskDates(task) {
+      const start = task.date_start || task.payload?.dateStart;
+      const end = task.date_end || task.payload?.dateEnd;
+      if (start && end && start !== end) return `${formatDate(start)} — ${formatDate(end)}`;
+      if (start) return formatDate(start);
+      return 'Сроки уточняются';
+    }
+
+    function taskScore(task) {
+      if (!activeProfile) return 90;
+      const volunteerSkills = (activeProfile.skills?.skills || []).map(normalizeText);
+      const volunteerDirections = (activeProfile.skills?.helpDirections || []).map(normalizeText);
+      const preferredFormat = normalizeText(activeProfile.interests?.format);
+      const taskSkills = splitList(task.skills || task.payload?.skills).map(normalizeText);
+      const taskText = normalizeText(`${task.title} ${task.description} ${task.payload?.comment || ''}`);
+      let score = 50;
+
+      volunteerSkills.forEach((skill) => {
+        if (taskSkills.some((taskSkill) => taskSkill === skill || taskSkill.includes(skill) || skill.includes(taskSkill))) score += 12;
+      });
+      volunteerDirections.forEach((direction) => {
+        if (taskText.includes(direction)) score += 8;
+      });
+      if (preferredFormat && normalizeText(task.format || task.payload?.format) === preferredFormat) score += 18;
+      if (activeProfile.about?.city && normalizeText(task.ngo_profiles?.about?.city) === normalizeText(activeProfile.about.city)) score += 6;
+
+      return Math.min(score, 98);
+    }
+
+    function renderBullets(task) {
+      const description = task.description || task.payload?.description || '';
+      const comment = task.payload?.comment || '';
+      const skills = splitList(task.skills || task.payload?.skills);
+      const bullets = [
+        description ? `Разобраться с задачей: ${description}` : '',
+        skills.length ? `Использовать навыки: ${skills.join(', ')}` : '',
+        comment,
+        'Передать результат координатору проекта'
+      ].filter(Boolean);
+      document.getElementById('task-bullets').innerHTML = bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+    }
+
+    function renderFiles(task) {
+      const files = task.payload?.filesDraft || [];
+      const section = document.getElementById('materials-section');
+      const target = document.getElementById('task-files');
+      if (!files.length) {
+        section.style.display = 'none';
+        return;
+      }
+      section.style.display = 'block';
+      target.innerHTML = files.map((file) => `
+        <div class="file-card">
+          <div class="file-icon"></div>
+          <div>
+            <p class="file-name">${escapeHtml(file.fileName || 'Файл')}</p>
+            <p class="file-meta">${escapeHtml((file.fileType || '').split('/').pop()?.toUpperCase() || 'FILE')} ${file.fileSize ? `• ${formatFileSize(file.fileSize)}` : ''}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderTask(task) {
+      const org = task.ngo_profiles || {};
+      const about = org.about || {};
+      const contacts = org.contacts || {};
+      const orgName = org.org_name || about.shortName || 'НКО';
+      const format = task.format || task.payload?.format || 'Формат не указан';
+      const skills = splitList(task.skills || task.payload?.skills);
+      const contactName = [contacts.lastName, contacts.firstName].filter(Boolean).join(' ') || 'Представитель организации';
+      activeTask = task;
+
+      document.title = `Helpera — ${task.title || 'Подробности задачи'}`;
+      document.getElementById('fit-badge').textContent = isNgoView ? 'Задача вашей организации' : `Подходит вам на ${taskScore(task)}%`;
+      document.getElementById('task-title').textContent = task.title || 'Задача без названия';
+      document.getElementById('task-meta').textContent = `${orgName} • ${format} • ${getTaskDates(task)}`;
+      document.getElementById('task-description').textContent = task.description || task.payload?.description || 'Организация пока не добавила подробное описание.';
+      document.getElementById('task-skills').innerHTML = skills.length
+        ? skills.map((skill) => `<span class="chip green">${escapeHtml(skill)}</span>`).join('')
+        : '<span class="chip">Навыки не указаны</span>';
+
+      document.getElementById('side-org').textContent = orgName;
+      document.getElementById('side-format').textContent = format;
+      document.getElementById('side-dates').textContent = getTaskDates(task);
+      document.getElementById('side-city').textContent = about.city || 'Не указан';
+      document.getElementById('side-workload').textContent = task.payload?.comment || 'Уточняется у организации';
+      document.getElementById('org-description').textContent = about.description || about.activity || 'Организация пока не добавила описание.';
+      document.getElementById('org-type').textContent = about.orgType || 'Профиль НКО';
+      document.getElementById('contact-role').textContent = contacts.position || 'Координатор проекта';
+      document.getElementById('contact-name').textContent = contactName;
+      document.getElementById('contact-text').textContent = contacts.email || contacts.phone
+        ? `${contacts.email || ''}${contacts.email && contacts.phone ? ' • ' : ''}${contacts.phone || ''}`
+        : 'После отклика с вами свяжется представитель организации';
+
+      renderBullets(task);
+      renderFiles(task);
+    }
+
+    function renderSimilar(tasks) {
+      const currentSkills = splitList(activeTask?.skills || activeTask?.payload?.skills).map(normalizeText);
+      const similar = tasks
+        .filter((task) => task.id !== activeTask?.id)
+        .map((task) => {
+          const overlap = splitList(task.skills || task.payload?.skills).filter((skill) => currentSkills.includes(normalizeText(skill))).length;
+          return { task, score: overlap * 10 + (normalizeText(task.format) === normalizeText(activeTask?.format) ? 5 : 0) };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map(({ task }) => task);
+
+      document.getElementById('similar-grid').innerHTML = similar.length
+        ? similar.map((task) => `
+          <article class="mini-card">
+            <h3 class="mini-title"><a href="${withParams(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача')}</a></h3>
+            <p class="mini-sub">${escapeHtml(task.format || task.payload?.format || 'Формат не указан')} • ${escapeHtml(getTaskDates(task))}</p>
+            <span class="chip blue">Похожая задача</span>
+          </article>
+        `).join('')
+        : '<p class="empty-state">Похожих задач пока нет.</p>';
+    }
+
+    function goApply() {
+      if (!activeTask?.id) return;
+      window.location.href = withParams(`task-apply.html?taskId=${encodeURIComponent(activeTask.id)}`);
+    }
+
+    async function init() {
+      const navApplications = document.getElementById('nav-applications');
+      if (isNgoView) {
+        document.getElementById('nav-profile').textContent = 'Профиль';
+        document.getElementById('nav-tasks').textContent = 'Мои задачи';
+        navApplications.textContent = 'Отклики';
+        document.getElementById('nav-dashboard').textContent = 'Аналитика';
+        document.getElementById('nav-profile').href = withParams('ngo-lk.html');
+        document.getElementById('nav-tasks').href = withParams('ngo-tasks.html');
+        navApplications.href = withParams('ngo-applications.html');
+        document.getElementById('nav-dashboard').href = withParams('ngo-dashboard.html');
+        document.getElementById('breadcrumbs-tasks').textContent = 'Мои задачи';
+        document.getElementById('breadcrumbs-tasks').href = withParams('ngo-tasks.html');
+        document.querySelectorAll('.apply-action').forEach((button) => button.style.display = 'none');
+      } else {
+        document.getElementById('nav-tasks').href = withParams('volunteer-tasks.html');
+        document.getElementById('nav-profile').href = withParams('volunteer-lk.html');
+        navApplications.href = withParams('volunteer-applications.html');
+        document.getElementById('nav-dashboard').href = withParams('volunteer-dashboard.html');
+        document.getElementById('breadcrumbs-tasks').href = withParams('volunteer-tasks.html');
+      }
+      document.querySelectorAll('.apply-action').forEach((button) => button.addEventListener('click', goApply));
+
+      if (profileId && !isNgoView) {
+        activeProfile = await helperaDb.getVolunteerProfile(profileId);
+        const firstName = activeProfile?.about?.firstName || 'В';
+        document.getElementById('avatar-mini').textContent = firstName.slice(0, 1).toUpperCase();
+      } else if (profileId) {
+        const ngoProfile = await helperaDb.getNgoProfile(profileId);
+        document.getElementById('avatar-mini').textContent = (ngoProfile?.account?.orgName || ngoProfile?.about?.shortName || 'Н').slice(0, 1).toUpperCase();
+      }
+
+      if (!taskId) {
+        document.getElementById('main-panel').innerHTML = '<p class="empty-state">Задача не выбрана. Откройте задачу из списка.</p>';
+        return;
+      }
+
+      const task = await helperaDb.getTask(taskId);
+      if (!task) {
+        document.getElementById('main-panel').innerHTML = '<p class="empty-state">Задача не найдена в базе.</p>';
+        return;
+      }
+
+      renderTask(task);
+      renderSimilar(await helperaDb.listTasks());
+    }
+
+    init().catch((error) => {
+      console.error(error);
+      document.getElementById('main-panel').innerHTML = '<p class="empty-state">Не удалось загрузить задачу из Supabase.</p>';
+    });
+  </script>
 </body>
 </html>

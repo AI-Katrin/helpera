@@ -215,7 +215,7 @@
     if (completeButton.disabled) return;
     try {
       const profileId = await saveInterestsToProfile();
-      window.location.href = `volunteer-profile.html?profileId=${encodeURIComponent(profileId)}`;
+      window.location.href = `volunteer-lk.html?profileId=${encodeURIComponent(profileId)}`;
     } catch (error) {
       const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
       alert(`Не удалось завершить регистрацию: ${message}`);

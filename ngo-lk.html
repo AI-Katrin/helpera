@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Профиль НКО</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-profile.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark"></span><span>Helpera</span></a>
+      <nav class="nav">
+        <a href="ngo-lk.html" id="navProfile">Профиль</a>
+        <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="navApplications">Отклики</a>
+        <a href="ngo-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">Н</div>
+      </nav>
+    </header>
+
+    <main class="content">
+      <section class="panel hero">
+        <div class="org-avatar"></div>
+        <div>
+          <div class="hero-badge">Профиль организации</div>
+          <h1 class="hero-title" id="orgTitle">Загружаем профиль...</h1>
+          <p class="hero-subtitle" id="orgSubtitle"></p>
+          <div class="chips">
+            <span class="chip green" id="profileStatus">Профиль НКО</span>
+            <span class="chip blue" id="tasksCount">0 задач</span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn" id="tasksBtn">Мои задачи</button>
+          <button class="btn btn-primary" id="createTaskBtn">Создать задачу</button>
+        </div>
+      </section>
+
+      <div class="layout">
+        <section class="panel main-panel">
+          <section>
+            <h2 class="section-title">Об организации</h2>
+            <p class="section-text" id="orgDescription">Данные профиля загружаются из Supabase.</p>
+          </section>
+          <section style="margin-top: 34px;">
+            <h2 class="section-title">Направления деятельности</h2>
+            <div class="activity-chips" id="activityChips"></div>
+          </section>
+          <section style="margin-top: 38px;">
+            <h2 class="section-title">Последние задачи</h2>
+            <div class="cards-grid" id="tasksPreview"></div>
+          </section>
+        </section>
+
+        <aside class="panel sidebar-panel">
+          <section class="sidebar-section">
+            <h2 class="section-title">Краткая сводка</h2>
+            <div class="stats-grid">
+              <article class="stat-card"><p class="stat-label">Задачи</p><p class="stat-value" id="statTasks">0</p></article>
+              <article class="stat-card"><p class="stat-label">Отклики</p><p class="stat-value" id="statApplications">0</p></article>
+              <article class="stat-card"><p class="stat-label">На рассмотрении</p><p class="stat-value" id="statReview">0</p></article>
+              <article class="stat-card"><p class="stat-label">Приглашено</p><p class="stat-value small" id="statInvites">0</p></article>
+            </div>
+          </section>
+          <section class="sidebar-section">
+            <h2 class="section-title">Контакты</h2>
+            <div class="contact-list" id="contactsList"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const profileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  })[char]);
+
+  function chip(text) {
+    return `<span class="topic-chip">${escapeHtml(text)}</span>`;
+  }
+
+  async function initNgoProfile() {
+    document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
+    document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
+    document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
+    document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
+    document.getElementById('tasksBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-tasks.html'));
+    document.getElementById('createTaskBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-task-create.html'));
+
+    if (!profileId) {
+      document.getElementById('orgTitle').textContent = 'Профиль НКО не выбран';
+      document.getElementById('orgDescription').textContent = 'Откройте страницу из личного кабинета НКО.';
+      return;
+    }
+
+    const [profile, tasks, applications] = await Promise.all([
+      helperaDb.getNgoProfile(profileId),
+      helperaDb.listTasks(),
+      helperaDb.listApplications({ ngoProfileId: profileId, includeDrafts: false })
+    ]);
+    const ownTasks = tasks.filter((task) => task.ngo_profile_id === profileId);
+    const about = profile?.about || {};
+    const contacts = profile?.contacts || {};
+    const title = profile?.account?.orgName || about.shortName || 'НКО';
+
+    document.getElementById('avatarMini').textContent = title.slice(0, 1).toUpperCase();
+    document.getElementById('orgTitle').textContent = title;
+    document.getElementById('orgSubtitle').textContent = [about.city, about.country, about.activity].filter(Boolean).join(' • ');
+    document.getElementById('orgDescription').textContent = about.description || 'Описание организации пока не заполнено.';
+    document.getElementById('profileStatus').textContent = profile?.registrationStep === 'completed' ? 'Профиль заполнен' : 'Профиль в работе';
+    document.getElementById('tasksCount').textContent = `${ownTasks.length} задач`;
+    document.getElementById('activityChips').innerHTML = [about.orgType, about.activity, about.city].filter(Boolean).map(chip).join('') || chip('Направления не указаны');
+
+    document.getElementById('statTasks').textContent = String(ownTasks.length);
+    document.getElementById('statApplications').textContent = String(applications.length);
+    document.getElementById('statReview').textContent = String(applications.filter((item) => item.status === 'review').length);
+    document.getElementById('statInvites').textContent = String(applications.filter((item) => item.status === 'invite').length);
+
+    document.getElementById('contactsList').innerHTML = [
+      ['Email', contacts.email || profile?.account?.contact],
+      ['Телефон', contacts.phone],
+      ['Контактное лицо', [contacts.lastName, contacts.firstName].filter(Boolean).join(' ')],
+      ['Должность', contacts.position]
+    ].filter(([, value]) => value).map(([label, value]) => `
+      <div class="contact-item"><p class="contact-label">${escapeHtml(label)}</p><p class="contact-value">${escapeHtml(value)}</p></div>
+    `).join('') || '<div class="contact-item"><p class="contact-value">Контакты пока не заполнены.</p></div>';
+
+    document.getElementById('tasksPreview').innerHTML = ownTasks.slice(0, 4).map((task) => `
+      <article class="feature-card">
+        <h4>${escapeHtml(task.title)}</h4>
+        <p>${escapeHtml(task.format || 'Формат не указан')} • ${escapeHtml(task.skills || 'Навыки не указаны')}</p>
+      </article>
+    `).join('') || '<article class="feature-card"><h4>Задач пока нет</h4><p>Создайте первую задачу для волонтёров.</p></article>';
+  }
+
+  initNgoProfile().catch((error) => {
+    console.error(error);
+    document.getElementById('orgTitle').textContent = 'Профиль НКО не найден';
+  });
+</script>
+</body>
+</html>

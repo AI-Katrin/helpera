@@ -18,10 +18,10 @@
       </a>
 
       <nav class="nav">
-        <a href="#">Главная</a>
-        <a href="#">Мои задачи</a>
-        <a href="#">Мои отклики</a>
-        <a href="#">Профиль</a>
+        <a href="ngo-lk.html" id="navProfile">Профиль</a>
+        <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="navApplications">Отклики</a>
+        <a href="ngo-dashboard.html" id="navDashboard">Аналитика</a>
         <div class="avatar">Н</div>
       </nav>
     </header>
@@ -33,7 +33,7 @@
           <h1>Управляйте задачами и кандидатами</h1>
           <p>Здесь вы можете отслеживать опубликованные задачи, рассматривать отклики волонтёров и выбирать подходящих кандидатов.</p>
         </div>
-        <button class="btn btn-primary" type="button">Создать новую задачу</button>
+        <button class="btn btn-primary" id="createTaskBtn" type="button">Создать новую задачу</button>
       </section>
 
       <section class="main">
@@ -197,6 +197,14 @@
       modal.classList.remove('open');
     }
 
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    })[char]);
+
     modalClose.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
       if(e.target === modal) closeModal();
@@ -237,20 +245,101 @@
       });
     });
 
+    document.getElementById('candidateList').addEventListener('click', async (event) => {
+      const card = event.target.closest('.candidate');
+      if (!card) return;
+      const applicationId = card.dataset.applicationId;
+      const name = card.querySelector('.cand-name')?.textContent || 'волонтёра';
+
+      try {
+        if (event.target.classList.contains('invite-btn')) {
+          if (applicationId) await helperaDb.updateApplication(applicationId, { status: 'invite' });
+          openModal('Приглашение отправлено', 'Приглашение для волонтёра «' + name + '» успешно отправлено.');
+        }
+        if (event.target.classList.contains('reject')) {
+          if (applicationId) await helperaDb.updateApplication(applicationId, { status: 'rejected' });
+          openModal('Кандидат отклонён', 'Отклик волонтёра «' + name + '» был отклонён.');
+        }
+        if (event.target.classList.contains('profile')) {
+          openModal('Профиль волонтёра', 'Здесь может открываться профиль волонтёра «' + name + '».');
+        }
+      } catch (error) {
+        console.error('Не удалось обновить статус отклика', error);
+        openModal('Не удалось обновить отклик', 'Проверьте подключение к Supabase и попробуйте ещё раз.');
+      }
+    });
+
     async function hydrateDashboardFromDb() {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const ngoProfileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+        const withProfileId = (path) => ngoProfileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(ngoProfileId)}` : path;
+        document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
+        document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
+        document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
+        document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
+        document.getElementById('createTaskBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-task-create.html'));
         const [tasks, applications] = await Promise.all([
           helperaDb.listTasks(),
-          helperaDb.listApplications()
+          ngoProfileId ? helperaDb.listApplications({ ngoProfileId, includeDrafts: false }) : Promise.resolve([])
         ]);
-        if (tasks.length) {
-          document.querySelector('.summary-box .value').textContent = String(tasks.length);
-          const firstTaskName = document.querySelector('.task-card .task-name');
-          if (firstTaskName) firstTaskName.textContent = tasks[0].title;
-        }
-        if (applications.length) {
-          document.querySelectorAll('.summary-box .value')[1].textContent = String(applications.length);
-          document.querySelectorAll('.summary-box .value')[2].textContent = String(applications.filter((item) => item.status === 'review').length);
+        const ownTasks = ngoProfileId ? tasks.filter((task) => task.ngo_profile_id === ngoProfileId) : [];
+        const summaryValues = document.querySelectorAll('.summary-box .value');
+        summaryValues[0].textContent = String(ownTasks.length);
+        summaryValues[1].textContent = String(applications.length);
+        summaryValues[2].textContent = String(applications.filter((item) => item.status === 'review').length);
+        summaryValues[3].textContent = String(applications.filter((item) => item.status === 'invite').length);
+
+        const taskCards = document.querySelectorAll('.task-card');
+        taskCards.forEach((card, index) => {
+          card.style.display = index < ownTasks.length ? 'block' : 'none';
+        });
+        ownTasks.slice(0, 2).forEach((task, index) => {
+          const card = taskCards[index];
+          if (!card) return;
+          const count = applications.filter((item) => item.task_id === task.id).length;
+          card.querySelector('.task-name').textContent = task.title;
+          card.querySelector('.task-meta').textContent = `${task.format || 'Формат не указан'} • ${task.skills || 'Навыки не указаны'}`;
+          const pill = card.querySelector('.mini-pill');
+          if (pill) pill.textContent = `${count} откликов`;
+          card.addEventListener('click', () => {
+            window.location.href = `task-details.html?taskId=${encodeURIComponent(task.id)}&profileId=${encodeURIComponent(ngoProfileId)}&role=ngo`;
+          });
+        });
+
+        const candidateList = document.getElementById('candidateList');
+        const visibleApplications = applications.slice(0, 5);
+        if (visibleApplications.length) {
+          candidateList.innerHTML = visibleApplications.map((application) => {
+            const volunteer = application.volunteer_profiles || {};
+            const about = volunteer.about || {};
+            const name = [about.lastName, about.firstName, about.middleName].filter(Boolean).join(' ') || volunteer.contact || 'Волонтёр';
+            const city = about.city || 'Город не указан';
+            const skills = volunteer.skills?.skills || [];
+            const taskTitle = application.tasks?.title || 'Задача';
+            return `
+              <article class="candidate" data-application-id="${application.id}">
+                <div class="cand-left">
+                    <div class="initial">${escapeHtml(name.slice(0, 1).toUpperCase())}</div>
+                    <div>
+                    <div class="cand-name">${escapeHtml(name)}</div>
+                    <div class="cand-meta">${escapeHtml(city)} • ${escapeHtml(application.format || application.tasks?.format || 'Формат не указан')} • ${escapeHtml(taskTitle)}</div>
+                    <div class="tags">
+                      <span class="tag blue">${application.status === 'invite' ? 'Приглашён' : 'На рассмотрении'}</span>
+                      ${skills.slice(0, 2).map((skill) => `<span class="tag green">${escapeHtml(skill)}</span>`).join('')}
+                    </div>
+                  </div>
+                </div>
+                <div class="cand-actions">
+                  <button class="primary-action invite-btn" type="button">Пригласить</button>
+                  <button class="secondary-action profile" type="button">Профиль</button>
+                  <button class="secondary-action reject" type="button">Отклонить</button>
+                </div>
+              </article>
+            `;
+          }).join('');
+        } else {
+          candidateList.innerHTML = '<p class="subtitle">Откликов по задачам этой НКО пока нет.</p>';
         }
       } catch (error) {
         console.error('Не удалось загрузить данные дашборда из Supabase', error);
