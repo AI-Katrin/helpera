@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Отклик на задачу</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/task-apply.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="index.html">Главная</a>
+        <a href="volunteer-tasks.html">Все задачи</a>
+        <a href="volunteer-applications.html">Мои отклики</a>
+        <a href="volunteer-profile.html">Профиль</a>
+        <div class="avatar-mini">Е</div>
+      </nav>
+    </header>
+
+    <div class="breadcrumbs">Все задачи / Подробности задачи / Отклик</div>
+
+    <div class="layout">
+      <aside class="panel left-panel">
+        <div class="badge">Отклик на задачу</div>
+        <h1 class="hero-title">Вы почти откликнулись</h1>
+        <p class="hero-text">Проверьте данные отклика и при желании добавьте короткое сообщение для НКО.</p>
+
+        <div class="info-cards">
+          <article class="info-card">
+            <div class="icon-circle green check"></div>
+            <div>
+              <h3>Ваш профиль уже заполнен</h3>
+              <p>Организация увидит информацию о вас, навыках и формате участия</p>
+            </div>
+          </article>
+
+          <article class="info-card">
+            <div class="icon-circle blue plus"></div>
+            <div>
+              <h3>Сообщение — по желанию</h3>
+              <p>Можно коротко объяснить, почему вам интересна эта задача</p>
+            </div>
+          </article>
+
+          <article class="info-card blue-bg">
+            <div>
+              <h3>Что произойдёт после отправки?</h3>
+              <ul>
+                <li>НКО получит ваш отклик</li>
+                <li>сможет изучить ваш профиль</li>
+                <li>при одобрении свяжется с вами</li>
+                <li>статус отклика появится в ЛК</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </aside>
+
+      <main class="panel right-panel">
+        <h2 class="panel-title">Подтверждение отклика</h2>
+        <p class="panel-subtitle">Проверьте информацию о задаче и отправьте отклик</p>
+
+        <section class="task-box">
+          <div class="task-fit">Подходит вам на 93%</div>
+          <h3>Анализ обратной связи участников образовательной программы</h3>
+          <p class="task-meta">АНО «Открытые знания» • Онлайн • Разовая задача • 2–4 часа</p>
+        </section>
+
+        <div class="field">
+          <label class="label">Сообщение для организации <span class="optional">(необязательно)</span></label>
+          <textarea class="textarea" id="applicationMessage">Здравствуйте! Мне интересна эта задача, потому что у меня есть опыт
+в анализе данных и работе с обратной связью. Буду рада помочь проекту.</textarea>
+        </div>
+
+        <div class="field">
+          <label class="label">Подтвердите формат участия</label>
+          <div class="chips" data-select="single">
+            <button type="button" class="chip active">Онлайн</button>
+            <button type="button" class="chip">Оффлайн</button>
+            <button type="button" class="chip">Смешанный</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Дополнительные материалы <span class="optional">(необязательно)</span></label>
+          <div class="upload-box" id="uploadBox">
+            <input type="file" id="fileInput" multiple hidden />
+
+            <div class="upload-icon"></div>
+
+            <div>
+              <p class="upload-main">Прикрепите файл, если хотите дополнить отклик</p>
+              <p class="upload-sub">Например: портфолио, резюме, сертификат или другой материал</p>
+            </div>
+          </div>
+          <div id="fileList" class="file-list"></div>
+        </div>
+
+        <div class="checks">
+          <label class="check-item">
+            <input type="checkbox" checked />
+            <span class="check-box"></span>
+            <span>Я подтверждаю, что готов(а) участвовать в выполнении этой задачи</span>
+          </label>
+          <label class="check-item">
+            <input type="checkbox" />
+            <span class="check-box"></span>
+            <span>Разрешаю организации связаться со мной по контактам из профиля</span>
+          </label>
+        </div>
+
+        <section class="info-box">
+          <h3>После отправки отклик появится в разделе «Мои отклики»</h3>
+          <p>Там вы сможете отслеживать статус рассмотрения и получать обновления по задаче</p>
+        </section>
+
+        <div class="bottom-actions">
+          <button class="btn-primary" id="sendApplicationBtn">Отправить отклик</button>
+          <button class="btn-secondary" id="backBtn" type="button">Назад</button>
+          <a href="#" class="link-draft">Сохранить черновик</a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  document.querySelectorAll('.chips[data-select="single"]').forEach(group => {
+    const chips = group.querySelectorAll('.chip');
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(item => item.classList.remove('active'));
+        chip.classList.add('active');
+      });
+    });
+  });
+
+  const uploadBox = document.getElementById('uploadBox');
+  const fileInput = document.getElementById('fileInput');
+  const fileList = document.getElementById('fileList');
+
+  if (uploadBox && fileInput && fileList) {
+    uploadBox.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', () => {
+      Array.from(fileInput.files).forEach(file => {
+        const ext = file.name.split('.').pop().toUpperCase();
+        const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+
+        const item = document.createElement('div');
+        item.className = 'file-card';
+
+        item.innerHTML = `
+          <div class="file-icon-small"></div>
+          <div>
+            <p class="file-name">${file.name}</p>
+            <p class="file-meta">${ext} • ${sizeMb} MB</p>
+          </div>
+          <button class="file-remove" type="button" aria-label="Удалить ${file.name}">×</button>
+        `;
+
+        item.querySelector('.file-remove').addEventListener('click', () => item.remove());
+        fileList.appendChild(item);
+      });
+      fileInput.value = '';
+    });
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const taskId = urlParams.get('taskId');
+  const volunteerProfileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+
+  document.getElementById('sendApplicationBtn').addEventListener('click', async () => {
+    try {
+      const selectedFormat = document.querySelector('.chips[data-select="single"] .chip.active')?.textContent.trim() || null;
+      await helperaDb.createApplication({
+        task_id: taskId,
+        volunteer_profile_id: volunteerProfileId,
+        message: document.getElementById('applicationMessage').value.trim(),
+        format: selectedFormat,
+        status: 'review',
+        payload: {
+          createdFrom: 'task-apply.html'
+        }
+      });
+      window.location.href = 'application-success.html';
+    } catch (error) {
+      const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
+      alert(`Не удалось отправить отклик: ${message}`);
+      console.error(error);
+    }
+  });
+
+  document.getElementById('backBtn').addEventListener('click', () => {
+    window.location.href = taskId ? `task-details.html?taskId=${encodeURIComponent(taskId)}` : 'volunteer-tasks.html';
+  });
+</script>
+</body>
+</html>

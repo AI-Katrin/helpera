@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Подтверждение приглашения</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-invitation-confirm.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="#">Главная</a>
+        <a href="#">Мои задачи</a>
+        <a href="#">Мои отклики</a>
+        <a href="#">Профиль</a>
+        <div class="avatar-mini">Н</div>
+      </nav>
+    </header>
+
+    <div class="breadcrumbs">Мои задачи / Отклики / Профиль волонтёра / Приглашение</div>
+
+    <div class="layout">
+      <aside class="panel left-panel">
+        <div class="badge">Приглашение волонтёра</div>
+        <h1 class="hero-title">Подтвердите приглашение</h1>
+        <p class="hero-text">На этом шаге вы отправляете приглашение волонтёру для участия в задаче.</p>
+
+        <div class="info-cards">
+          <article class="info-card">
+            <div class="icon-circle green check"></div>
+            <div>
+              <h3>Что увидит волонтёр</h3>
+              <p>Название задачи, ваше сообщение, формат участия и дальнейшие шаги</p>
+            </div>
+          </article>
+
+          <article class="info-card">
+            <div class="icon-circle blue plus"></div>
+            <div>
+              <h3>Можно добавить пояснение</h3>
+              <p>Например, почему кандидат подошёл и как будет строиться взаимодействие</p>
+            </div>
+          </article>
+
+          <article class="info-card blue-bg">
+            <div>
+              <h3>Что произойдёт после отправки?</h3>
+              <ul>
+                <li>волонтёр получит приглашение</li>
+                <li>сможет принять или отклонить его</li>
+                <li>статус обновится в откликах</li>
+                <li>при подтверждении начнётся работа по задаче и откроется чат с волонтёром</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </aside>
+
+      <main class="panel right-panel">
+        <h2 class="panel-title">Приглашение к участию</h2>
+        <p class="panel-subtitle">Проверьте данные и отправьте приглашение волонтёру</p>
+
+        <section class="volunteer-card">
+          <div class="volunteer-main">
+            <div class="avatar">Е</div>
+            <div>
+              <p class="volunteer-name">Екатерина Тарабрина</p>
+              <p class="volunteer-meta">Москва • Онлайн / смешанный формат</p>
+              <div class="badges-row">
+                <span class="mini-badge rating">Рейтинг 9.2 / 10</span>
+                <span class="mini-badge reliable">Надёжный волонтёр</span>
+              </div>
+            </div>
+          </div>
+
+          <a href="#" class="profile-link">Посмотреть профиль</a>
+        </section>
+
+        <div class="field">
+          <label class="label">Задача</label>
+          <div class="task-box">
+            <h3>Помощь в организации благотворительного мероприятия</h3>
+            <p class="task-meta">Онлайн / смешанный формат • Опубликована 12 апреля</p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Формат участия</label>
+          <div class="chips" data-select="single">
+            <button type="button" class="chip active">Онлайн</button>
+            <button type="button" class="chip">Оффлайн</button>
+            <button type="button" class="chip">Смешанный</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Сообщение волонтёру <span class="optional">(необязательно)</span></label>
+          <textarea class="textarea">Здравствуйте! Спасибо за отклик на нашу задачу.
+Ваш профиль и опыт показались нам очень подходящими.
+Будем рады пригласить вас к участию в проекте.
+После подтверждения мы свяжемся с вами для согласования деталей.</textarea>
+        </div>
+
+        <div class="field">
+          <label class="label">Комментарий по условиям <span class="optional">(необязательно)</span></label>
+          <textarea class="textarea small" placeholder="Например: ориентировочная нагрузка, дедлайн&#10;или дополнительная информация по задаче"></textarea>
+        </div>
+
+        <div class="bottom-actions">
+          <button class="btn-primary">Отправить приглашение</button>
+          <button class="btn-secondary">Назад</button>
+          <a href="#" class="link-draft">Сохранить как черновик</a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+<script>
+  document.querySelectorAll('.chips[data-select="single"]').forEach(group => {
+    const chips = group.querySelectorAll('.chip');
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(item => item.classList.remove('active'));
+        chip.classList.add('active');
+      });
+    });
+  });
+</script>
+</body>
+</html>

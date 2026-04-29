@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Навыки и опыт</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-skills.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+      <span class="profile-link">Профиль волонтёра</span>
+    </header>
+
+    <main class="content">
+      <section class="panel info-panel">
+        <div class="badge">Шаг 3 — Навыки и опыт</div>
+        <h1 class="info-title">Расскажите<br>о своих навыках</h1>
+        <p class="info-text">
+          На этом шаге вы можете указать,
+          в чём у вас есть опыт и чем именно
+          вы готовы помогать.
+        </p>
+
+        <div class="benefits">
+          <article class="benefit-card">
+            <div class="benefit-icon green check"></div>
+            <div>
+              <h3 class="benefit-title">Навыки помогают точнее подбирать задачи</h3>
+              <p class="benefit-text">Выберите несколько подходящих вариантов, чтобы рекомендации были полезнее с самого начала</p>
+            </div>
+          </article>
+
+          <article class="benefit-card">
+            <div class="benefit-icon blue plus"></div>
+            <div>
+              <h3 class="benefit-title">Подтверждение опыта — по желанию</h3>
+              <p class="benefit-text">Загрузите дипломы, сертификаты, благодарности или другие материалы, если хотите усилить профиль</p>
+            </div>
+          </article>
+
+          <article class="benefit-card highlight">
+            <div>
+              <h3 class="benefit-title">Что будет дальше?</h3>
+              <p class="benefit-text">На следующем шаге вы сможете выбрать направления, в которых хотите помогать, и завершить настройку профиля перед переходом к задачам</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel form-panel">
+        <div class="step-label">Шаг 3 из 4</div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+
+        <div class="steps">
+          <div class="step-item done">
+            <div class="step-circle">1</div>
+            <div class="step-name">Аккаунт</div>
+          </div>
+          <div class="step-item done">
+            <div class="step-circle">2</div>
+            <div class="step-name">О себе</div>
+          </div>
+          <div class="step-item active">
+            <div class="step-circle">3</div>
+            <div class="step-name">Навыки</div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">4</div>
+            <div class="step-name">Интересы</div>
+          </div>
+        </div>
+
+        <h2 class="form-title">Навыки и подтверждение опыта</h2>
+        <p class="form-subtitle">Укажите компетенции и, при желании, прикрепите документы</p>
+
+        <div class="section-title">Навыки</div>
+        <div class="autocomplete">
+          <input class="input autocomplete-input" id="skills-input" type="text" placeholder="Начните вводить навык" autocomplete="off" />
+          <button class="autocomplete-toggle" id="skills-toggle" type="button" aria-label="Показать все навыки"></button>
+          <div class="suggestions" id="skills-suggestions"></div>
+        </div>
+
+        <div class="chips selected-chips" id="skills-selected"></div>
+
+        <div class="section-title">В чём вы готовы помогать</div>
+        <div class="autocomplete">
+          <input class="input autocomplete-input" id="help-input" type="text" placeholder="Начните вводить направление помощи" autocomplete="off" />
+          <button class="autocomplete-toggle" id="help-toggle" type="button" aria-label="Показать все направления"></button>
+          <div class="suggestions" id="help-suggestions"></div>
+        </div>
+        <div class="chips selected-chips" id="help-selected"></div>
+
+        <div class="section-title">Уровень опыта</div>
+        <div class="chips experience-chips" style="margin-bottom: 34px;">
+          <button class="chip" type="button">Начинающий</button>
+          <button class="chip active" type="button">Есть опыт</button>
+          <button class="chip" type="button">Продвинутый уровень</button>
+        </div>
+
+        <div class="upload-label">Подтверждающие материалы <span class="optional">(необязательно)</span></div>
+        <label class="upload-box" for="materials-upload">
+          <div class="upload-icon"></div>
+          <div>
+            <p class="upload-main">Перетащите файлы сюда или загрузите с устройства</p>
+            <p class="upload-sub">Например: диплом, сертификат, благодарственное письмо.</p>
+            <p class="upload-sub">Поддерживаются форматы PDF, JPG, PNG.</p>
+          </div>
+        </label>
+        <input id="materials-upload" class="hidden-file-input" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" />
+
+        <div class="files" id="files-list"></div>
+      </section>
+    </main>
+
+    <div class="actions">
+      <button class="btn-primary btn-link" id="skills-continue" type="button">Продолжить</button>
+      <a class="btn-secondary btn-link" href="volunteer-about.html" id="skills-back">Назад</a>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    const setupAutocomplete = ({ inputId, suggestionsId, selectedId, toggleId, options }) => {
+      const input = document.getElementById(inputId);
+      const suggestions = document.getElementById(suggestionsId);
+      const selected = document.getElementById(selectedId);
+      const toggle = document.getElementById(toggleId);
+      const root = input.closest('.autocomplete');
+
+      const selectedValues = new Set(
+        Array.from(selected.querySelectorAll(".chip")).map((chip) => chip.textContent.trim())
+      );
+
+      const makeChipRemovable = (chip) => {
+        const value = chip.textContent.replace("×", "").trim();
+        chip.classList.add("removable-chip");
+        chip.innerHTML = `<span>${value}</span><span class="chip-remove" aria-hidden="true">×</span>`;
+        chip.addEventListener("click", (event) => {
+          event.preventDefault();
+          selectedValues.delete(value);
+          chip.remove();
+        });
+      };
+
+      Array.from(selected.querySelectorAll(".chip")).forEach(makeChipRemovable);
+
+      const renderSuggestions = (showAll = false) => {
+        const value = input.value.trim().toLowerCase();
+        suggestions.innerHTML = "";
+        if (!value && !showAll) {
+          suggestions.classList.remove("visible");
+          root.classList.remove("open");
+          return;
+        }
+
+        const filtered = options.filter((item) => (showAll || item.toLowerCase().includes(value)) && !selectedValues.has(item));
+        if (!filtered.length) {
+          suggestions.classList.remove("visible");
+          root.classList.remove("open");
+          return;
+        }
+
+        filtered.forEach((item) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "suggestion-item";
+          button.textContent = item;
+          button.addEventListener("click", () => {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "chip active";
+            chip.textContent = item;
+            selected.appendChild(chip);
+            selectedValues.add(item);
+            makeChipRemovable(chip);
+            input.value = "";
+            suggestions.classList.remove("visible");
+            root.classList.remove("open");
+          });
+          suggestions.appendChild(button);
+        });
+
+        suggestions.classList.add("visible");
+        root.classList.add("open");
+      };
+
+      input.addEventListener("input", renderSuggestions);
+      input.addEventListener("focus", renderSuggestions);
+      toggle.addEventListener("click", () => {
+        const isOpen = suggestions.classList.contains("visible") && !input.value.trim();
+        if (isOpen) {
+          suggestions.classList.remove("visible");
+          root.classList.remove("open");
+        } else {
+          input.focus();
+          renderSuggestions(true);
+        }
+      });
+      input.addEventListener("blur", () => {
+        setTimeout(() => {
+          suggestions.classList.remove("visible");
+          root.classList.remove("open");
+        }, 100);
+      });
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+
+    const collectChips = (selector) => (
+      Array.from(document.querySelectorAll(selector))
+        .map((chip) => (chip.querySelector('span') || chip).textContent.replace('×', '').trim())
+        .filter(Boolean)
+    );
+
+    const withProfileId = (path) => profileId ? `${path}?profileId=${encodeURIComponent(profileId)}` : path;
+    document.getElementById('skills-back').href = withProfileId('volunteer-about.html');
+
+    async function saveSkills() {
+      if (!profileId) return;
+      const files = Array.from(document.querySelectorAll('#files-list .file-card')).map((card) => ({
+        fileName: card.querySelector('.file-name')?.textContent.trim() || '',
+        fileMeta: card.querySelector('.file-meta')?.textContent.trim() || ''
+      }));
+      await helperaDb.updateVolunteerProfile(profileId, {
+        skills: {
+          skills: collectChips('#skills-selected .chip'),
+          helpDirections: collectChips('#help-selected .chip'),
+          experience: document.querySelector('.experience-chips .chip.active')?.textContent.trim() || null,
+          filesDraft: files
+        },
+        registrationStep: 'skills'
+      });
+    }
+
+    setupAutocomplete({
+      inputId: "skills-input",
+      suggestionsId: "skills-suggestions",
+      selectedId: "skills-selected",
+      toggleId: "skills-toggle",
+      options: ["Дизайн", "Копирайтинг", "Организация событий", "Работа с детьми", "Наставничество", "Переводы", "Фото и видео", "Работа с документами"]
+    });
+
+    setupAutocomplete({
+      inputId: "help-input",
+      suggestionsId: "help-suggestions",
+      selectedId: "help-selected",
+      toggleId: "help-toggle",
+      options: ["Экология", "Культура", "Животные", "Помощь пожилым людям", "Медицина", "Сбор средств", "Спорт", "Инклюзия"]
+    });
+
+    document.querySelectorAll(".experience-chips .chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        document.querySelectorAll(".experience-chips .chip").forEach((item) => item.classList.remove("active"));
+        chip.classList.add("active");
+      });
+    });
+
+    const formatFileSize = (sizeInBytes) => `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
+    const getFileExt = (name) => {
+      const parts = name.split(".");
+      return parts.length > 1 ? parts.pop().toUpperCase() : "FILE";
+    };
+
+    document.getElementById("materials-upload").addEventListener("change", (event) => {
+      const filesList = document.getElementById("files-list");
+      Array.from(event.target.files).forEach((file) => {
+        const card = document.createElement("div");
+        card.className = "file-card";
+        card.innerHTML = `
+          <div class="file-icon"></div>
+          <div>
+            <p class="file-name">${file.name}</p>
+            <p class="file-meta">${getFileExt(file.name)} • ${formatFileSize(file.size)}</p>
+          </div>
+          <button class="file-remove" type="button" aria-label="Удалить ${file.name}">×</button>
+        `;
+        card.querySelector(".file-remove").addEventListener("click", () => card.remove());
+        filesList.appendChild(card);
+      });
+      event.target.value = "";
+    });
+
+    document.querySelectorAll("#files-list .file-remove").forEach((button) => {
+      button.addEventListener("click", () => button.closest(".file-card").remove());
+    });
+
+    document.getElementById('skills-continue').addEventListener('click', async () => {
+      try {
+        await saveSkills();
+        window.location.href = withProfileId('volunteer-interests.html');
+      } catch (error) {
+        const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
+        alert(`Не удалось сохранить навыки: ${message}`);
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Регистрация волонтёра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-account.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+      <div class="auth-box">
+        <span>Уже есть аккаунт?</span>
+        <a class="btn-login" href="login.html">Войти</a>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="panel info-panel">
+        <div class="badge">Регистрация волонтёра</div>
+        <h1 class="info-title">Начните помогать<br>уже сегодня</h1>
+        <p class="info-text">
+          Создайте профиль волонтёра, чтобы получать задачи,
+          которые подходят вам по навыкам, интересам
+          и доступности.
+        </p>
+
+        <div class="benefits">
+          <article class="benefit-card">
+            <div class="benefit-icon green check"></div>
+            <div>
+              <h3 class="benefit-title">Пошаговая регистрация</h3>
+              <p class="benefit-text">Заполнение профиля займёт всего несколько минут</p>
+            </div>
+          </article>
+
+          <article class="benefit-card">
+            <div class="benefit-icon blue plus"></div>
+            <div>
+              <h3 class="benefit-title">Умный подбор задач</h3>
+              <p class="benefit-text">После регистрации вы получите список задач</p>
+            </div>
+          </article>
+
+          <article class="benefit-card">
+            <div class="benefit-icon green cross-green"></div>
+            <div>
+              <h3 class="benefit-title">Данные можно изменить позже</h3>
+              <p class="benefit-text">Не бойтесь начать — профиль можно дополнить</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel form-panel">
+        <div class="step-label">Шаг 1 из 4</div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+
+        <div class="steps">
+          <div class="step-item active">
+            <div class="step-circle">1</div>
+            <div class="step-name">Аккаунт</div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">2</div>
+            <div class="step-name">О себе</div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">3</div>
+            <div class="step-name">Навыки</div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">4</div>
+            <div class="step-name">Интересы</div>
+          </div>
+        </div>
+
+        <h2 class="form-title">Создайте профиль волонтёра</h2>
+        <p class="form-subtitle">Это займёт всего пару минут и поможет подобрать подходящие задачи</p>
+
+        <div class="social-row">
+          <a class="social-btn" href="/auth/yandex/start"><span class="social-dot yandex"></span>Продолжить через Яндекс</a>
+          <a class="social-btn" href="/auth/vk/start"><span class="social-dot vk"></span>Продолжить через VK ID</a>
+        </div>
+
+        <p style="margin: -4px 0 20px; font-size: 13px; line-height: 17px; color: var(--gray-500);">Быстрый вход через российские сервисы авторизации</p>
+
+        <div class="divider"><span>или</span></div>
+
+        <form id="volunteer-auth-form" action="volunteer-about.html">
+          <div class="field">
+            <label class="label" for="contact">Email или телефон <span class="required">*</span></label>
+            <input class="input" id="contact" type="text" placeholder="example@mail.com / +7 ..." autocomplete="username" required />
+            <p class="field-hint" id="contact-hint">Введите email или российский номер телефона.</p>
+          </div>
+
+          <div class="field">
+            <label class="label" for="password">Пароль <span class="required">*</span></label>
+            <div class="password-wrap">
+              <input id="password" type="password" placeholder="Не менее 8 символов" autocomplete="new-password" required />
+              <button class="password-toggle" id="password-toggle" type="button" aria-label="Показать пароль" aria-pressed="false"></button>
+            </div>
+            <p class="field-hint" id="password-hint">Минимум 8 символов: английская буква, цифра и символ.</p>
+          </div>
+
+          <div class="agreement">
+            <input type="checkbox" id="agree" required />
+            <label for="agree">Я принимаю условия использования платформы и политику обработки данных</label>
+          </div>
+
+          <div class="actions">
+            <button class="btn-primary" type="submit" id="continue-btn" disabled>Продолжить</button>
+            <a class="btn-secondary" href="index.html">Назад</a>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    const form = document.getElementById('volunteer-auth-form');
+    const continueBtn = document.getElementById('continue-btn');
+    const requiredFields = form.querySelectorAll('input[required]');
+    const contactInput = document.getElementById('contact');
+    const contactHint = document.getElementById('contact-hint');
+    const passwordInput = document.getElementById('password');
+    const passwordWrap = passwordInput.closest('.password-wrap');
+    const passwordHint = document.getElementById('password-hint');
+    const passwordToggle = document.getElementById('password-toggle');
+
+    const validateContact = (value) => {
+      const trimmedValue = value.trim();
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+      const phoneDigits = trimmedValue.replace(/\D/g, '');
+      const isRussianPhone = (
+        (trimmedValue.startsWith('+7') && phoneDigits.length === 11 && phoneDigits[0] === '7') ||
+        (trimmedValue.startsWith('8') && phoneDigits.length === 11 && phoneDigits[0] === '8')
+      );
+
+      return emailPattern.test(trimmedValue) || isRussianPhone;
+    };
+
+    const validatePassword = (value) => {
+      return (
+        value.length >= 8 &&
+        /^[\x21-\x7E]+$/.test(value) &&
+        /[A-Za-z]/.test(value) &&
+        /\d/.test(value) &&
+        /[^A-Za-z0-9]/.test(value)
+      );
+    };
+
+    const setFieldState = (input, hint, isValid, defaultText, errorText) => {
+      input.classList.toggle('is-invalid', !isValid && input.value.length > 0);
+      input.classList.toggle('is-valid', isValid);
+      hint.classList.toggle('is-error', !isValid && input.value.length > 0);
+      hint.textContent = !isValid && input.value.length > 0 ? errorText : defaultText;
+    };
+
+    const validateForm = () => {
+      const requiredFilled = Array.from(requiredFields).every((field) => {
+        if (field.type === 'checkbox') return field.checked;
+        return field.value.trim().length > 0;
+      });
+      const isContactValid = validateContact(contactInput.value);
+      const isPasswordValid = validatePassword(passwordInput.value);
+
+      setFieldState(
+        contactInput,
+        contactHint,
+        isContactValid,
+        'Введите email или российский номер телефона.',
+        'Проверьте формат: example@mail.com, +7 900 000-00-00 или 8 900 000-00-00.'
+      );
+      setFieldState(
+        passwordInput,
+        passwordHint,
+        isPasswordValid,
+        'Минимум 8 символов: английская буква, цифра и символ.',
+        'Используйте только латиницу, минимум 8 символов, одну букву, цифру и спецсимвол.'
+      );
+      passwordWrap.classList.toggle('is-invalid', !isPasswordValid && passwordInput.value.length > 0);
+      passwordWrap.classList.toggle('is-valid', isPasswordValid);
+
+      continueBtn.disabled = !(requiredFilled && isContactValid && isPasswordValid);
+    };
+
+    requiredFields.forEach((field) => {
+      field.addEventListener('input', validateForm);
+      field.addEventListener('change', validateForm);
+    });
+
+    passwordToggle.addEventListener('click', () => {
+      const isHidden = passwordInput.type === 'password';
+      passwordInput.type = isHidden ? 'text' : 'password';
+      passwordToggle.classList.toggle('is-visible', isHidden);
+      passwordToggle.setAttribute('aria-label', isHidden ? 'Скрыть пароль' : 'Показать пароль');
+      passwordToggle.setAttribute('aria-pressed', String(isHidden));
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (continueBtn.disabled) return;
+      continueBtn.disabled = true;
+
+      try {
+        const profile = await helperaDb.createVolunteerProfile({
+          contact: contactInput.value.trim()
+        });
+        window.location.href = `volunteer-about.html?profileId=${encodeURIComponent(profile.profileId)}`;
+      } catch (error) {
+        const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
+        alert(`Не удалось создать профиль: ${message}`);
+        console.error(error);
+        validateForm();
+      }
+    });
+
+    validateForm();
+  </script>
+</body>
+</html>

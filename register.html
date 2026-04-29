@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Регистрация — Helpera</title>
+  <link rel="stylesheet" href="./css/pages/register.css">
+</head>
+
+<body>
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-icon">H</div>
+      <span>Helpera</span>
+    </a>
+  </header>
+
+  <main>
+    <section class="register-card">
+      <h1>Регистрация</h1>
+      <p class="subtitle">
+        Выберите роль, чтобы зарегистрироваться
+      </p>
+
+      <form id="roleForm">
+        <div class="role-actions">
+          <label class="role-option">
+            <input type="radio" name="role" value="volunteer" checked />
+            <span class="role-card">
+              <span class="role-title">Я волонтёр</span>
+              <span class="role-description">
+                Хочу помогать людям, находя задачи, которые соответствуют моим навыкам, интересам и возможностям.
+              </span>
+            </span>
+          </label>
+
+          <label class="role-option">
+            <input type="radio" name="role" value="ngo" />
+            <span class="role-card">
+              <span class="role-title">Я представитель НКО</span>
+              <span class="role-description">
+                Ищу добровольцев для реализации социальных и благотворительных проектов.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <button class="create-button" type="submit">Создать профиль</button>
+      </form>
+
+      <div class="login-note">
+        Уже есть аккаунт?
+        <a href="login.html">Войти</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    const roleForm = document.getElementById('roleForm');
+
+    roleForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const selectedRole = roleForm.querySelector('input[name="role"]:checked').value;
+      window.location.href = selectedRole === 'ngo'
+        ? 'ngo-account.html'
+        : 'volunteer-account.html';
+    });
+  </script>
+</body>
+</html>

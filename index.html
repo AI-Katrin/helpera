@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helpera — Платформа умного распределения волонтёрских ресурсов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/index.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 3C6.13 3 3 6.13 3 10s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm0 12.5A5.5 5.5 0 1 1 10 4.5a5.5 5.5 0 0 1 0 11zm.5-9H9v5l3.75 2.25.75-1.23-3-1.77V6.5z" fill="white"/>
+        </svg>
+      </div>
+      Helpera
+    </a>
+    <ul class="nav-links">
+      <li><a href="#for-whom">Для кого</a></li>
+      <li><a href="#how">Как это работает</a></li>
+      <li><a href="#features">Возможности</a></li>
+      <li><a href="#contact">Контакты</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="login.html" class="btn-outline">Войти</a>
+      <a href="#for-whom" class="btn-primary">Регистрация</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero-section">
+  <div class="hero-card">
+    <div class="hero-left">
+      <h1 class="hero-title">Платформа умного распределения<br>волонтёрских ресурсов для НКО</h1>
+      <p class="hero-subtitle">
+        Помогаем волонтёрам быстрее находить подходящие задачи, а некоммерческим организациям — надёжных исполнителей.
+      </p>
+      <div class="hero-buttons">
+        <a href="#for-whom" class="btn-primary" style="padding:14px 28px;font-size:16px;">Начать работу</a>
+        <a href="#how" class="btn-hero-outline">Подробнее</a>
+      </div>
+    </div>
+
+    <div class="hero-widget">
+      <div class="widget-header">
+        <h3>Популярные задачи</h3>
+        <span class="badge-ai">AI Match</span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="stat-label">Волонтёры</div>
+          <div class="stat-number">1 240+</div>
+          <div class="stat-sub">добровольцев</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Задачи НКО</div>
+          <div class="stat-number">350+</div>
+          <div class="stat-sub">возможностей помочь</div>
+        </div>
+      </div>
+      <div class="ai-feature-card">
+        <h4>Интеллектуальный подбор задач на основе AI</h4>
+        <p>Искусственный интеллект помогает быстрее и точнее находить подходящие задачи</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOR WHOM -->
+<section id="for-whom">
+  <h2 class="section-title">Кому подходит платформа</h2>
+  <p class="section-subtitle">Выберите свою роль, чтобы начать работу с платформой</p>
+
+  <div class="roles-grid">
+    <!-- Volunteer -->
+    <div class="role-card">
+      <div class="role-icon green">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="4" stroke="#2E7D32" stroke-width="2"/>
+          <path d="M4 20c0-4 3.58-7 8-7s8 3 8 7" stroke="#2E7D32" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h3>Я волонтёр</h3>
+      <p>Хочу помогать людям, находя задачи, которые соответствуют моим навыкам, интересам и возможностям.</p>
+      <div class="tags">
+        <span class="tag green">Подбор задач</span>
+        <span class="tag blue">Личный кабинет</span>
+      </div>
+      <a href="volunteer-account.html" class="btn-primary">Я волонтёр</a>
+    </div>
+
+    <!-- NGO -->
+    <div class="role-card">
+      <div class="role-icon blue">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <rect x="3" y="7" width="18" height="14" rx="2" stroke="#4A90E2" stroke-width="2"/>
+          <path d="M8 7V5a4 4 0 0 1 8 0v2" stroke="#4A90E2" stroke-width="2"/>
+          <line x1="3" y1="11" x2="21" y2="11" stroke="#4A90E2" stroke-width="2"/>
+        </svg>
+      </div>
+      <h3>Я представляю НКО</h3>
+      <p>Ищу добровольцев для реализации социальных и благотворительных проектов.</p>
+      <div class="tags">
+        <span class="tag green">Публикация задач</span>
+        <span class="tag blue">Подбор волонтёров</span>
+      </div>
+      <a href="ngo-account.html" class="btn-primary">Я из НКО</a>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" class="how-section">
+  <h2 class="section-title">Как это работает</h2>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num green">1</div>
+      <h3>Создание профиля</h3>
+      <p>Вы заполняете информацию о себе (если вы волонтёр) или своей организации (если вы НКО), чтобы система могла лучше понять ваши возможности и потребности.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num blue">2</div>
+      <h3>Интеллектуальный подбор</h3>
+      <p>Платформа анализирует данные и предлагает наиболее подходящие задачи для волонтёров с учётом их опыта и предпочтений.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num green">3</div>
+      <h3>Участие и обратная связь</h3>
+      <p>Волонтёры и НКО находят друг друга, договариваются и выполняют задачи, приносящие пользу.</p>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section id="features">
+  <div class="why-card">
+    <h2 class="section-title">Почему это удобно</h2>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7" stroke="#2E7D32" stroke-width="2"/>
+            <path d="m21 21-3.5-3.5" stroke="#2E7D32" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4>Точный подбор</h4>
+        <p>Рекомендации учитывают не только анкету, но и поведение пользователя на платформе.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" stroke="#2E7D32" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h4>Прозрачность</h4>
+        <p>Можно объяснить, почему задача или волонтёр были показаны в рекомендациях.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <path d="M12 22C12 22 4 17.657 4 11a8 8 0 0 1 16 0c0 6.657-8 11-8 11z" stroke="#2E7D32" stroke-width="2"/>
+            <path d="M9 11l2 2 4-4" stroke="#2E7D32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h4>Надёжность</h4>
+        <p>Система учитывает обратную связь, статусы выполнения и историю взаимодействий.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" stroke="#2E7D32" stroke-width="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#2E7D32" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4>Безопасность</h4>
+        <p>Все данные конфиденциальны. Работа платформы соответствует требованиям ФЗ‑152.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="contact">
+  <div class="footer-inner">
+    <span>Helpera • Разработано для HSE</span>
+    <div class="footer-links">
+      <a href="login.html">Войти</a>
+      <a href="#for-whom">Регистрация</a>
+      <a href="#">Контакты</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

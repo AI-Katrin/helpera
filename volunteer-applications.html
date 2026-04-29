@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Забота AI — Мои отклики</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/pages/volunteer-applications.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="#">
+        <span class="brand-mark"></span>
+        <span>Забота AI</span>
+      </a>
+
+      <nav class="nav">
+        <a href="#">Главная</a>
+        <a href="#">Все задачи</a>
+        <a href="#">Мои отклики</a>
+        <a href="#">Профиль</a>
+        <div class="avatar-mini">Е</div>
+      </nav>
+    </header>
+
+    <main class="content">
+      <section class="panel hero">
+        <div>
+          <div class="badge">Мои отклики</div>
+          <h1 class="hero-title">Все ваши отклики в одном месте</h1>
+          <p class="hero-text">Персональная подборка на основе вашего профиля и указанных предпочтений</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-primary">Перейти ко всем задачам</button>
+          <button class="btn-outline-green">Все задачи</button>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div class="panel stat-card">
+          <p class="stat-label">Всего откликов</p>
+          <p class="stat-value">12</p>
+        </div>
+        <div class="panel stat-card">
+          <p class="stat-label">На рассмотрении</p>
+          <p class="stat-value">5</p>
+        </div>
+        <div class="panel stat-card">
+          <p class="stat-label">Приглашения</p>
+          <p class="stat-value">2</p>
+        </div>
+        <div class="panel stat-card">
+          <p class="stat-label">Завершённые</p>
+          <p class="stat-value">3</p>
+        </div>
+      </section>
+
+      <section class="panel tabs-panel">
+        <div class="tabs">
+          <button class="tab active" data-filter="all">Все</button>
+          <button class="tab" data-filter="active">Выполняется</button>
+          <button class="tab" data-filter="review">На рассмотрении</button>
+          <button class="tab" data-filter="invite">Приглашения</button>
+          <button class="tab" data-filter="rejected">Отклонённые</button>
+          <button class="tab" data-filter="done">Завершённые</button>
+          <button class="tab" data-filter="draft">Черновики</button>
+        </div>
+      </section>
+
+      <section class="panel list-panel">
+        <article class="application-card" data-status="review">
+          <div>
+            <h3 class="application-title"><a href="#" class="application-title-link">Анализ обратной связи участников образовательной программы</a></h3>
+            <p class="application-meta">АНО «Открытые знания» • Онлайн • Отклик отправлен 12 апреля</p>
+            <span class="status-pill status-review">На рассмотрении</span>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="card-link">Посмотреть задачу</a>
+            <a href="#" class="card-link">Отменить отклик</a>
+            <a href="#" class="card-link">Чат с организацией</a>
+          </div>
+        </article>
+
+        <article class="application-card" data-status="invite">
+          <div>
+            <h3 class="application-title"><a href="#" class="application-title-link">Подготовка аналитического отчёта по социальному проекту</a></h3>
+            <p class="application-meta">Фонд «Шаг вперёд» • Онлайн • Отклик отправлен 10 апреля</p>
+            <span class="status-pill status-invite">Приглашение</span>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="card-link">Посмотреть задачу</a>
+            <a href="#" class="card-link">Отменить отклик</a>
+            <a href="#" class="card-link">Чат с организацией</a>
+          </div>
+        </article>
+
+        <article class="application-card" data-status="active">
+          <div>
+            <h3 class="application-title"><a href="#" class="application-title-link">Наставничество для подростков в образовательной программе</a></h3>
+            <p class="application-meta">Центр поддержки молодёжи • Онлайн • Приглашение получено 8 апреля</p>
+            <span class="status-pill status-active">Выполняется</span>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="card-link">Посмотреть задачу</a>
+            <a href="#" class="card-link">Отменить отклик</a>
+            <a href="#" class="card-link">Чат с организацией</a>
+          </div>
+        </article>
+
+        <article class="application-card" data-status="rejected">
+          <div>
+            <h3 class="application-title"><a href="#" class="application-title-link">Помощь в ведении социальных сетей НКО</a></h3>
+            <p class="application-meta">Фонд «Тёплый дом» • Онлайн • Ответ получен 5 апреля</p>
+            <span class="status-pill status-rejected">Отклонён</span>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="card-link">Посмотреть задачу</a>
+            <a href="#" class="card-link">Скрыть</a>
+            <a href="#" class="card-link">Чат с организацией</a>
+          </div>
+        </article>
+
+        <article class="application-card" data-status="done">
+          <div>
+            <h3 class="application-title"><a href="#" class="application-title-link">Систематизация отзывов участников благотворительной акции</a></h3>
+            <p class="application-meta">Фонд «Добро вместе» • Онлайн • Задача завершена 1 апреля</p>
+            <span class="status-pill status-feedback">Ждёт отзыв</span>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="card-link">Посмотреть задачу</a>
+            <a href="#" class="card-link">Оставить отзыв</a>
+            <a href="#" class="card-link">Чат с организацией</a>
+          </div>
+        </article>
+      </section>
+
+      <section id="emptyDrafts" class="panel tip-panel" style="display:none; margin-bottom: 28px;">
+        <p class="tip-text">Черновиков пока нет. Если вы начнёте отклик и сохраните его позже, он появится здесь.</p>
+      </section>
+
+      <section class="panel tip-panel">
+        <p class="tip-text">Совет: если хотите получать более точные подборки, обновляйте профиль и отмечайте неинтересные задачи, чтобы система лучше учитывала ваши предпочтения.</p>
+      </section>
+    </main>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const filterTabs = document.querySelectorAll('.tab');
+  let applicationCards = document.querySelectorAll('.application-card');
+  const emptyDrafts = document.getElementById('emptyDrafts');
+
+  function renderApplicationCard(application) {
+    const task = application.tasks || {};
+    const orgName = task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName || 'НКО';
+    const card = document.createElement('article');
+    card.className = 'application-card';
+    card.dataset.status = application.status || 'review';
+    card.innerHTML = `
+      <div>
+        <h3 class="application-title"><a href="task-details.html?taskId=${encodeURIComponent(application.task_id || '')}" class="application-title-link">${task.title || 'Отклик на задачу'}</a></h3>
+        <p class="application-meta">${orgName} • ${task.format || application.format || 'Формат не указан'} • Отклик отправлен ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}</p>
+        <span class="status-pill status-review">На рассмотрении</span>
+      </div>
+      <div class="card-actions">
+        <a href="task-details.html?taskId=${encodeURIComponent(application.task_id || '')}" class="card-link">Посмотреть задачу</a>
+        <a href="#" class="card-link">Отменить отклик</a>
+        <a href="#" class="card-link">Чат с организацией</a>
+      </div>
+    `;
+    return card;
+  }
+
+  async function loadApplicationsFromDb() {
+    try {
+      const applications = await helperaDb.listApplications();
+      if (!applications.length) return;
+      const listPanel = document.querySelector('.list-panel');
+      listPanel.innerHTML = '';
+      applications.forEach((application) => listPanel.appendChild(renderApplicationCard(application)));
+      applicationCards = document.querySelectorAll('.application-card');
+      document.querySelectorAll('.stat-card .stat-value')[0].textContent = String(applications.length);
+      document.querySelectorAll('.stat-card .stat-value')[1].textContent = String(applications.filter((item) => item.status === 'review').length);
+      applyApplicationFilter(document.querySelector('.tab.active')?.dataset.filter || 'all');
+    } catch (error) {
+      console.error('Не удалось загрузить отклики из Supabase', error);
+    }
+  }
+
+  function applyApplicationFilter(filter) {
+    let visibleCount = 0;
+
+    applicationCards.forEach(card => {
+      const status = card.dataset.status;
+      const shouldShow = filter === 'all' || filter === status;
+
+      if (shouldShow) {
+        card.style.display = 'flex';
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
+        visibleCount += 1;
+      } else {
+        card.style.display = 'none';
+        card.style.opacity = '0';
+        card.style.pointerEvents = 'none';
+      }
+    });
+
+    if (emptyDrafts) {
+      emptyDrafts.style.display = filter === 'draft' ? 'block' : 'none';
+    }
+  }
+
+  filterTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      filterTabs.forEach(item => item.classList.remove('active'));
+      tab.classList.add('active');
+      applyApplicationFilter(tab.dataset.filter);
+    });
+  });
+
+  applyApplicationFilter('all');
+  loadApplicationsFromDb();
+</script>
+
+</body>
+</html>

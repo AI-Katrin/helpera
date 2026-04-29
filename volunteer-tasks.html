@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Все задачи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-tasks.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="index.html">Главная</a>
+        <a href="volunteer-tasks.html" id="nav-tasks">Все задачи</a>
+        <a href="volunteer-applications.html">Мои отклики</a>
+        <a href="volunteer-profile.html" id="nav-profile">Профиль</a>
+        <div class="avatar-mini">Е</div>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="hero-badge">Подборка задач для волонтёра</div>
+        <h1 class="hero-title">Все задачи</h1>
+        <p class="hero-text">Сначала мы показываем 10 наиболее подходящих задач, а затем — остальные доступные варианты. Используйте фильтры, чтобы сузить подборку.</p>
+      </div>
+      <button class="btn-primary" id="back-profile-btn">Вернуться в кабинет</button>
+    </section>
+
+    <div class="layout">
+      <aside class="panel filters">
+        <h2 class="panel-title">Фильтры</h2>
+
+        <div class="filter-group">
+          <label class="filter-label">Поиск по задачам</label>
+          <input id="taskSearch" class="search-input" placeholder="Название, НКО, ключевые слова" />
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Формат</label>
+          <div class="chip-row filter-format" data-select="multiple">
+            <button class="chip active" type="button">Онлайн</button>
+            <button class="chip" type="button">Оффлайн</button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Длительность</label>
+          <div class="chip-row filter-duration" data-select="multiple">
+            <button class="chip" type="button">Разово</button>
+            <button class="chip active" type="button">Короткие</button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Направления</label>
+          <div class="dropdown" data-dropdown="directions">
+            <button class="select-button" type="button">
+              <span class="select-label">Выбрать направления</span>
+              <span class="chevron"></span>
+            </button>
+            <div class="dropdown-menu">
+              <label class="check-option">
+                <input type="checkbox" value="Образование" checked />
+                <span class="check-box"></span>
+                <span>Образование</span>
+              </label>
+              <label class="check-option">
+                <input type="checkbox" value="Экология" />
+                <span class="check-box"></span>
+                <span>Экология</span>
+              </label>
+              <label class="check-option">
+                <input type="checkbox" value="Соц. проекты" checked />
+                <span class="check-box"></span>
+                <span>Социальные проекты</span>
+              </label>
+              <label class="check-option">
+                <input type="checkbox" value="Культура" />
+                <span class="check-box"></span>
+                <span>Культура</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Навыки</label>
+          <div class="dropdown" data-dropdown="skills">
+            <button class="select-button" type="button">
+              <span class="select-label">Выбрать навыки</span>
+              <span class="chevron"></span>
+            </button>
+            <div class="dropdown-menu">
+              <label class="check-option">
+                <input type="checkbox" value="Аналитика" checked />
+                <span class="check-box"></span>
+                <span>Аналитика</span>
+              </label>
+              <label class="check-option">
+                <input type="checkbox" value="SMM" checked />
+                <span class="check-box"></span>
+                <span>SMM</span>
+              </label>
+              <label class="check-option">
+                <input type="checkbox" value="Дизайн" />
+                <span class="check-box"></span>
+                <span>Дизайн</span>
+              </label>
+              <label class="check-option">
+                <input type="checkbox" value="Копирайтинг" />
+                <span class="check-box"></span>
+                <span>Копирайтинг</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button id="applyFilters" class="btn-full">Применить</button>
+          <button id="resetFilters" class="btn-outline">Сбросить всё</button>
+        </div>
+      </aside>
+
+      <section class="panel tasks-panel">
+        <div class="tasks-header">
+          <div>
+            <h2 class="tasks-title">Подходящие задачи</h2>
+            <p class="tasks-subtitle">Топ-10 задач с наибольшим совпадением</p>
+          </div>
+          <div class="sort">Сортировка: сначала более подходящие</div>
+        </div>
+
+        <div id="activeFilters" class="active-filters">
+          <span class="tag-chip">Онлайн ×</span>
+          <span class="tag-chip">Образование ×</span>
+          <span class="tag-chip">Аналитика ×</span>
+          <a class="reset-link" href="#">Сбросить фильтры</a>
+        </div>
+
+        <article class="task-card task-item" data-title="Анализ обратной связи участников образовательной программы" data-org="АНО Открытые знания" data-format="Онлайн" data-duration="Разово" data-directions="Образование" data-skills="Аналитика">
+          <div>
+            <h3 class="task-title">Анализ обратной связи участников образовательной программы</h3>
+            <p class="task-meta">АНО «Открытые знания» • Онлайн • Разовая задача</p>
+            <div class="chip-row">
+              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 93%</span>
+              <span class="chip active">Аналитика</span>
+              <span class="chip active">Образование</span>
+            </div>
+          </div>
+          <div class="task-actions">
+            <a href="#" class="task-link blue">Подробнее</a>
+            <a href="#" class="task-link green">Откликнуться</a>
+            <a href="#" class="task-link blue small">Не показывать</a>
+          </div>
+        </article>
+
+        <article class="task-card task-item" data-title="Подготовка аналитического отчёта по социальному проекту" data-org="Фонд Шаг вперёд" data-format="Онлайн" data-duration="Короткие" data-directions="Соц. проекты" data-skills="Аналитика">
+          <div>
+            <h3 class="task-title">Подготовка аналитического отчёта по социальному проекту</h3>
+            <p class="task-meta">Фонд «Шаг вперёд» • Онлайн • Короткая задача</p>
+            <div class="chip-row">
+              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 91%</span>
+              <span class="chip active">Аналитика</span>
+              <span class="chip active">Соц. проекты</span>
+            </div>
+          </div>
+          <div class="task-actions">
+            <a href="#" class="task-link blue">Подробнее</a>
+            <a href="#" class="task-link green">Откликнуться</a>
+            <a href="#" class="task-link blue small">Не показывать</a>
+          </div>
+        </article>
+
+        <article class="task-card task-item" data-title="Помощь в ведении социальных сетей НКО" data-org="Фонд Тёплый дом" data-format="Онлайн" data-duration="Долгосрочные" data-directions="Образование" data-skills="SMM">
+          <div>
+            <h3 class="task-title">Помощь в ведении социальных сетей НКО</h3>
+            <p class="task-meta">Фонд «Тёплый дом» • Онлайн • Постоянное участие</p>
+            <div class="chip-row">
+              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 88%</span>
+              <span class="chip active">SMM</span>
+              <span class="chip active">Образование</span>
+            </div>
+          </div>
+          <div class="task-actions">
+            <a href="#" class="task-link blue">Подробнее</a>
+            <a href="#" class="task-link green">Откликнуться</a>
+            <a href="#" class="task-link blue small">Не показывать</a>
+          </div>
+        </article>
+
+        <article class="task-card task-item" data-title="Подготовка материалов для онлайн-курса для подростков" data-org="Центр поддержки молодёжи" data-format="Онлайн" data-duration="Проектные" data-directions="Образование" data-skills="Дизайн">
+          <div>
+            <h3 class="task-title">Подготовка материалов для онлайн-курса для подростков</h3>
+            <p class="task-meta">Центр поддержки молодёжи • Онлайн • Проектная задача</p>
+            <div class="chip-row">
+              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 86%</span>
+              <span class="chip active">Дизайн</span>
+              <span class="chip active">Образование</span>
+            </div>
+          </div>
+          <div class="task-actions">
+            <a href="#" class="task-link blue">Подробнее</a>
+            <a href="#" class="task-link green">Откликнуться</a>
+            <a href="#" class="task-link blue small">Не показывать</a>
+          </div>
+        </article>
+
+        <article class="task-card task-item" data-title="Систематизация отзывов участников благотворительной акции" data-org="Фонд Добро вместе" data-format="Онлайн" data-duration="Разово" data-directions="Соц. проекты" data-skills="Аналитика">
+          <div>
+            <h3 class="task-title">Систематизация отзывов участников благотворительной акции</h3>
+            <p class="task-meta">Фонд «Добро вместе» • Онлайн • Разовая задача</p>
+            <div class="chip-row">
+              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 84%</span>
+              <span class="chip active">Аналитика</span>
+              <span class="chip active">Соц. проекты</span>
+            </div>
+          </div>
+          <div class="task-actions">
+            <a href="#" class="task-link blue">Подробнее</a>
+            <a href="#" class="task-link green">Откликнуться</a>
+            <a href="#" class="task-link blue small">Не показывать</a>
+          </div>
+        </article>
+
+        <div id="emptyState" class="hint-box" style="display:none; margin:24px 0 20px;">
+          <h3 class="hint-title">Не нашли подходящий вариант?</h3>
+          <p class="hint-text">Попробуйте изменить фильтры, открыть полный каталог задач или обновить данные профиля</p>
+        </div>
+
+        <div class="bottom-actions">
+          <button class="btn-outline">Показать ещё</button>
+          <button class="btn-full">Открыть все задачи</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const searchInput = document.getElementById('taskSearch');
+  const formatButtons = document.querySelectorAll('.filter-format .chip');
+  const durationButtons = document.querySelectorAll('.filter-duration .chip');
+  const directionDropdown = document.querySelector('[data-dropdown="directions"]');
+  const skillDropdown = document.querySelector('[data-dropdown="skills"]');
+  const applyButton = document.getElementById('applyFilters');
+  const resetButton = document.getElementById('resetFilters');
+  const activeFiltersBox = document.getElementById('activeFilters');
+  let taskCards = Array.from(document.querySelectorAll('.task-item'));
+  const emptyState = document.getElementById('emptyState');
+  const urlParams = new URLSearchParams(window.location.search);
+  const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+  document.getElementById('nav-tasks').href = withProfileId('volunteer-tasks.html');
+  document.getElementById('nav-profile').href = withProfileId('volunteer-profile.html');
+  document.getElementById('back-profile-btn').addEventListener('click', () => {
+    window.location.href = withProfileId('volunteer-profile.html');
+  });
+
+  function renderTaskCard(task) {
+    const orgName = task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName || 'НКО';
+    const payload = task.payload || {};
+    const skills = String(task.skills || payload.skills || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    const article = document.createElement('article');
+    article.className = 'task-card task-item';
+    article.dataset.title = task.title || '';
+    article.dataset.org = orgName;
+    article.dataset.format = task.format || payload.format || '';
+    article.dataset.duration = 'Проектные';
+    article.dataset.directions = payload.comment || '';
+    article.dataset.skills = skills.join(',');
+    article.innerHTML = `
+      <div>
+        <h3 class="task-title">${task.title || 'Задача без названия'}</h3>
+        <p class="task-meta">${orgName} • ${task.format || payload.format || 'Формат не указан'} • ${payload.dateStart || ''}${payload.dateEnd ? ` — ${payload.dateEnd}` : ''}</p>
+        <div class="chip-row">
+          <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Из базы Supabase</span>
+          ${skills.map((skill) => `<span class="chip active">${skill}</span>`).join('')}
+        </div>
+      </div>
+      <div class="task-actions">
+        <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link blue">Подробнее</a>
+        <a href="${withProfileId(`task-apply.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link green">Откликнуться</a>
+        <a href="#" class="task-link blue small">Не показывать</a>
+      </div>
+    `;
+    return article;
+  }
+
+  async function loadTasksFromDb() {
+    try {
+      const tasks = await helperaDb.listTasks();
+      if (!tasks.length) return;
+      const parent = document.querySelector('.tasks-panel');
+      if (!parent) return;
+      document.querySelectorAll('.task-item').forEach((card) => card.remove());
+      tasks.forEach((task) => parent.insertBefore(renderTaskCard(task), emptyState));
+      taskCards = Array.from(document.querySelectorAll('.task-item'));
+      applyFilters();
+    } catch (error) {
+      console.error('Не удалось загрузить задачи из Supabase', error);
+    }
+  }
+
+  function toggleChip(button) {
+    button.classList.toggle('active');
+  }
+
+  formatButtons.forEach(btn => btn.addEventListener('click', () => toggleChip(btn)));
+  durationButtons.forEach(btn => btn.addEventListener('click', () => toggleChip(btn)));
+
+  document.querySelectorAll('.dropdown .select-button').forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dropdown = button.closest('.dropdown');
+      document.querySelectorAll('.dropdown').forEach(item => {
+        if (item !== dropdown) item.classList.remove('open');
+      });
+      dropdown.classList.toggle('open');
+    });
+  });
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown').forEach(item => item.classList.remove('open'));
+  });
+
+  document.querySelectorAll('.dropdown-menu').forEach(menu => {
+    menu.addEventListener('click', (e) => e.stopPropagation());
+  });
+
+  function getActiveTexts(nodeList) {
+    return Array.from(nodeList)
+      .filter(btn => btn.classList.contains('active'))
+      .map(btn => btn.textContent.trim());
+  }
+
+  function getCheckedValues(dropdown) {
+    return Array.from(dropdown.querySelectorAll('input[type="checkbox"]:checked')).map(i => i.value);
+  }
+
+  function updateDropdownLabel(dropdown, placeholder) {
+    const values = getCheckedValues(dropdown);
+    const label = dropdown.querySelector('.select-label');
+    label.textContent = values.length ? values.join(', ') : placeholder;
+  }
+
+  function renderActiveFilters(filters) {
+    activeFiltersBox.innerHTML = '';
+    const chips = [];
+    filters.formats.forEach(v => chips.push(v));
+    filters.durations.forEach(v => chips.push(v));
+    filters.directions.forEach(v => chips.push(v));
+    filters.skills.forEach(v => chips.push(v));
+
+    chips.forEach(text => {
+      const el = document.createElement('span');
+      el.className = 'tag-chip';
+      el.textContent = text + ' ×';
+      activeFiltersBox.appendChild(el);
+    });
+
+    if (filters.search) {
+      const el = document.createElement('span');
+      el.className = 'tag-chip';
+      el.textContent = 'Поиск: ' + filters.search + ' ×';
+      activeFiltersBox.appendChild(el);
+    }
+
+    const reset = document.createElement('a');
+    reset.href = '#';
+    reset.className = 'reset-link';
+    reset.textContent = 'Сбросить фильтры';
+    reset.addEventListener('click', (e) => {
+      e.preventDefault();
+      resetAllFilters();
+    });
+    activeFiltersBox.appendChild(reset);
+  }
+
+  function applyFilters() {
+    const filters = {
+      search: searchInput.value.trim().toLowerCase(),
+      formats: getActiveTexts(formatButtons),
+      durations: getActiveTexts(durationButtons),
+      directions: getCheckedValues(directionDropdown),
+      skills: getCheckedValues(skillDropdown)
+    };
+
+    updateDropdownLabel(directionDropdown, 'Выбрать направления');
+    updateDropdownLabel(skillDropdown, 'Выбрать навыки');
+    renderActiveFilters(filters);
+
+    let visibleCount = 0;
+
+    taskCards.forEach(card => {
+      const title = (card.dataset.title || '').toLowerCase();
+      const org = (card.dataset.org || '').toLowerCase();
+      const searchMatch = !filters.search || title.includes(filters.search) || org.includes(filters.search);
+
+      const formatMatch = !filters.formats.length || filters.formats.includes(card.dataset.format);
+      const durationValue = card.dataset.duration;
+      const durationMatch = !filters.durations.length || filters.durations.some(v => {
+        if (v === 'Разово') return durationValue === 'Разово';
+        if (v === 'Короткие') return durationValue === 'Короткие';
+        return false;
+      });
+
+      const directionMatch = !filters.directions.length || filters.directions.some(v => (card.dataset.directions || '').includes(v));
+      const skillMatch = !filters.skills.length || filters.skills.some(v => (card.dataset.skills || '').includes(v));
+
+      const show = searchMatch && formatMatch && durationMatch && directionMatch && skillMatch;
+      card.style.display = show ? 'flex' : 'none';
+      if (show) visibleCount += 1;
+    });
+
+    emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  function resetAllFilters() {
+    searchInput.value = '';
+    formatButtons.forEach(btn => btn.classList.remove('active'));
+    durationButtons.forEach(btn => btn.classList.remove('active'));
+    directionDropdown.querySelectorAll('input[type="checkbox"]').forEach(input => input.checked = false);
+    skillDropdown.querySelectorAll('input[type="checkbox"]').forEach(input => input.checked = false);
+    updateDropdownLabel(directionDropdown, 'Выбрать направления');
+    updateDropdownLabel(skillDropdown, 'Выбрать навыки');
+    applyFilters();
+  }
+
+  applyButton.addEventListener('click', applyFilters);
+  resetButton.addEventListener('click', resetAllFilters);
+  searchInput.addEventListener('input', applyFilters);
+
+  updateDropdownLabel(directionDropdown, 'Выбрать направления');
+  updateDropdownLabel(skillDropdown, 'Выбрать навыки');
+  applyFilters();
+  loadTasksFromDb();
+</script>
+
+</body>
+</html>

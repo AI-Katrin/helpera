@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Вход — Helpera</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Inter, Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(120deg, #F6FBF7 0%, #EEF6FF 100%);
+      color: #111827;
+    }
+
+    header {
+      height: 88px;
+      background: #ffffff;
+      border-bottom: 1px solid #E5E7EB;
+      display: flex;
+      align-items: center;
+      padding: 0 74px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: 700;
+      color: #2E7D32;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #2E7D32;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+    }
+
+    main {
+      min-height: calc(100vh - 88px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 48px 20px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 460px;
+      background: #ffffff;
+      border: 1px solid #E5E7EB;
+      border-radius: 28px;
+      padding: 40px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+    }
+
+    .login-card h1 {
+      font-size: 32px;
+      line-height: 1.2;
+      margin-bottom: 10px;
+      color: #111827;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #6B7280;
+      margin-bottom: 28px;
+    }
+
+    .role-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .role-option input {
+      display: none;
+    }
+
+    .role-option span {
+      display: block;
+      padding: 13px 14px;
+      border: 1px solid #D1D5DB;
+      border-radius: 14px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #374151;
+      background: #F9FAFB;
+    }
+
+    .role-option input:checked + span {
+      border-color: #2E7D32;
+      background: #EAF6EC;
+      color: #2E7D32;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    .password-field {
+      width: 100%;
+      height: 52px;
+      padding: 0 16px;
+      border: 1px solid #D1D5DB;
+      border-radius: 14px;
+      font-size: 16px;
+      color: #111827;
+      outline: none;
+      background: #ffffff;
+    }
+
+    .password-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-right: 14px;
+    }
+
+    .password-field input {
+      border: 0;
+      box-shadow: none;
+      height: 100%;
+      padding: 0;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .password-field input:focus {
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .password-field:focus-within {
+      border-color: #2E7D32;
+      box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.12);
+    }
+
+    .password-toggle {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      padding: 0;
+    }
+
+    .password-toggle::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 8px;
+      width: 20px;
+      height: 12px;
+      border: 1.8px solid #6B7280;
+      border-radius: 50%;
+    }
+
+    .password-toggle::after {
+      content: "";
+      position: absolute;
+      left: 11px;
+      top: 11px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #6B7280;
+    }
+
+    .password-toggle.is-visible::before {
+      border-color: #2E7D32;
+    }
+
+    .password-toggle.is-visible::after {
+      background: #2E7D32;
+    }
+
+    input:focus {
+      border-color: #2E7D32;
+      box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.12);
+    }
+
+    .form-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 8px 0 24px;
+      font-size: 14px;
+    }
+
+    .remember {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #4B5563;
+    }
+
+    .forgot {
+      color: #2E7D32;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .login-button {
+      width: 100%;
+      height: 54px;
+      border: none;
+      border-radius: 16px;
+      background: #2E7D32;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .login-button:hover {
+      background: #256B2A;
+    }
+
+    .login-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .message {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .message.error {
+      display: block;
+      background: #FEF2F2;
+      color: #991B1B;
+      border: 1px solid #FECACA;
+    }
+
+    .message.success {
+      display: block;
+      background: #ECFDF5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+    }
+
+    .register {
+      margin-top: 26px;
+      text-align: center;
+      font-size: 15px;
+      color: #6B7280;
+    }
+
+    .register a {
+      color: #2E7D32;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 0 24px;
+      }
+
+      .login-card {
+        padding: 28px 22px;
+      }
+
+      .login-card h1 {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-icon">H</div>
+      <span>Helpera</span>
+    </a>
+  </header>
+
+  <main>
+    <section class="login-card">
+      <h1>Вход в систему</h1>
+      <p class="subtitle">
+        Войдите в личный кабинет волонтёра или НКО, чтобы продолжить работу с задачами.
+      </p>
+
+      <form id="loginForm">
+        <div class="role-switch">
+          <label class="role-option">
+            <input type="radio" name="role" value="volunteer" checked />
+            <span>Волонтёр</span>
+          </label>
+
+          <label class="role-option">
+            <input type="radio" name="role" value="ngo" />
+            <span>НКО</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="login">Логин</label>
+          <input
+            type="text"
+            id="login"
+            name="login"
+            placeholder="Введите логин"
+            autocomplete="username"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Пароль</label>
+          <div class="password-field">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Введите пароль"
+              autocomplete="current-password"
+              required
+            />
+            <button class="password-toggle" id="passwordToggle" type="button" aria-label="Показать пароль" aria-pressed="false"></button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="remember">
+            <input type="checkbox" id="remember" />
+            Запомнить меня
+          </label>
+
+          <a href="forgot-password.html" class="forgot">Забыли пароль?</a>
+        </div>
+
+        <button type="submit" class="login-button" id="loginButton">
+          Войти
+        </button>
+
+        <div id="message" class="message"></div>
+      </form>
+
+      <div class="register">
+        Нет аккаунта?
+        <a href="register.html">Зарегистрироваться</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("loginForm");
+    const message = document.getElementById("message");
+    const button = document.getElementById("loginButton");
+    const passwordInput = document.getElementById("password");
+    const passwordToggle = document.getElementById("passwordToggle");
+
+    passwordToggle.addEventListener("click", () => {
+      const isHidden = passwordInput.type === "password";
+      passwordInput.type = isHidden ? "text" : "password";
+      passwordToggle.classList.toggle("is-visible", isHidden);
+      passwordToggle.setAttribute("aria-label", isHidden ? "Скрыть пароль" : "Показать пароль");
+      passwordToggle.setAttribute("aria-pressed", String(isHidden));
+    });
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const login = document.getElementById("login").value.trim();
+      const password = document.getElementById("password").value;
+      const role = document.querySelector('input[name="role"]:checked').value;
+      const remember = document.getElementById("remember").checked;
+
+      message.className = "message";
+      message.textContent = "";
+
+      if (!login || !password) {
+        showMessage("error", "Введите логин и пароль.");
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "Выполняется вход...";
+
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            login,
+            password,
+            role,
+            remember
+          })
+        });
+
+        const responseText = await response.text();
+        let data = {};
+
+        if (responseText) {
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseError) {
+            throw new Error("Не удалось обработать ответ сервера. Попробуйте ещё раз.");
+          }
+        }
+
+        if (!response.ok) {
+          throw new Error(data.message || "Неверный логин или пароль.");
+        }
+
+        /*
+          ВАЖНО:
+          Лучше хранить токен в httpOnly cookie на backend.
+          localStorage использовать нежелательно для настоящей системы авторизации.
+        */
+
+        showMessage("success", "Вход выполнен успешно.");
+
+        if (role === "volunteer") {
+          window.location.href = "volunteer-profile.html";
+        } else {
+          window.location.href = "ngo-dashboard.html";
+        }
+
+      } catch (error) {
+        showMessage("error", error.message || "Что-то пошло не так. Попробуйте ещё раз.");
+      } finally {
+        button.disabled = false;
+        button.textContent = "Войти";
+      }
+    });
+
+    function showMessage(type, text) {
+      message.className = `message ${type}`;
+      message.textContent = text;
+    }
+  </script>
+</body>
+</html>

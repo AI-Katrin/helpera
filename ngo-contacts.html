@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Контакты организации</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-contacts.css">
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-mark"></span>
+      <span>Helpera</span>
+    </a>
+    <a class="profile-link" href="#">Профиль организации</a>
+  </header>
+
+  <main class="content">
+    <section class="panel left">
+      <div class="badge">Шаг 3 — Контакты</div>
+      <h1>Укажите</h1>
+      <h1 style="margin-top:0">контактное лицо</h1>
+      <p class="lead">
+        На этом шаге нужно указать представителя организации,
+        с которым смогут связаться волонтёры и который будет
+        управлять задачами в личном кабинете.
+      </p>
+
+      <article class="info-card">
+        <div class="icon-round green check"></div>
+        <div>
+          <h3 class="card-title">Один ответственный контакт</h3>
+          <p class="card-text">Это упростит коммуникацию с волонтёрами и позволит быстрее обрабатывать отклики</p>
+        </div>
+      </article>
+
+      <article class="info-card">
+        <div class="icon-round blue plus"></div>
+        <div>
+          <h3 class="card-title">Контакты можно обновить позже</h3>
+          <p class="card-text">При необходимости вы сможете изменить контактное лицо в настройках профиля</p>
+        </div>
+      </article>
+
+      <article class="info-card blue">
+        <div>
+          <h3 class="card-title">Что будет дальше?</h3>
+          <p class="card-text blue">После заполнения контактов вы сможете создать первую задачу и начать получать отклики от подходящих волонтёров</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel right">
+      <div class="step-label">Шаг 3 из 4</div>
+      <div class="progress-track"><div class="progress-fill"></div></div>
+
+      <div class="steps">
+        <div class="step done">
+          <div class="step-circle">1</div>
+          <div class="step-name">Аккаунт</div>
+        </div>
+        <div class="step done">
+          <div class="step-circle">2</div>
+          <div class="step-name">О НКО</div>
+        </div>
+        <div class="step active">
+          <div class="step-circle">3</div>
+          <div class="step-name">Контакты</div>
+        </div>
+        <div class="step">
+          <div class="step-circle">4</div>
+          <div class="step-name">Задача</div>
+        </div>
+      </div>
+
+      <h2>Контактные данные представителя</h2>
+      <p class="subtitle">Поля, отмеченные звёздочкой, обязательны для продолжения</p>
+
+      <form id="contactForm" novalidate>
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="lastName">Фамилия <span class="req">*</span></label>
+            <input class="input" id="lastName" type="text" placeholder="Введите фамилию" required>
+          </div>
+
+          <div class="field">
+            <label class="label" for="firstName">Имя <span class="req">*</span></label>
+            <input class="input" id="firstName" type="text" placeholder="Введите имя" required>
+          </div>
+
+          <div class="field full">
+            <label class="label" for="position">Должность <span class="req">*</span></label>
+            <input class="input" id="position" type="text" placeholder="Например: координатор волонтёров" required>
+          </div>
+
+          <div class="field">
+            <label class="label" for="phone">Телефон <span class="req">*</span></label>
+            <input class="input" id="phone" type="tel" placeholder="+7 999 123-45-67" required>
+          </div>
+
+          <div class="field">
+            <label class="label" for="email">Email <span class="req">*</span></label>
+            <input class="input" id="email" type="email" placeholder="example@mail.com" required>
+          </div>
+
+          <div class="field full">
+            <label class="label" for="preferredMethod">Предпочтительный способ связи <span class="optional">(необязательно)</span></label>
+            <input class="input" id="preferredMethod" type="text" placeholder="Телефон / Email / Telegram">
+          </div>
+
+          <div class="field full">
+            <label class="label" for="comment">Короткий комментарий <span class="optional">(необязательно)</span></label>
+            <textarea class="textarea" id="comment" placeholder="Например: в какое время удобно отвечать&#10;или кто занимается обработкой откликов"></textarea>
+          </div>
+
+          <div class="field full">
+            <label class="label">Визитка / доверенность контактного лица <span class="optional">(необязательно)</span></label>
+            <input id="contactFileInput" type="file" accept=".pdf,.jpg,.jpeg,.png" hidden>
+            <div class="dropzone" id="contactDropzone" role="button" tabindex="0">
+              <div class="drop-icon"></div>
+              <div>
+                <p class="drop-title">Перетащите файл сюда или загрузите с устройства</p>
+                <p class="drop-text">Поддерживаются форматы PDF, JPG, PNG.</p>
+              </div>
+            </div>
+            <div class="file-list" id="contactFileList"></div>
+          </div>
+
+          <div class="field full">
+            <div class="checks">
+              <label class="check-item">
+                <input id="notifyEmail" type="checkbox">
+                <span class="check-box"></span>
+                <span>Получать уведомления об откликах на email</span>
+              </label>
+              <label class="check-item">
+                <input id="notifyPhone" type="checkbox">
+                <span class="check-box"></span>
+                <span>Дублировать срочные уведомления по телефону</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="continueBtn" class="btn btn-primary" type="submit" disabled>Продолжить</button>
+          <button id="backBtn" class="btn btn-secondary" type="button">Назад</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const nativeAlert = window.alert.bind(window);
+  window.alert = (message, ...args) => {
+    if (String(message).includes('Форма готова к переходу на следующий шаг')) return;
+    nativeAlert(message, ...args);
+  };
+
+  const form = document.getElementById('contactForm');
+  const btn = document.getElementById('continueBtn');
+  const backBtn = document.getElementById('backBtn');
+  const urlParams = new URLSearchParams(window.location.search);
+  const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  const requiredFields = [
+    document.getElementById('lastName'),
+    document.getElementById('firstName'),
+    document.getElementById('position'),
+    document.getElementById('phone'),
+    document.getElementById('email')
+  ];
+
+  const contactFileInput = document.getElementById('contactFileInput');
+  const contactDropzone = document.getElementById('contactDropzone');
+  const contactFileList = document.getElementById('contactFileList');
+  let uploadedFiles = [];
+
+  async function updateProfile(mutator) {
+    if (!profileId) return null;
+    const profile = await helperaDb.getNgoProfile(profileId);
+    if (!profile) return null;
+    mutator(profile);
+    return helperaDb.updateNgoProfile(profileId, profile);
+  }
+
+  function withProfileId(path) {
+    return profileId ? `${path}?profileId=${encodeURIComponent(profileId)}` : path;
+  }
+
+  function phoneValid(value){
+    const digits = value.replace(/\D/g, '');
+    return digits.length >= 11;
+  }
+
+  function emailValid(value){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+
+  function validate(){
+    const filled = requiredFields.every(el => el.value.trim().length > 0);
+    const validPhone = phoneValid(document.getElementById('phone').value);
+    const validEmail = emailValid(document.getElementById('email').value);
+    btn.disabled = !(filled && validPhone && validEmail);
+  }
+
+  function fileSizeLabel(bytes) {
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function renderFiles() {
+    contactFileList.innerHTML = '';
+    uploadedFiles.forEach((file, index) => {
+      const ext = file.name.split('.').pop().toUpperCase();
+      const item = document.createElement('div');
+      item.className = 'file-card';
+      item.innerHTML = `
+        <div class="file-icon-small"></div>
+        <div>
+          <p class="file-name">${file.name}</p>
+          <p class="file-meta">${ext} • ${fileSizeLabel(file.size)}</p>
+        </div>
+        <button class="file-remove" type="button" data-index="${index}" aria-label="Удалить ${file.name}">×</button>
+      `;
+      contactFileList.appendChild(item);
+    });
+    Array.from(contactFileList.querySelectorAll('.file-remove')).forEach((button) => {
+      button.addEventListener('click', () => {
+        uploadedFiles.splice(Number(button.dataset.index), 1);
+        renderFiles();
+        saveDraft();
+      });
+    });
+  }
+
+  function addFiles(files) {
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
+    Array.from(files).forEach((file) => {
+      const ext = file.name.toLowerCase();
+      const okByExt = ext.endsWith('.pdf') || ext.endsWith('.jpg') || ext.endsWith('.jpeg') || ext.endsWith('.png');
+      if (allowed.includes(file.type) || okByExt) uploadedFiles.push(file);
+    });
+    renderFiles();
+    contactFileInput.value = '';
+    saveDraft();
+  }
+
+  function collectData() {
+    return {
+      lastName: document.getElementById('lastName').value.trim(),
+      firstName: document.getElementById('firstName').value.trim(),
+      position: document.getElementById('position').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      preferredMethod: document.getElementById('preferredMethod').value.trim(),
+      comment: document.getElementById('comment').value.trim(),
+      notifications: {
+        email: document.getElementById('notifyEmail').checked,
+        phone: document.getElementById('notifyPhone').checked
+      },
+      filesDraft: uploadedFiles.map((file) => ({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        uploadedAt: new Date().toISOString(),
+        storageStatus: 'queued_for_db_sync'
+      }))
+    };
+  }
+
+  async function saveDraft() {
+    await updateProfile((profile) => {
+      profile.contacts = {
+        ...(profile.contacts || {}),
+        ...collectData()
+      };
+      profile.registrationStep = 'contacts';
+    });
+  }
+
+  async function hydrateData() {
+    if (!profileId) return;
+    const profile = await helperaDb.getNgoProfile(profileId);
+    if (!profile || !profile.contacts) return;
+    const contacts = profile.contacts;
+    document.getElementById('lastName').value = contacts.lastName || '';
+    document.getElementById('firstName').value = contacts.firstName || '';
+    document.getElementById('position').value = contacts.position || '';
+    document.getElementById('phone').value = contacts.phone || '';
+    document.getElementById('email').value = contacts.email || '';
+    document.getElementById('preferredMethod').value = contacts.preferredMethod || '';
+    document.getElementById('comment').value = contacts.comment || '';
+    if (contacts.notifications) {
+      document.getElementById('notifyEmail').checked = !!contacts.notifications.email;
+      document.getElementById('notifyPhone').checked = !!contacts.notifications.phone;
+    }
+  }
+
+  requiredFields.forEach(el => {
+    el.addEventListener('input', validate);
+    el.addEventListener('blur', validate);
+    el.addEventListener('input', saveDraft);
+    el.addEventListener('change', saveDraft);
+  });
+  ['preferredMethod', 'comment', 'notifyEmail', 'notifyPhone'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', saveDraft);
+    document.getElementById(id).addEventListener('change', saveDraft);
+  });
+
+  contactDropzone.addEventListener('click', () => contactFileInput.click());
+  contactDropzone.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      contactFileInput.click();
+    }
+  });
+  contactFileInput.addEventListener('change', (event) => addFiles(event.target.files));
+  ['dragenter', 'dragover'].forEach((eventName) => {
+    contactDropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      contactDropzone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'dragend', 'drop'].forEach((eventName) => {
+    contactDropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      contactDropzone.classList.remove('dragover');
+    });
+  });
+  contactDropzone.addEventListener('drop', (event) => addFiles(event.dataTransfer.files));
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    validate();
+    if (!btn.disabled) {
+      await saveDraft();
+      window.location.href = withProfileId('ngo-task-create.html');
+    }
+  });
+
+  backBtn.addEventListener('click', () => {
+    window.location.href = withProfileId('ngo-about.html');
+  });
+
+  hydrateData();
+  validate();
+</script>
+</body>
+</html>

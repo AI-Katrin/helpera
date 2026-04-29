@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Завершение регистрации</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-interests.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+      <span class="profile-link">Профиль волонтёра</span>
+    </header>
+
+    <main class="content">
+      <section class="panel info-panel">
+        <div class="badge">Шаг 4 — Завершение</div>
+        <h1 class="info-title">Осталось<br>совсем немного</h1>
+        <p class="info-text">
+          На этом шаге вы задаёте предпочтения,
+          которые помогут показать первые задачи
+          сразу после завершения регистрации.
+        </p>
+
+        <div class="benefits">
+          <article class="benefit-card">
+            <div class="benefit-icon green check"></div>
+            <div>
+              <h3 class="benefit-title">Профиль почти готов</h3>
+              <p class="benefit-text">После этого шага вы сможете перейти к первым подходящим задачам</p>
+            </div>
+          </article>
+
+          <article class="benefit-card">
+            <div class="benefit-icon blue plus"></div>
+            <div>
+              <h3 class="benefit-title">Предпочтения можно изменить позже</h3>
+              <p class="benefit-text">Даже после регистрации вы сможете уточнить интересы, форматы задач и настройки уведомлений</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel form-panel">
+        <div class="step-label">Шаг 4 из 4</div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+
+        <div class="steps">
+          <div class="step-item done">
+            <div class="step-circle">1</div>
+            <div class="step-name">Аккаунт</div>
+          </div>
+          <div class="step-item done">
+            <div class="step-circle">2</div>
+            <div class="step-name">О себе</div>
+          </div>
+          <div class="step-item done">
+            <div class="step-circle">3</div>
+            <div class="step-name">Навыки</div>
+          </div>
+          <div class="step-item active">
+            <div class="step-circle">4</div>
+            <div class="step-name">Интересы</div>
+          </div>
+        </div>
+
+        <h2 class="form-title">Последние настройки профиля</h2>
+        <p class="form-subtitle">Выберите предпочтения, чтобы начать работу с платформой</p>
+
+        <div class="group">
+          <div class="group-title">Какие задачи вам ближе</div>
+          <div class="chips" id="tasks-group" data-select="multiple" data-required="true">
+            <button type="button" class="chip">Короткие</button>
+            <button type="button" class="chip">Долгосрочные</button>
+            <button type="button" class="chip">Проектные</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Какой формат задач вам интереснее</div>
+          <div class="chips" id="format-group" data-select="single" data-required="true">
+            <button type="button" class="chip">Онлайн</button>
+            <button type="button" class="chip">Оффлайн</button>
+            <button type="button" class="chip">Смешанный</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Комфортная занятость</div>
+          <div class="chips" id="workload-group" data-select="single" data-required="true">
+            <button type="button" class="chip">Разово</button>
+            <button type="button" class="chip">Несколько часов в неделю</button>
+            <button type="button" class="chip">Гибкий график</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Предпочтительный язык общения</div>
+          <div class="chips" id="languages-group" data-select="multiple" data-required="true">
+            <button type="button" class="chip">Русский</button>
+            <button type="button" class="chip">Английский</button>
+            <button type="button" class="chip">Другое</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-title">Уведомления</div>
+          <div class="checks">
+            <label class="check-item">
+              <input id="notify-new-tasks" type="checkbox" />
+              <span class="check-box"></span>
+              <span>Сообщать о новых подходящих задачах</span>
+            </label>
+            <label class="check-item">
+              <input id="notify-status-updates" type="checkbox" />
+              <span class="check-box"></span>
+              <span>Сообщать об откликах и изменениях статусов</span>
+            </label>
+            <label class="check-item">
+              <input id="notify-email-digest" type="checkbox" />
+              <span class="check-box"></span>
+              <span>Получать подборки полезных возможностей по email</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="ready-box">
+          <p class="ready-title">Готово к старту</p>
+          <p class="ready-text">После завершения регистрации вы попадёте в личный кабинет и увидите первые подходящие задачи</p>
+        </div>
+      </section>
+    </main>
+
+    <div class="actions">
+      <button class="btn-primary" id="complete-registration-btn" disabled>Завершить регистрацию</button>
+      <button class="btn-secondary" type="button" id="back-btn">Назад</button>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const completeButton = document.getElementById('complete-registration-btn');
+  const backButton = document.getElementById('back-btn');
+  const requiredGroups = Array.from(document.querySelectorAll('.chips[data-required="true"]'));
+  const urlParams = new URLSearchParams(window.location.search);
+  const profileIdFromUrl = urlParams.get('profileId');
+  const activeProfileId = profileIdFromUrl || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+
+  const updateCompleteButtonState = () => {
+    const isFormReady = requiredGroups.every(group => group.querySelector('.chip.active'));
+    completeButton.disabled = !isFormReady;
+  };
+
+  const collectSelectedChips = group => (
+    Array.from(group.querySelectorAll('.chip.active')).map(chip => chip.textContent.trim())
+  );
+
+  const getOrCreateProfileId = async () => {
+    if (activeProfileId) return activeProfileId;
+    const profile = await helperaDb.createVolunteerProfile({ contact: 'draft@helpera.local' });
+    return profile.profileId;
+  };
+
+  const saveInterestsToProfile = async () => {
+    const profileId = await getOrCreateProfileId();
+    await helperaDb.updateVolunteerProfile(profileId, {
+      interests: {
+      tasks: collectSelectedChips(document.getElementById('tasks-group')),
+      format: collectSelectedChips(document.getElementById('format-group'))[0] || null,
+      workload: collectSelectedChips(document.getElementById('workload-group'))[0] || null,
+      languages: collectSelectedChips(document.getElementById('languages-group'))
+      },
+      notifications: {
+      newTasks: document.getElementById('notify-new-tasks').checked,
+      statusUpdates: document.getElementById('notify-status-updates').checked,
+      emailDigest: document.getElementById('notify-email-digest').checked
+      },
+      registrationStep: 'completed'
+    });
+    return profileId;
+  };
+
+  document.querySelectorAll('.chips').forEach(group => {
+    const mode = group.dataset.select;
+    const chips = group.querySelectorAll('.chip');
+
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        if (mode === 'single') {
+          chips.forEach(item => item.classList.remove('active'));
+          chip.classList.add('active');
+        } else {
+          chip.classList.toggle('active');
+        }
+
+        updateCompleteButtonState();
+      });
+    });
+  });
+
+  backButton.addEventListener('click', async () => {
+    window.location.href = `volunteer-skills.html?profileId=${encodeURIComponent(await getOrCreateProfileId())}`;
+  });
+
+  completeButton.addEventListener('click', async () => {
+    if (completeButton.disabled) return;
+    try {
+      const profileId = await saveInterestsToProfile();
+      window.location.href = `volunteer-profile.html?profileId=${encodeURIComponent(profileId)}`;
+    } catch (error) {
+      const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
+      alert(`Не удалось завершить регистрацию: ${message}`);
+      console.error(error);
+    }
+  });
+
+  updateCompleteButtonState();
+</script>
+</body>
+</html>

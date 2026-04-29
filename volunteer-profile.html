@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Личный кабинет волонтёра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-profile.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="index.html">Главная</a>
+        <a href="volunteer-tasks.html" id="nav-tasks">Все задачи</a>
+        <a href="volunteer-applications.html">Мои отклики</a>
+        <a href="volunteer-profile.html" id="nav-profile">Профиль</a>
+        <div class="avatar-mini" id="avatar-mini">?</div>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="badge">Личный кабинет волонтёра</div>
+        <h1 class="hero-title" id="hero-title">Здравствуйте</h1>
+        <p class="hero-text">Ваш профиль готов. Мы подобрали задачи, которые лучше всего соответствуют вашим навыкам, интересам и опыту.</p>
+      </div>
+      <a class="btn-primary" href="volunteer-tasks.html" id="all-tasks-link">Перейти ко всем задачам</a>
+    </section>
+
+    <div class="layout">
+      <aside class="panel profile-card">
+        <h2 class="panel-title">Мой профиль</h2>
+        <div class="profile-avatar"></div>
+        <p class="profile-name" id="profile-name">Загрузка профиля...</p>
+        <p class="profile-sub" id="profile-location"></p>
+        <p class="profile-sub" id="profile-birth"></p>
+        <p class="profile-sub" id="profile-contact"></p>
+        <div class="status-badge" id="profile-status">Профиль загружается</div>
+        <p class="profile-data-note" id="profile-bio"></p>
+
+        <div class="section">
+          <h3 class="section-title">Навыки</h3>
+          <div class="chips" id="skills-list"></div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">Формат участия</h3>
+          <div class="chips" id="format-list"></div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">Направления</h3>
+          <div class="chips" id="directions-list"></div>
+        </div>
+
+        <div class="section">
+          <h3 class="section-title">Опыт</h3>
+          <div class="chips" id="experience-list"></div>
+        </div>
+
+        <div class="section" id="files-section">
+          <h3 class="section-title">Материалы</h3>
+          <div class="chips" id="files-list"></div>
+        </div>
+
+        <a class="btn-outline" href="volunteer-profile-edit.html" id="edit-profile-link">Редактировать профиль</a>
+      </aside>
+
+      <section class="panel tasks-panel">
+        <div class="tasks-header">
+          <div>
+            <h2 class="tasks-title">Топ-5 наиболее подходящих задач</h2>
+            <p class="tasks-subtitle">Персональная подборка на основе вашего профиля и указанных предпочтений.</p>
+          </div>
+          <a class="btn-outline-green" href="volunteer-tasks.html" id="all-tasks-small-link">Все задачи</a>
+        </div>
+
+        <div id="tasks-list">
+          <p class="empty-state">Загружаем задачи из базы...</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="info-box">
+      <h3 class="info-box-title">Почему вы видите именно эти задачи?</h3>
+      <p class="info-box-text">Подбор учитывает ваши навыки, выбранные направления помощи, формат участия и данные профиля</p>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    })[char]);
+
+    const normalizeText = (value) => String(value || '').trim().toLowerCase();
+    const splitSkills = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+    const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+    function fullName(about = {}) {
+      return [about.lastName, about.firstName, about.middleName].filter(Boolean).join(' ').trim();
+    }
+
+    function formatDate(dateValue) {
+      if (!dateValue) return '';
+      const date = new Date(dateValue);
+      if (Number.isNaN(date.getTime())) return dateValue;
+      return date.toLocaleDateString('ru-RU');
+    }
+
+    function getAge(dateValue) {
+      if (!dateValue) return null;
+      const birth = new Date(dateValue);
+      const now = new Date();
+      if (Number.isNaN(birth.getTime()) || birth > now) return null;
+      let age = now.getFullYear() - birth.getFullYear();
+      const monthDelta = now.getMonth() - birth.getMonth();
+      if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < birth.getDate())) age -= 1;
+      return age;
+    }
+
+    function renderChips(targetId, values, fallback = 'Не указано') {
+      const target = document.getElementById(targetId);
+      const items = (Array.isArray(values) ? values : [values]).filter(Boolean);
+      target.innerHTML = items.length
+        ? items.map((item) => `<span class="chip">${escapeHtml(item)}</span>`).join('')
+        : `<span class="chip">${fallback}</span>`;
+    }
+
+    function renderProfile(profile) {
+      const about = profile?.about || {};
+      const skills = profile?.skills || {};
+      const interests = profile?.interests || {};
+      const name = fullName(about) || profile?.account?.contact || 'Волонтёр';
+      const firstName = about.firstName || name.split(' ')[0] || 'волонтёр';
+      const age = getAge(about.birthDate);
+      const birthText = about.birthDate ? `${formatDate(about.birthDate)}${age ? ` (${age} лет)` : ''}` : '';
+
+      document.getElementById('hero-title').textContent = `Здравствуйте, ${firstName}`;
+      document.getElementById('avatar-mini').textContent = firstName.slice(0, 1).toUpperCase();
+      document.getElementById('profile-name').textContent = name;
+      document.getElementById('profile-location').textContent = [about.city, about.country].filter(Boolean).join(', ');
+      document.getElementById('profile-birth').textContent = birthText;
+      document.getElementById('profile-contact').textContent = about.phone || profile?.account?.contact || '';
+      document.getElementById('profile-status').textContent = profile?.registrationStep === 'completed' ? 'Профиль заполнен' : 'Профиль в процессе заполнения';
+      document.getElementById('profile-bio').textContent = about.bio || '';
+
+      renderChips('skills-list', skills.skills || []);
+      renderChips('format-list', interests.format || []);
+      renderChips('directions-list', skills.helpDirections || interests.tasks || []);
+      renderChips('experience-list', skills.experience || []);
+      renderChips(
+        'files-list',
+        [
+          about.profilePhotoDraft?.fileName,
+          ...(skills.filesDraft || []).map((file) => file.fileName)
+        ].filter(Boolean),
+        'Нет файлов'
+      );
+
+      document.getElementById('edit-profile-link').href = withProfileId('volunteer-profile-edit.html');
+      document.getElementById('nav-profile').href = withProfileId('volunteer-profile.html');
+      document.getElementById('nav-tasks').href = withProfileId('volunteer-tasks.html');
+      document.getElementById('all-tasks-link').href = withProfileId('volunteer-tasks.html');
+      document.getElementById('all-tasks-small-link').href = withProfileId('volunteer-tasks.html');
+    }
+
+    function scoreTask(task, profile) {
+      const volunteerSkills = (profile.skills?.skills || []).map(normalizeText);
+      const volunteerDirections = (profile.skills?.helpDirections || []).map(normalizeText);
+      const preferredFormat = normalizeText(profile.interests?.format);
+      const taskSkills = splitSkills(task.skills || task.payload?.skills).map(normalizeText);
+      const taskText = normalizeText(`${task.title} ${task.description} ${task.payload?.comment || ''}`);
+      let score = 50;
+
+      volunteerSkills.forEach((skill) => {
+        if (taskSkills.some((taskSkill) => taskSkill === skill || taskSkill.includes(skill) || skill.includes(taskSkill))) score += 12;
+      });
+      volunteerDirections.forEach((direction) => {
+        if (taskText.includes(direction)) score += 8;
+      });
+      if (preferredFormat && normalizeText(task.format || task.payload?.format) === preferredFormat) score += 18;
+      if (profile.about?.city && normalizeText(task.ngo_profiles?.about?.city) === normalizeText(profile.about.city)) score += 6;
+
+      return Math.min(score, 98);
+    }
+
+    function renderTask(task, profile) {
+      const orgName = task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName || 'НКО';
+      const skills = splitSkills(task.skills || task.payload?.skills).slice(0, 3);
+      const score = scoreTask(task, profile);
+      return `
+        <article class="task-card">
+          <div>
+            <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
+            <p class="task-sub">${escapeHtml(orgName)} • ${escapeHtml(task.ngo_profiles?.about?.city || 'Город не указан')} • ${escapeHtml(task.format || task.payload?.format || 'Формат не указан')}</p>
+            <div class="chips">
+              <span class="chip blue">Подходит на ${score}%</span>
+              ${skills.map((skill) => `<span class="chip green">${escapeHtml(skill)}</span>`).join('')}
+            </div>
+          </div>
+          <div class="task-actions">
+            <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link blue">Подробнее</a>
+            <a href="${withProfileId(`task-apply.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link green">Откликнуться</a>
+          </div>
+        </article>
+      `;
+    }
+
+    async function initProfilePage() {
+      if (!profileId) {
+        document.getElementById('profile-name').textContent = 'Профиль не выбран';
+        document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Сначала завершите регистрацию волонтёра.</p>';
+        return;
+      }
+
+      const profile = await helperaDb.getVolunteerProfile(profileId);
+      if (!profile) {
+        document.getElementById('profile-name').textContent = 'Профиль не найден';
+        document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Проверьте ссылку на профиль или подключение к Supabase.</p>';
+        return;
+      }
+
+      renderProfile(profile);
+      const tasks = await helperaDb.listTasks();
+      const topTasks = tasks
+        .map((task) => ({ task, score: scoreTask(task, profile) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map(({ task }) => task);
+
+      document.getElementById('tasks-list').innerHTML = topTasks.length
+        ? topTasks.map((task) => renderTask(task, profile)).join('')
+        : '<p class="empty-state">В базе пока нет опубликованных задач.</p>';
+    }
+
+    initProfilePage().catch((error) => {
+      console.error(error);
+      document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Не удалось загрузить профиль или задачи из Supabase.</p>';
+    });
+  </script>
+</body>
+</html>

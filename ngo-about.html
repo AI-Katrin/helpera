@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — О НКО</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-about.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+      <a class="profile-link" href="#">Профиль организации</a>
+    </header>
+
+    <main class="content">
+      <section class="panel left">
+        <div class="badge">Шаг 2 — О себе</div>
+        <h1>Расскажите<br>об организации</h1>
+        <p class="lead">
+          На этом шаге вы заполняете основную информацию
+          о вашей организации, чтобы волонтёры лучше понимали,
+          кому и для чего они помогают.
+        </p>
+
+        <article class="info-card">
+          <div class="icon-round green check"></div>
+          <div>
+            <h3 class="card-title">Прозрачность для волонтёров</h3>
+            <p class="card-text">Краткое описание организации поможет быстрее вызывать доверие и повысить отклик на задачи</p>
+          </div>
+        </article>
+
+        <article class="info-card">
+          <div class="icon-round blue plus-blue"></div>
+          <div>
+            <h3 class="card-title">Только важные данные</h3>
+            <p class="card-text">Мы собираем базовую информацию об организации, которую можно будет дополнить позже</p>
+          </div>
+        </article>
+
+        <article class="info-card blue">
+          <div>
+            <h3 class="card-title">Следующий шаг — контакты</h3>
+            <p class="card-text" style="color:#475569">Дальше вы укажете контактное лицо, чтобы волонтёры и система могли связывать задачи с ответственным представителем организации</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel right">
+        <div class="step-label">Шаг 2 из 4</div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+
+        <div class="steps">
+          <div class="step-item done">
+            <div class="step-circle">1</div>
+            <div class="step-name">Аккаунт</div>
+          </div>
+          <div class="step-item active">
+            <div class="step-circle">2</div>
+            <div class="step-name">О НКО</div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">3</div>
+            <div class="step-name">Контакты</div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">4</div>
+            <div class="step-name">Задача</div>
+          </div>
+        </div>
+
+        <h2>Заполните информацию об организации</h2>
+        <p class="subtitle">Поля, отмеченные звёздочкой, обязательны для продолжения</p>
+
+        <form id="ngoAboutForm" novalidate>
+          <div class="field-grid">
+            <div class="field">
+              <label class="label" for="shortName">Короткое название организации <span class="required">*</span></label>
+              <input class="input" id="shortName" type="text" placeholder='НКО "Ромашка"' required>
+            </div>
+
+            <div class="field">
+              <label class="label" for="orgType">Тип организации <span class="required">*</span></label>
+              <div class="select-wrap">
+                <select class="select placeholder" id="orgType" required>
+                  <option value="" selected disabled>Выберите тип</option>
+                  <option>Некоммерческая организация</option>
+                  <option>Благотворительный фонд</option>
+                  <option>Образовательный проект</option>
+                  <option>Социальная инициатива</option>
+                  <option>Волонтёрский центр</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field full">
+              <label class="label" for="activity">Направление деятельности <span class="required">*</span></label>
+              <input class="input" id="activity" type="text" placeholder="Например: образование, экология, помощь людям" required>
+            </div>
+
+            <div class="field">
+              <label class="label" for="country">Страна <span class="required">*</span></label>
+              <div class="select-wrap">
+                <select class="select placeholder" id="country" required>
+                  <option value="" selected disabled>Выберите страну</option>
+                  <option>Россия</option>
+                  <option>Казахстан</option>
+                  <option>Беларусь</option>
+                  <option>Армения</option>
+                  <option>Кыргызстан</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="city">Город / населённый пункт <span class="required">*</span></label>
+              <input class="input" id="city" type="text" placeholder="Укажите город" required>
+            </div>
+
+            <div class="field full">
+              <label class="label" for="description">Краткое описание организации <span class="required">*</span></label>
+              <textarea class="textarea" id="description" placeholder="Расскажите, чем занимается организация, какие проекты вы реализуете и кому помогаете" required></textarea>
+            </div>
+
+            <div class="field full">
+              <label class="label" for="site">Сайт или страница организации <span class="optional">(необязательно)</span></label>
+              <input class="input" id="site" type="text" placeholder="Например: сайт организации или страница в соцсети">
+            </div>
+
+            <div class="field full upload-block">
+              <label class="label">Логотип или документ организации <span class="optional">(необязательно)</span></label>
+              <input id="fileInput" type="file" accept=".pdf,.jpg,.jpeg,.png" hidden>
+              <div class="dropzone" id="dropzone" role="button" tabindex="0">
+                <div class="drop-icon"></div>
+                <div>
+                  <p class="drop-title">Перетащите файл сюда или загрузите с устройства</p>
+                  <p class="drop-text">Поддерживаются форматы PDF, JPG, PNG.</p>
+                </div>
+              </div>
+              <div class="file-list" id="fileList"></div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn-primary" id="continueBtn" type="submit" disabled>Продолжить</button>
+            <button class="btn-secondary" id="backBtn" type="button">Назад</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const nativeAlert = window.alert.bind(window);
+  window.alert = (message, ...args) => {
+    if (String(message).includes('Форма готова к переходу на следующий шаг')) return;
+    nativeAlert(message, ...args);
+  };
+
+  const form = document.getElementById('ngoAboutForm');
+  const continueBtn = document.getElementById('continueBtn');
+  const backBtn = document.getElementById('backBtn');
+  const urlParams = new URLSearchParams(window.location.search);
+  const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  const requiredFields = [
+    document.getElementById('shortName'),
+    document.getElementById('orgType'),
+    document.getElementById('activity'),
+    document.getElementById('country'),
+    document.getElementById('city'),
+    document.getElementById('description')
+  ];
+
+  const fileInput = document.getElementById('fileInput');
+  const dropzone = document.getElementById('dropzone');
+  const fileList = document.getElementById('fileList');
+  let uploadedFiles = [];
+
+  async function updateProfile(mutator) {
+    if (!profileId) return null;
+    const profile = await helperaDb.getNgoProfile(profileId);
+    if (!profile) return null;
+    mutator(profile);
+    return helperaDb.updateNgoProfile(profileId, profile);
+  }
+
+  function withProfileId(path) {
+    return profileId ? `${path}?profileId=${encodeURIComponent(profileId)}` : path;
+  }
+
+  function updateSelectPlaceholder(select) {
+    if (!select.value) {
+      select.classList.add('placeholder');
+    } else {
+      select.classList.remove('placeholder');
+    }
+  }
+
+  function validateForm() {
+    const valid = requiredFields.every((field) => {
+      if (field.tagName === 'SELECT') return !!field.value;
+      return field.value.trim().length > 0;
+    });
+    continueBtn.disabled = !valid;
+  }
+
+  function collectAboutData() {
+    return {
+      shortName: document.getElementById('shortName').value.trim(),
+      orgType: document.getElementById('orgType').value,
+      activity: document.getElementById('activity').value.trim(),
+      country: document.getElementById('country').value,
+      city: document.getElementById('city').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      site: document.getElementById('site').value.trim(),
+      filesDraft: uploadedFiles.map((file) => ({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        uploadedAt: new Date().toISOString(),
+        storageStatus: 'queued_for_db_sync'
+      }))
+    };
+  }
+
+  async function saveDraft() {
+    await updateProfile((profile) => {
+      profile.about = {
+        ...(profile.about || {}),
+        ...collectAboutData()
+      };
+      profile.registrationStep = 'about';
+    });
+  }
+
+  async function hydrateAboutData() {
+    if (!profileId) return;
+    const profile = await helperaDb.getNgoProfile(profileId);
+    if (!profile || !profile.about) return;
+    const about = profile.about;
+    document.getElementById('shortName').value = about.shortName || '';
+    document.getElementById('orgType').value = about.orgType || '';
+    document.getElementById('activity').value = about.activity || '';
+    document.getElementById('country').value = about.country || '';
+    document.getElementById('city').value = about.city || '';
+    document.getElementById('description').value = about.description || '';
+    document.getElementById('site').value = about.site || '';
+    requiredFields.forEach((field) => {
+      if (field.tagName === 'SELECT') updateSelectPlaceholder(field);
+    });
+  }
+
+  requiredFields.forEach((field) => {
+    field.addEventListener('input', validateForm);
+    field.addEventListener('change', () => {
+      if (field.tagName === 'SELECT') updateSelectPlaceholder(field);
+      validateForm();
+    });
+    field.addEventListener('input', saveDraft);
+    field.addEventListener('change', saveDraft);
+    if (field.tagName === 'SELECT') updateSelectPlaceholder(field);
+  });
+  document.getElementById('site').addEventListener('input', saveDraft);
+
+  function fileSizeLabel(bytes) {
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function renderFiles() {
+    fileList.innerHTML = '';
+    uploadedFiles.forEach((file, index) => {
+      const ext = file.name.split('.').pop().toUpperCase();
+      const item = document.createElement('div');
+      item.className = 'file-card';
+      item.innerHTML = `
+        <div class="file-icon-small"></div>
+        <div>
+          <p class="file-name">${file.name}</p>
+          <p class="file-meta">${ext} • ${fileSizeLabel(file.size)}</p>
+        </div>
+        <button class="file-remove" type="button" data-index="${index}" aria-label="Удалить ${file.name}">×</button>
+      `;
+      fileList.appendChild(item);
+    });
+
+    [...fileList.querySelectorAll('.file-remove')].forEach((btn) => {
+      btn.addEventListener('click', () => {
+        uploadedFiles.splice(Number(btn.dataset.index), 1);
+        renderFiles();
+      });
+    });
+  }
+
+  function addFiles(files) {
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
+    [...files].forEach((file) => {
+      const ext = file.name.toLowerCase();
+      const okByExt = ext.endsWith('.pdf') || ext.endsWith('.jpg') || ext.endsWith('.jpeg') || ext.endsWith('.png');
+      if (allowed.includes(file.type) || okByExt) {
+        uploadedFiles.push(file);
+      }
+    });
+    renderFiles();
+    fileInput.value = '';
+    saveDraft();
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
+  fileInput.addEventListener('change', (e) => addFiles(e.target.files));
+
+  ['dragenter', 'dragover'].forEach((eventName) => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'dragend', 'drop'].forEach((eventName) => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+    });
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    addFiles(e.dataTransfer.files);
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    validateForm();
+    if (!continueBtn.disabled) {
+      await saveDraft();
+      window.location.href = withProfileId('ngo-contacts.html');
+    }
+  });
+
+  backBtn.addEventListener('click', () => {
+    window.location.href = withProfileId('ngo-account.html');
+  });
+
+  hydrateAboutData();
+  validateForm();
+</script>
+</body>
+</html>

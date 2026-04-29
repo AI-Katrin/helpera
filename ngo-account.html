@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Helpera — Регистрация организации</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-account.css">
+</head>
+<body>
+  <div class="page">
+    <header>
+      <a class="brand" href="index.html"><span class="brand-mark"></span><span>Helpera</span></a>
+      <div class="auth-box"><span>Уже есть аккаунт?</span><a class="btn-login" href="login.html">Войти</a></div>
+    </header>
+    <main class="content">
+      <section class="panel left">
+        <div class="badge">Регистрация организации</div>
+        <h1>Найдите волонтёров<br>для ваших задач</h1>
+        <p class="lead">Создайте профиль организации, чтобы размещать задачи и получать отклики от подходящих волонтёров на нашей платформе.</p>
+        <article class="info-card"><div class="icon-round green check"></div><div><h3 class="info-title">Быстрое создание профиля</h3><p class="info-text">Регистрация займёт всего несколько минут</p></div></article>
+        <article class="info-card"><div class="icon-round blue plus-blue"></div><div><h3 class="info-title">Удобное размещение задач</h3><p class="info-text">После регистрации вы сможете опубликовать первую задачу</p></div></article>
+        <article class="info-card"><div class="icon-round green plus-green"></div><div><h3 class="info-title">Все отклики под контролем</h3><p class="info-text">Вы сможете просматривать кандидатов и управлять откликами</p></div></article>
+      </section>
+      <section class="panel right">
+        <div class="step-label">Шаг 1 из 4</div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+        <div class="steps">
+          <div class="step-item active"><div class="step-circle">1</div><div class="step-name">Аккаунт</div></div>
+          <div class="step-item"><div class="step-circle">2</div><div class="step-name">О НКО</div></div>
+          <div class="step-item"><div class="step-circle">3</div><div class="step-name">Контакты</div></div>
+          <div class="step-item"><div class="step-circle">4</div><div class="step-name">Задача</div></div>
+        </div>
+        <h2>Создайте аккаунт организации</h2>
+        <p class="subtitle">Это займёт всего пару минут и откроет доступ к публикации задач</p>
+        <div class="social-row">
+          <a class="social-btn" href="/auth/yandex/start"><span class="social-dot yandex"></span><span>Продолжить через Яндекс</span></a>
+          <a class="social-btn" href="/auth/vk/start"><span class="social-dot vk"></span><span>Продолжить через VK ID</span></a>
+        </div>
+        <div class="divider"><span>или</span></div>
+        <form id="ngoForm" novalidate>
+          <div class="field"><label class="label" for="org-name">Полное название организации <span class="required">*</span></label><input class="input" id="org-name" type="text" placeholder="Введите полное название организации" required></div>
+          <div class="field"><label class="label" for="contact">E-mail или телефон <span class="required">*</span></label><input class="input" id="contact" type="text" placeholder="example@mail.com / +7 ..." required></div>
+          <div class="field"><label class="label" for="password">Пароль <span class="required">*</span></label><div class="password-wrap"><input id="password" type="password" placeholder="Не менее 8 символов" required minlength="8"><button class="eye-btn" id="togglePassword" type="button" aria-label="Показать пароль" aria-pressed="false"><span class="eye"></span></button></div><p class="field-hint" id="password-hint">Минимум 8 символов: английская буква, цифра и символ.</p></div>
+          <div class="agreement"><input type="checkbox" id="agree" required><label for="agree">Я принимаю условия использования платформы и политику обработки данных</label></div>
+          <div class="actions"><button class="btn-primary" id="continueBtn" type="submit" disabled>Продолжить</button><a class="btn-secondary" href="index.html">Назад</a></div>
+        </form>
+      </section>
+    </main>
+  </div>
+  <script>
+    const nativeAlert = window.alert.bind(window);
+    window.alert = (message, ...args) => {
+      if (String(message).includes('Форма готова к переходу на следующий шаг')) return;
+      nativeAlert(message, ...args);
+    };
+
+    const orgName = document.getElementById('org-name');
+    const contact = document.getElementById('contact');
+    const password = document.getElementById('password');
+    const agree = document.getElementById('agree');
+    const continueBtn = document.getElementById('continueBtn');
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordHint = document.getElementById('password-hint');
+    const form = document.getElementById('ngoForm');
+    const ngoProfilesStorageKey = 'ngoProfiles';
+    const activeNgoProfileStorageKey = 'activeNgoProfileId';
+
+    function getProfiles() {
+      return JSON.parse(localStorage.getItem(ngoProfilesStorageKey) || '[]');
+    }
+
+    function saveProfiles(profiles) {
+      localStorage.setItem(ngoProfilesStorageKey, JSON.stringify(profiles));
+    }
+
+    function getUniqueProfileId() {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+      }
+      return `ngo_profile_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+    function isFilled(v) {
+      return v.trim().length > 0;
+    }
+
+    function isPasswordValid(value) {
+      return (
+        value.length >= 8 &&
+        /^[\x21-\x7E]+$/.test(value) &&
+        /[A-Za-z]/.test(value) &&
+        /\d/.test(value) &&
+        /[^A-Za-z0-9]/.test(value)
+      );
+    }
+
+    function validateForm() {
+      const passwordIsValid = isPasswordValid(password.value);
+      password.classList.toggle('is-invalid', !passwordIsValid && password.value.length > 0);
+      password.classList.toggle('is-valid', passwordIsValid);
+      passwordHint.classList.toggle('is-error', !passwordIsValid && password.value.length > 0);
+      passwordHint.textContent = !passwordIsValid && password.value.length > 0
+        ? 'Используйте только латиницу, минимум 8 символов, одну букву, цифру и спецсимвол.'
+        : 'Минимум 8 символов: английская буква, цифра и символ.';
+
+      const valid = isFilled(orgName.value) && isFilled(contact.value) && passwordIsValid && agree.checked;
+      continueBtn.disabled = !valid;
+    }
+
+    [orgName, contact, password].forEach((el) => {
+      el.addEventListener('input', validateForm);
+      el.addEventListener('blur', validateForm);
+    });
+    agree.addEventListener('change', validateForm);
+
+    togglePassword.addEventListener('click', () => {
+      const isHidden = password.type === 'password';
+      password.type = isHidden ? 'text' : 'password';
+      togglePassword.classList.toggle('is-visible', isHidden);
+      togglePassword.setAttribute('aria-label', isHidden ? 'Скрыть пароль' : 'Показать пароль');
+      togglePassword.setAttribute('aria-pressed', String(isHidden));
+    });
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      validateForm();
+      if (continueBtn.disabled) return;
+
+      const profileId = getUniqueProfileId();
+      const profiles = getProfiles();
+      profiles.push({
+        profileId,
+        createdAt: new Date().toISOString(),
+        registrationStep: 'account',
+        account: {
+          orgName: orgName.value.trim(),
+          contact: contact.value.trim()
+        },
+        about: {},
+        contacts: {},
+        firstTask: {}
+      });
+      saveProfiles(profiles);
+      localStorage.setItem(activeNgoProfileStorageKey, profileId);
+      window.location.href = `ngo-about.html?profileId=${encodeURIComponent(profileId)}`;
+    });
+    validateForm();
+  </script>
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — О себе</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-about.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+      <span class="profile-link">Профиль волонтёра</span>
+    </header>
+
+    <main class="content">
+      <section class="panel info-panel">
+        <div class="badge">Шаг 2 — О себе</div>
+        <h1 class="info-title">Основная<br>информация</h1>
+        <p class="info-text">
+          Заполните обязательные данные профиля,
+          чтобы мы могли корректно сформировать
+          вашу анкету волонтёра.
+        </p>
+
+        <div class="benefits">
+          <article class="benefit-card">
+            <div class="benefit-icon green check"></div>
+            <div>
+              <h3 class="benefit-title">Обязательные поля</h3>
+              <p class="benefit-text">ФИО, дата рождения, страна, город и телефон нужны для заполнения базового профиля</p>
+            </div>
+          </article>
+
+          <article class="benefit-card">
+            <div class="benefit-icon blue plus"></div>
+            <div>
+              <h3 class="benefit-title">Расскажите о себе</h3>
+              <p class="benefit-text">Поделитесь информацией о себе, чтобы подбор задач был более точным и интересным для вас</p>
+            </div>
+          </article>
+
+          <article class="benefit-card highlight">
+            <div>
+              <h3 class="benefit-title">Следующий шаг — навыки и опыт</h3>
+              <p class="benefit-text">Дальше вы сможете указать навыки, направления помощи и при желании прикрепить дипломы, сертификаты или благодарственные письма</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel form-panel">
+        <div class="step-label">Шаг 2 из 4</div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+
+        <div class="steps">
+          <div class="step-item done">
+            <div class="step-circle">1</div>
+            <div class="step-name">Аккаунт</div>
+          </div>
+          <div class="step-item active">
+            <div class="step-circle">2</div>
+            <div class="step-name">О себе</div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">3</div>
+            <div class="step-name">Навыки</div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">4</div>
+            <div class="step-name">Интересы</div>
+          </div>
+        </div>
+
+        <h2 class="form-title">Заполните данные профиля</h2>
+        <p class="form-subtitle">Поля, отмеченные звёздочкой, обязательны для продолжения</p>
+
+        <div class="two-col">
+          <div class="field">
+            <label class="label">Фамилия <span class="required">*</span></label>
+            <input class="input required-field" data-profile-field="lastName" type="text" placeholder="Введите фамилию" />
+          </div>
+          <div class="field">
+            <label class="label">Имя <span class="required">*</span></label>
+            <input class="input required-field" data-profile-field="firstName" type="text" placeholder="Введите имя" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Отчество <span class="required">*</span></label>
+          <input class="input required-field" data-profile-field="middleName" type="text" placeholder="Введите отчество" />
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label class="label">Дата рождения <span class="required">*</span></label>
+            <input class="input required-field" data-profile-field="birthDate" type="date" />
+          </div>
+          <div class="field">
+            <label class="label">Телефон <span class="required">*</span></label>
+            <input class="input required-field" data-profile-field="phone" type="tel" placeholder="+7 999 123-45-67" />
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label class="label">Страна <span class="required">*</span></label>
+            <select class="select required-field" data-profile-field="country" required>
+              <option value="" selected disabled>Выберите страну</option>
+              <option>Россия</option>
+              <option>Беларусь</option>
+              <option>Казахстан</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label">Город / населённый пункт <span class="required">*</span></label>
+            <input class="input required-field" data-profile-field="city" type="text" placeholder="Укажите город" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Коротко о себе <span class="optional">(необязательно)</span></label>
+          <textarea class="textarea" data-profile-field="bio" placeholder="Расскажите в 1–2 предложениях о себе, своём опыте или о том, в каком формате вы хотите помогать"></textarea>
+        </div>
+
+        <div class="field">
+          <div class="upload-title">Фотография профиля <span class="optional">(необязательно)</span></div>
+          <input id="profile-file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden>
+          <div class="upload-box" id="profile-upload-box" role="button" tabindex="0" aria-label="Загрузить фотографию профиля">
+            <div class="upload-icon"></div>
+            <div>
+              <p class="upload-main">Перетащите файл сюда или загрузите с устройства</p>
+              <p class="upload-sub">Поддерживаются форматы PDF, JPG, PNG.</p>
+            </div>
+          </div>
+          <div class="file-list" id="profile-file-list"></div>
+          <p class="upload-status" id="upload-status" aria-live="polite"></p>
+        </div>
+      </section>
+    </main>
+
+    <div style="padding: 0 72px 54px 736px;">
+      <div class="actions">
+        <button class="btn-primary" id="continue-btn" disabled>Продолжить</button>
+        <a class="btn-secondary back-link" href="volunteer-account.html">Назад</a>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    const requiredFields = Array.from(document.querySelectorAll('.required-field'));
+    const profileFields = Array.from(document.querySelectorAll('[data-profile-field]'));
+    const continueBtn = document.getElementById('continue-btn');
+    const uploadBox = document.getElementById('profile-upload-box');
+    const uploadInput = document.getElementById('profile-file-input');
+    const uploadStatus = document.getElementById('upload-status');
+    const profileFileList = document.getElementById('profile-file-list');
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+
+    async function updateActiveProfile(mutator) {
+      if (!profileId) return null;
+      const profile = await helperaDb.getVolunteerProfile(profileId);
+      if (!profile) return null;
+      mutator(profile);
+      return helperaDb.updateVolunteerProfile(profileId, profile);
+    }
+
+    function collectAboutData() {
+      return profileFields.reduce((acc, field) => {
+        acc[field.dataset.profileField] = field.value.trim();
+        return acc;
+      }, {});
+    }
+
+    async function saveAboutDraft() {
+      await updateActiveProfile((profile) => {
+        profile.about = {
+          ...(profile.about || {}),
+          ...collectAboutData()
+        };
+        profile.registrationStep = 'about';
+      });
+    }
+
+    function withProfileId(path) {
+      return profileId ? `${path}?profileId=${encodeURIComponent(profileId)}` : path;
+    }
+
+    async function hydrateAboutData() {
+      if (!profileId) return;
+      const profile = await helperaDb.getVolunteerProfile(profileId);
+      if (!profile || !profile.about) return;
+      profileFields.forEach((field) => {
+        const storedValue = profile.about[field.dataset.profileField];
+        if (typeof storedValue === 'string') {
+          field.value = storedValue;
+        }
+      });
+    }
+
+    function validateRequiredFields() {
+      const isComplete = requiredFields.every((field) => field.value.trim() !== '');
+      continueBtn.disabled = !isComplete;
+    }
+
+    function fileSizeLabel(bytes) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function saveProfileFile(file) {
+      const profileDraft = {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        uploadedAt: new Date().toISOString(),
+        storageStatus: 'queued_for_db_sync'
+      };
+      updateActiveProfile((profile) => {
+        profile.about = {
+          ...(profile.about || {}),
+          profilePhotoDraft: profileDraft
+        };
+      });
+      uploadStatus.textContent = '';
+      const ext = file.name.split('.').pop().toUpperCase();
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.innerHTML = `
+        <div class="file-icon-small"></div>
+        <div>
+          <p class="file-name">${file.name}</p>
+          <p class="file-meta">${ext} • ${fileSizeLabel(file.size)}</p>
+        </div>
+        <button class="file-remove" type="button" aria-label="Удалить ${file.name}">×</button>
+      `;
+      card.querySelector('.file-remove').addEventListener('click', () => {
+        card.remove();
+        updateActiveProfile((profile) => {
+          if (profile.about) {
+            delete profile.about.profilePhotoDraft;
+          }
+        });
+      });
+      profileFileList.appendChild(card);
+    }
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!allowedTypes.includes(file.type)) {
+        uploadStatus.textContent = 'Неверный формат файла. Используйте PDF, JPG или PNG.';
+        return;
+      }
+      saveProfileFile(file);
+    }
+
+    requiredFields.forEach((field) => {
+      field.addEventListener('input', validateRequiredFields);
+      field.addEventListener('change', validateRequiredFields);
+    });
+    profileFields.forEach((field) => {
+      field.addEventListener('input', saveAboutDraft);
+      field.addEventListener('change', saveAboutDraft);
+    });
+
+    uploadBox.addEventListener('click', () => uploadInput.click());
+    uploadBox.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        uploadInput.click();
+      }
+    });
+
+    uploadInput.addEventListener('change', (event) => {
+      handleFile(event.target.files[0]);
+    });
+
+    uploadBox.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+      uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', (event) => {
+      event.preventDefault();
+      uploadBox.classList.remove('dragover');
+      handleFile(event.dataTransfer.files[0]);
+    });
+
+    continueBtn.addEventListener('click', async () => {
+      if (!continueBtn.disabled) {
+        try {
+          await saveAboutDraft();
+          window.location.href = withProfileId('volunteer-skills.html');
+        } catch (error) {
+          const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
+          alert(`Не удалось сохранить данные профиля: ${message}`);
+          console.error(error);
+        }
+      }
+    });
+
+    hydrateAboutData();
+    validateRequiredFields();
+  </script>
+</body>
+</html>

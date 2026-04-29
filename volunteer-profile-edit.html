@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Редактирование профиля волонтёра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-profile.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="index.html">Главная</a>
+        <a href="volunteer-tasks.html" id="nav-tasks">Все задачи</a>
+        <a href="volunteer-applications.html">Мои отклики</a>
+        <a href="volunteer-profile.html" id="nav-profile">Профиль</a>
+        <div class="avatar-mini" id="avatar-mini">?</div>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="badge">Редактирование профиля</div>
+        <h1 class="hero-title">Данные волонтёра</h1>
+        <p class="hero-text">Здесь можно изменить информацию, которую волонтёр указывал при регистрации. После сохранения кабинет обновится из Supabase.</p>
+      </div>
+      <a class="btn-primary" href="volunteer-profile.html" id="back-profile-top">Вернуться в профиль</a>
+    </section>
+
+    <form id="edit-form">
+      <div class="edit-layout">
+        <section class="panel edit-panel">
+          <h2 class="panel-title">О себе</h2>
+          <div class="edit-form">
+            <div class="edit-grid">
+              <div class="field">
+                <label for="lastName">Фамилия</label>
+                <input class="input" id="lastName" data-about-field="lastName" type="text">
+              </div>
+              <div class="field">
+                <label for="firstName">Имя</label>
+                <input class="input" id="firstName" data-about-field="firstName" type="text">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="middleName">Отчество</label>
+              <input class="input" id="middleName" data-about-field="middleName" type="text">
+            </div>
+
+            <div class="edit-grid">
+              <div class="field">
+                <label for="birthDate">Дата рождения</label>
+                <input class="input" id="birthDate" data-about-field="birthDate" type="date">
+              </div>
+              <div class="field">
+                <label for="phone">Телефон</label>
+                <input class="input" id="phone" data-about-field="phone" type="tel">
+              </div>
+            </div>
+
+            <div class="edit-grid">
+              <div class="field">
+                <label for="country">Страна</label>
+                <input class="input" id="country" data-about-field="country" type="text">
+              </div>
+              <div class="field">
+                <label for="city">Город</label>
+                <input class="input" id="city" data-about-field="city" type="text">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="bio">Коротко о себе</label>
+              <textarea class="textarea" id="bio" data-about-field="bio"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel edit-panel">
+          <h2 class="panel-title">Навыки и интересы</h2>
+          <div class="edit-form">
+            <div class="field">
+              <label for="skills">Навыки</label>
+              <input class="input" id="skills" type="text" placeholder="Например: SMM, Дизайн">
+              <p class="hint">Перечислите через запятую.</p>
+            </div>
+
+            <div class="field">
+              <label for="helpDirections">В чём готовы помогать</label>
+              <input class="input" id="helpDirections" type="text" placeholder="Например: Экология, Животные">
+              <p class="hint">Перечислите через запятую.</p>
+            </div>
+
+            <div class="field">
+              <label for="experience">Уровень опыта</label>
+              <select class="select" id="experience">
+                <option value="">Не указано</option>
+                <option>Начинающий</option>
+                <option>Есть опыт</option>
+                <option>Продвинутый уровень</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="taskTypes">Какие задачи ближе</label>
+              <input class="input" id="taskTypes" type="text" placeholder="Короткие, Проектные">
+              <p class="hint">Перечислите через запятую.</p>
+            </div>
+
+            <div class="edit-grid">
+              <div class="field">
+                <label for="format">Формат задач</label>
+                <select class="select" id="format">
+                  <option value="">Не указано</option>
+                  <option>Онлайн</option>
+                  <option>Оффлайн</option>
+                  <option>Смешанный</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="workload">Занятость</label>
+                <select class="select" id="workload">
+                  <option value="">Не указано</option>
+                  <option>Разово</option>
+                  <option>Несколько часов в неделю</option>
+                  <option>Гибкий график</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="languages">Языки общения</label>
+              <input class="input" id="languages" type="text" placeholder="Русский, Английский">
+              <p class="hint">Перечислите через запятую.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel edit-panel wide">
+          <h2 class="panel-title">Уведомления</h2>
+          <div class="checks">
+            <label class="check-row"><input id="notify-new-tasks" type="checkbox"> Сообщать о новых подходящих задачах</label>
+            <label class="check-row"><input id="notify-status-updates" type="checkbox"> Сообщать об откликах и изменениях статусов</label>
+            <label class="check-row"><input id="notify-email-digest" type="checkbox"> Получать подборки полезных возможностей по email</label>
+          </div>
+        </section>
+      </div>
+
+      <div class="edit-actions">
+        <button class="btn-primary" type="submit" id="save-btn">Сохранить</button>
+        <a class="btn-outline-green" href="volunteer-profile.html" id="back-profile-bottom">Отмена</a>
+        <span class="save-status" id="save-status"></span>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+    const form = document.getElementById('edit-form');
+    const saveBtn = document.getElementById('save-btn');
+    const saveStatus = document.getElementById('save-status');
+    let currentProfile = null;
+
+    const toList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+    const fromList = (value) => Array.isArray(value) ? value.join(', ') : '';
+    const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+    function setValue(id, value) {
+      const element = document.getElementById(id);
+      if (element) element.value = value || '';
+    }
+
+    function collectAbout() {
+      return Array.from(document.querySelectorAll('[data-about-field]')).reduce((acc, field) => {
+        acc[field.dataset.aboutField] = field.value.trim();
+        return acc;
+      }, {});
+    }
+
+    async function hydrate() {
+      if (!profileId) {
+        saveStatus.textContent = 'Профиль не выбран.';
+        saveBtn.disabled = true;
+        return;
+      }
+
+      currentProfile = await helperaDb.getVolunteerProfile(profileId);
+      if (!currentProfile) {
+        saveStatus.textContent = 'Профиль не найден.';
+        saveBtn.disabled = true;
+        return;
+      }
+
+      const about = currentProfile.about || {};
+      const skills = currentProfile.skills || {};
+      const interests = currentProfile.interests || {};
+      const notifications = currentProfile.notifications || {};
+      const firstName = about.firstName || 'В';
+
+      Array.from(document.querySelectorAll('[data-about-field]')).forEach((field) => {
+        field.value = about[field.dataset.aboutField] || '';
+      });
+      setValue('skills', fromList(skills.skills));
+      setValue('helpDirections', fromList(skills.helpDirections));
+      setValue('experience', skills.experience || '');
+      setValue('taskTypes', fromList(interests.tasks));
+      setValue('format', interests.format || '');
+      setValue('workload', interests.workload || '');
+      setValue('languages', fromList(interests.languages));
+      document.getElementById('notify-new-tasks').checked = Boolean(notifications.newTasks);
+      document.getElementById('notify-status-updates').checked = Boolean(notifications.statusUpdates);
+      document.getElementById('notify-email-digest').checked = Boolean(notifications.emailDigest);
+      document.getElementById('avatar-mini').textContent = firstName.slice(0, 1).toUpperCase();
+
+      document.getElementById('nav-profile').href = withProfileId('volunteer-profile.html');
+      document.getElementById('nav-tasks').href = withProfileId('volunteer-tasks.html');
+      document.getElementById('back-profile-top').href = withProfileId('volunteer-profile.html');
+      document.getElementById('back-profile-bottom').href = withProfileId('volunteer-profile.html');
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!profileId) return;
+      saveBtn.disabled = true;
+      saveStatus.textContent = 'Сохраняем...';
+
+      try {
+        await helperaDb.updateVolunteerProfile(profileId, {
+          about: {
+            ...(currentProfile?.about || {}),
+            ...collectAbout()
+          },
+          skills: {
+            ...(currentProfile?.skills || {}),
+            skills: toList(document.getElementById('skills').value),
+            helpDirections: toList(document.getElementById('helpDirections').value),
+            experience: document.getElementById('experience').value || null
+          },
+          interests: {
+            ...(currentProfile?.interests || {}),
+            tasks: toList(document.getElementById('taskTypes').value),
+            format: document.getElementById('format').value || null,
+            workload: document.getElementById('workload').value || null,
+            languages: toList(document.getElementById('languages').value)
+          },
+          notifications: {
+            ...(currentProfile?.notifications || {}),
+            newTasks: document.getElementById('notify-new-tasks').checked,
+            statusUpdates: document.getElementById('notify-status-updates').checked,
+            emailDigest: document.getElementById('notify-email-digest').checked
+          },
+          registrationStep: 'completed'
+        });
+        window.location.href = withProfileId('volunteer-profile.html');
+      } catch (error) {
+        console.error(error);
+        saveStatus.textContent = `Не удалось сохранить: ${error?.message || 'проверьте Supabase.'}`;
+        saveBtn.disabled = false;
+      }
+    });
+
+    hydrate().catch((error) => {
+      console.error(error);
+      saveStatus.textContent = 'Не удалось загрузить данные профиля.';
+      saveBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>

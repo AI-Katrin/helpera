@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1440, initial-scale=1.0" />
+  <title>Helpera — Дашборд НКО</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-dashboard.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a href="index.html" class="brand">
+        <span class="brand-icon"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="#">Главная</a>
+        <a href="#">Мои задачи</a>
+        <a href="#">Мои отклики</a>
+        <a href="#">Профиль</a>
+        <div class="avatar">Н</div>
+      </nav>
+    </header>
+
+    <div class="container">
+      <section class="hero panel">
+        <div>
+          <div class="pill">Задачи и отклики организации</div>
+          <h1>Управляйте задачами и кандидатами</h1>
+          <p>Здесь вы можете отслеживать опубликованные задачи, рассматривать отклики волонтёров и выбирать подходящих кандидатов.</p>
+        </div>
+        <button class="btn btn-primary" type="button">Создать новую задачу</button>
+      </section>
+
+      <section class="main">
+        <aside class="panel sidebar">
+          <h2 class="section-title">Мои задачи</h2>
+
+          <article class="task-card" data-task="active">
+            <div class="status active">Активна</div>
+            <p class="task-name">Помощь в организации благотворительного мероприятия</p>
+            <div class="task-meta">Опубликована 12 апреля</div>
+            <div class="task-bottom">
+              <div class="inline-links">
+                <a href="#">Редактировать</a>
+                <a href="#">Подробнее</a>
+              </div>
+              <div class="mini-pill blue">12 откликов</div>
+            </div>
+          </article>
+
+          <article class="task-card" data-task="draft">
+            <div class="status draft">Черновик</div>
+            <p class="task-name">Сбор обратной связи по образовательной программе</p>
+            <div class="task-meta">Не опубликована</div>
+          </article>
+
+          <h2 class="section-title" style="margin-top:48px">Сводка</h2>
+
+          <div class="summary-grid">
+            <div class="summary-box">
+              <div class="label">Активных задач</div>
+              <div class="value">3</div>
+            </div>
+            <div class="summary-box">
+              <div class="label">Всего откликов</div>
+              <div class="value">27</div>
+            </div>
+            <div class="summary-box">
+              <div class="label">На рассмотрении</div>
+              <div class="value">11</div>
+            </div>
+            <div class="summary-box">
+              <div class="label">Приглашено</div>
+              <div class="value">4</div>
+            </div>
+          </div>
+
+          <div class="tip">
+            <h3>Совет</h3>
+            <p>Чем подробнее заполнена задача, тем качественнее отклики</p>
+          </div>
+        </aside>
+
+        <section class="panel content">
+          <h2>Отклики на активную задачу</h2>
+          <p class="subtitle">Список волонтёров, откликнувшихся на последнюю опубликованную задачу</p>
+
+          <div class="candidate-list" id="candidateList">
+            <article class="candidate" data-name="Екатерина Тарабрина">
+              <div class="cand-left">
+                <div class="initial">Е</div>
+                <div>
+                  <div class="cand-name">Екатерина Тарабрина</div>
+                  <div class="cand-meta">Москва • Онлайн • Отклик 2 часа назад</div>
+                  <div class="tags">
+                    <span class="tag blue">Подходит на 93%</span>
+                    <span class="tag green">Аналитика</span>
+                    <span class="tag green">SMM</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cand-actions">
+                <button class="primary-action invite-btn" type="button">Пригласить</button>
+                <button class="secondary-action profile" type="button">Профиль</button>
+                <button class="secondary-action reject" type="button">Отклонить</button>
+              </div>
+            </article>
+
+            <article class="candidate" data-name="Александр Петров">
+              <div class="cand-left">
+                <div class="initial">А</div>
+                <div>
+                  <div class="cand-name">Александр Петров</div>
+                  <div class="cand-meta">Санкт-Петербург • Онлайн • Отклик 5 часов назад</div>
+                  <div class="tags">
+                    <span class="tag blue">Подходит на 89%</span>
+                    <span class="tag green">Дизайн</span>
+                    <span class="tag green">Организация</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cand-actions">
+                <button class="primary-action invite-btn" type="button">Пригласить</button>
+                <button class="secondary-action profile" type="button">Профиль</button>
+                <button class="secondary-action reject" type="button">Отклонить</button>
+              </div>
+            </article>
+
+            <article class="candidate" data-name="Мария Смирнова">
+              <div class="cand-left">
+                <div class="initial">М</div>
+                <div>
+                  <div class="cand-name">Мария Смирнова</div>
+                  <div class="cand-meta">Казань • Смешанный формат • Отклик вчера</div>
+                  <div class="tags">
+                    <span class="tag blue">Подходит на 85%</span>
+                    <span class="tag green">SMM</span>
+                    <span class="tag green">Коммуникация</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cand-actions">
+                <button class="primary-action invite-btn" type="button">Пригласить</button>
+                <button class="secondary-action profile" type="button">Профиль</button>
+                <button class="secondary-action reject" type="button">Отклонить</button>
+              </div>
+            </article>
+          </div>
+
+          <div class="next-box">
+            <div>
+              <h3>Что можно сделать дальше</h3>
+              <ul>
+                <li>посмотреть все отклики по задаче</li>
+                <li>сравнить кандидатов по профилю и навыкам</li>
+                <li>пригласить волонтёра к участию</li>
+              </ul>
+            </div>
+            <button class="btn btn-outline" type="button">Посмотреть все отклики</button>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="modal">
+      <div class="modal">
+        <h3 id="modalTitle">Приглашение отправлено</h3>
+        <p id="modalText">Волонтёр получит приглашение к участию в задаче.</p>
+        <div class="modal-row">
+          <button class="btn btn-outline" id="modalClose" type="button">Закрыть</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalText = document.getElementById('modalText');
+    const modalClose = document.getElementById('modalClose');
+
+    function openModal(title, text){
+      modalTitle.textContent = title;
+      modalText.textContent = text;
+      modal.classList.add('open');
+    }
+
+    function closeModal(){
+      modal.classList.remove('open');
+    }
+
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if(e.target === modal) closeModal();
+    });
+
+    document.querySelectorAll('.invite-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const card = e.target.closest('.candidate');
+        const name = card.dataset.name;
+        openModal('Приглашение отправлено', 'Приглашение для волонтёра «' + name + '» успешно отправлено.');
+      });
+    });
+
+    document.querySelectorAll('.reject').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const card = e.target.closest('.candidate');
+        const name = card.dataset.name;
+        openModal('Кандидат отклонён', 'Отклик волонтёра «' + name + '» был отклонён.');
+      });
+    });
+
+    document.querySelectorAll('.profile').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const card = e.target.closest('.candidate');
+        const name = card.dataset.name;
+        openModal('Профиль волонтёра', 'Здесь может открываться профиль волонтёра «' + name + '».');
+      });
+    });
+
+    document.querySelectorAll('.task-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const type = card.dataset.task;
+        if(type === 'active'){
+          openModal('Активная задача', 'Открывается карточка активной задачи и список всех откликов по ней.');
+        } else {
+          openModal('Черновик задачи', 'Открывается черновик, который можно продолжить редактировать и опубликовать позже.');
+        }
+      });
+    });
+
+    async function hydrateDashboardFromDb() {
+      try {
+        const [tasks, applications] = await Promise.all([
+          helperaDb.listTasks(),
+          helperaDb.listApplications()
+        ]);
+        if (tasks.length) {
+          document.querySelector('.summary-box .value').textContent = String(tasks.length);
+          const firstTaskName = document.querySelector('.task-card .task-name');
+          if (firstTaskName) firstTaskName.textContent = tasks[0].title;
+        }
+        if (applications.length) {
+          document.querySelectorAll('.summary-box .value')[1].textContent = String(applications.length);
+          document.querySelectorAll('.summary-box .value')[2].textContent = String(applications.filter((item) => item.status === 'review').length);
+        }
+      } catch (error) {
+        console.error('Не удалось загрузить данные дашборда из Supabase', error);
+      }
+    }
+
+    hydrateDashboardFromDb();
+  </script>
+</body>
+</html>
