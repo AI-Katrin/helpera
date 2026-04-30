@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/pages/ngo-account.css">
+<link rel="stylesheet" href="./css/base.css">
 </head>
 <body>
   <div class="page">
@@ -42,7 +43,7 @@
         <div class="divider"><span>или</span></div>
         <form id="ngoForm" novalidate>
           <div class="field"><label class="label" for="org-name">Полное название организации <span class="required">*</span></label><input class="input" id="org-name" type="text" placeholder="Введите полное название организации" required></div>
-          <div class="field"><label class="label" for="contact">E-mail или телефон <span class="required">*</span></label><input class="input" id="contact" type="text" placeholder="example@mail.com / +7 ..." required></div>
+          <div class="field"><label class="label" for="contact">E-mail <span class="required">*</span></label><input class="input" id="contact" type="email" placeholder="example@mail.com" autocomplete="username" required><p class="field-hint" id="contact-hint">Введите email для входа через Supabase Auth.</p></div>
           <div class="field"><label class="label" for="password">Пароль <span class="required">*</span></label><div class="password-wrap"><input id="password" type="password" placeholder="Не менее 8 символов" required minlength="8"><button class="eye-btn" id="togglePassword" type="button" aria-label="Показать пароль" aria-pressed="false"><span class="eye"></span></button></div><p class="field-hint" id="password-hint">Минимум 8 символов: английская буква, цифра и символ.</p></div>
           <div class="agreement"><input type="checkbox" id="agree" required><label for="agree">Я принимаю условия использования платформы и политику обработки данных</label></div>
           <div class="actions"><button class="btn-primary" id="continueBtn" type="submit" disabled>Продолжить</button><a class="btn-secondary" href="index.html">Назад</a></div>
@@ -67,6 +68,7 @@
     const continueBtn = document.getElementById('continueBtn');
     const togglePassword = document.getElementById('togglePassword');
     const passwordHint = document.getElementById('password-hint');
+    const contactHint = document.getElementById('contact-hint');
     const form = document.getElementById('ngoForm');
     function isFilled(v) {
       return v.trim().length > 0;
@@ -82,8 +84,19 @@
       );
     }
 
+    function isEmailValid(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
+    }
+
     function validateForm() {
       const passwordIsValid = isPasswordValid(password.value);
+      const emailIsValid = isEmailValid(contact.value);
+      contact.classList.toggle('is-invalid', !emailIsValid && contact.value.length > 0);
+      contact.classList.toggle('is-valid', emailIsValid);
+      contactHint.classList.toggle('is-error', !emailIsValid && contact.value.length > 0);
+      contactHint.textContent = !emailIsValid && contact.value.length > 0
+        ? 'Проверьте формат email: example@mail.com.'
+        : 'Введите email для входа через Supabase Auth.';
       password.classList.toggle('is-invalid', !passwordIsValid && password.value.length > 0);
       password.classList.toggle('is-valid', passwordIsValid);
       passwordHint.classList.toggle('is-error', !passwordIsValid && password.value.length > 0);
@@ -91,7 +104,7 @@
         ? 'Используйте только латиницу, минимум 8 символов, одну букву, цифру и спецсимвол.'
         : 'Минимум 8 символов: английская буква, цифра и символ.';
 
-      const valid = isFilled(orgName.value) && isFilled(contact.value) && passwordIsValid && agree.checked;
+      const valid = isFilled(orgName.value) && emailIsValid && passwordIsValid && agree.checked;
       continueBtn.disabled = !valid;
     }
 
@@ -116,9 +129,17 @@
       continueBtn.disabled = true;
 
       try {
+        const email = contact.value.trim().toLowerCase();
+        const auth = await helperaDb.signUpWithEmail({
+          email,
+          password: password.value,
+          role: 'ngo',
+          metadata: { role: 'ngo', orgName: orgName.value.trim() }
+        });
         const profile = await helperaDb.createNgoProfile({
           orgName: orgName.value.trim(),
-          contact: contact.value.trim()
+          contact: email,
+          userId: auth.user?.id || auth.session?.user?.id || null
         });
         window.location.href = `ngo-about.html?profileId=${encodeURIComponent(profile.profileId)}`;
       } catch (error) {

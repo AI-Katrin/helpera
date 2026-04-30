@@ -8,7 +8,8 @@
     activeVolunteerProfileId: 'activeVolunteerProfileId',
     ngoProfiles: 'ngoProfiles',
     activeNgoProfileId: 'activeNgoProfileId',
-    applications: 'helperaApplications'
+    applications: 'helperaApplications',
+    appEvents: 'helperaAppEvents'
   };
 
   const getLocal = (key) => JSON.parse(localStorage.getItem(key) || '[]');
@@ -21,6 +22,7 @@
 
   const normalizeVolunteer = (row) => row && ({
     profileId: row.id || row.profileId,
+    userId: row.user_id || row.userId,
     createdAt: row.created_at || row.createdAt,
     registrationStep: row.registration_step || row.registrationStep,
     account: row.account || { contact: row.contact },
@@ -32,6 +34,7 @@
 
   const normalizeNgo = (row) => row && ({
     profileId: row.id || row.profileId,
+    userId: row.user_id || row.userId,
     createdAt: row.created_at || row.createdAt,
     registrationStep: row.registration_step || row.registrationStep,
     account: row.account || {},
@@ -57,6 +60,7 @@
       const { data, error } = await client
         .from('volunteer_profiles')
         .insert({
+          user_id: account.userId || null,
           contact: account.contact,
           account,
           registration_step: 'account'
@@ -71,6 +75,7 @@
     const profileId = getId('volunteer');
     const profile = {
       profileId,
+      userId: account.userId || null,
       createdAt: new Date().toISOString(),
       registrationStep: 'account',
       account,
@@ -96,10 +101,32 @@
     return getLocal(localKeys.volunteerProfiles).find((item) => item.profileId === profileId) || null;
   }
 
+  async function getVolunteerProfileByUser(userId, contact) {
+    if (!userId && !contact) return null;
+    if (client) {
+      const byUser = userId
+        ? await client.from('volunteer_profiles').select('*').eq('user_id', userId).limit(1)
+        : { data: [], error: null };
+      if (byUser.error) return null;
+      if (byUser.data?.length) return normalizeVolunteer(byUser.data[0]);
+
+      if (contact) {
+        const byContact = await client.from('volunteer_profiles').select('*').eq('contact', contact).limit(1);
+        if (byContact.error || !byContact.data?.length) return null;
+        const profile = normalizeVolunteer(byContact.data[0]);
+        if (userId && !profile.userId) await updateVolunteerProfile(profile.profileId, { userId });
+        return { ...profile, userId: profile.userId || userId };
+      }
+      return null;
+    }
+    return getLocal(localKeys.volunteerProfiles).find((item) => item.userId === userId || item.account?.contact === contact) || null;
+  }
+
   async function updateVolunteerProfile(profileId, patch) {
     if (!profileId) return null;
     if (client) {
       const payload = {};
+      if ('userId' in patch) payload.user_id = patch.userId;
       if ('registrationStep' in patch) payload.registration_step = patch.registrationStep;
       if ('account' in patch) payload.account = patch.account;
       if ('about' in patch) payload.about = patch.about;
@@ -126,6 +153,7 @@
       const { data, error } = await client
         .from('ngo_profiles')
         .insert({
+          user_id: account.userId || null,
           org_name: account.orgName,
           contact: account.contact,
           account,
@@ -141,6 +169,7 @@
     const profileId = getId('ngo');
     const profile = {
       profileId,
+      userId: account.userId || null,
       createdAt: new Date().toISOString(),
       registrationStep: 'account',
       account,
@@ -165,10 +194,32 @@
     return getLocal(localKeys.ngoProfiles).find((item) => item.profileId === profileId) || null;
   }
 
+  async function getNgoProfileByUser(userId, contact) {
+    if (!userId && !contact) return null;
+    if (client) {
+      const byUser = userId
+        ? await client.from('ngo_profiles').select('*').eq('user_id', userId).limit(1)
+        : { data: [], error: null };
+      if (byUser.error) return null;
+      if (byUser.data?.length) return normalizeNgo(byUser.data[0]);
+
+      if (contact) {
+        const byContact = await client.from('ngo_profiles').select('*').eq('contact', contact).limit(1);
+        if (byContact.error || !byContact.data?.length) return null;
+        const profile = normalizeNgo(byContact.data[0]);
+        if (userId && !profile.userId) await updateNgoProfile(profile.profileId, { userId });
+        return { ...profile, userId: profile.userId || userId };
+      }
+      return null;
+    }
+    return getLocal(localKeys.ngoProfiles).find((item) => item.userId === userId || item.account?.contact === contact) || null;
+  }
+
   async function updateNgoProfile(profileId, patch) {
     if (!profileId) return null;
     if (client) {
       const payload = {};
+      if ('userId' in patch) payload.user_id = patch.userId;
       if ('registrationStep' in patch) payload.registration_step = patch.registrationStep;
       if ('account' in patch) payload.account = patch.account;
       if ('about' in patch) payload.about = patch.about;
@@ -287,13 +338,29 @@
     if (client) {
       const { data, error } = await client
         .from('applications')
-        .select('*, tasks(id, title, format, ngo_profile_id, ngo_profiles(org_name, about, contacts)), volunteer_profiles(id, contact, account, about, skills, interests)')
+        .select('*, tasks(id, title, format, ngo_profile_id, ngo_profiles(org_name, about, contacts)), volunteer_profiles(id, contact, account, about, skills, interests, registration_step)')
         .eq('id', applicationId)
         .single();
       if (error) return null;
       return data;
     }
-    return getLocal(localKeys.applications).find((item) => item.id === applicationId) || null;
+    const application = getLocal(localKeys.applications).find((item) => item.id === applicationId) || null;
+    if (!application) return null;
+    const task = (await listTasks()).find((item) => item.id === application.task_id) || null;
+    const volunteer = await getVolunteerProfile(application.volunteer_profile_id);
+    return {
+      ...application,
+      tasks: task,
+      volunteer_profiles: volunteer ? {
+        id: volunteer.profileId,
+        contact: volunteer.account?.contact,
+        account: volunteer.account,
+        about: volunteer.about,
+        skills: volunteer.skills,
+        interests: volunteer.interests,
+        registration_step: volunteer.registrationStep
+      } : null
+    };
   }
 
   async function updateApplication(applicationId, patch) {
@@ -317,11 +384,82 @@
     return applications[index];
   }
 
+  async function logEvent(event) {
+    const payload = {
+      event_type: event.eventType || event.event_type,
+      actor_role: event.actorRole || event.actor_role || null,
+      actor_profile_id: event.actorProfileId || event.actor_profile_id || null,
+      application_id: event.applicationId || event.application_id || null,
+      task_id: event.taskId || event.task_id || null,
+      payload: event.payload || {}
+    };
+
+    if (client) {
+      const { data, error } = await client.from('app_events').insert(payload).select().single();
+      if (error) {
+        console.warn('Не удалось записать событие app_events. Проверьте, что supabase-schema.sql обновлён.', error);
+        return null;
+      }
+      return data;
+    }
+
+    const events = getLocal(localKeys.appEvents);
+    const item = { id: getId('event'), created_at: new Date().toISOString(), ...payload };
+    events.push(item);
+    setLocal(localKeys.appEvents, events);
+    return item;
+  }
+
+  async function signUpWithEmail({ email, password, role, metadata = {} }) {
+    if (!client) throw new Error('Supabase Auth не настроен.');
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          role,
+          ...metadata
+        }
+      }
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async function signInWithEmail({ email, password }) {
+    if (!client) throw new Error('Supabase Auth не настроен.');
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  }
+
+  async function signOut() {
+    if (!client) return;
+    const { error } = await client.auth.signOut();
+    if (error) throw error;
+  }
+
+  async function getAuthSession() {
+    if (!client) return null;
+    const { data, error } = await client.auth.getSession();
+    if (error) return null;
+    return data.session || null;
+  }
+
+  async function getCurrentUserProfile(role) {
+    const session = await getAuthSession();
+    const user = session?.user;
+    if (!user) return null;
+    const contact = user.email || user.phone || '';
+    if (role === 'ngo') return getNgoProfileByUser(user.id, contact);
+    return getVolunteerProfileByUser(user.id, contact);
+  }
+
   async function listApplications(filters = {}) {
     if (client) {
       let query = client
         .from('applications')
-        .select('*, tasks(id, title, format, ngo_profile_id, ngo_profiles(org_name, about, contacts)), volunteer_profiles(id, contact, account, about, skills, interests)')
+        .select('*, tasks(id, title, format, ngo_profile_id, ngo_profiles(org_name, about, contacts)), volunteer_profiles(id, contact, account, about, skills, interests, registration_step)')
         .order('created_at', { ascending: false });
       if (filters.volunteerProfileId) query = query.eq('volunteer_profile_id', filters.volunteerProfileId);
       if (filters.status) query = query.eq('status', filters.status);
@@ -347,9 +485,11 @@
     localKeys,
     createVolunteerProfile,
     getVolunteerProfile,
+    getVolunteerProfileByUser,
     updateVolunteerProfile,
     createNgoProfile,
     getNgoProfile,
+    getNgoProfileByUser,
     updateNgoProfile,
     createTask,
     listTasks,
@@ -357,6 +497,12 @@
     createApplication,
     getApplication,
     updateApplication,
-    listApplications
+    listApplications,
+    logEvent,
+    signUpWithEmail,
+    signInWithEmail,
+    signOut,
+    getAuthSession,
+    getCurrentUserProfile
   };
 })();

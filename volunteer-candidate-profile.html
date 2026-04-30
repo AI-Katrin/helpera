@@ -7,53 +7,44 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/pages/volunteer-candidate-profile.css">
+  <link rel="stylesheet" href="./css/pages/volunteer-candidate-profile.css">
+<link rel="stylesheet" href="./css/base.css">
 </head>
 <body>
   <div class="page">
     <header class="topbar">
-      <a href="index.html" class="brand">
-        <span class="brand-icon"></span>
-        <span>Helpera</span>
-      </a>
+      <a href="index.html" class="brand"><span class="brand-icon"></span><span>Helpera</span></a>
       <nav class="nav">
-        <a href="ngo-lk.html">Профиль</a>
-        <a href="ngo-tasks.html">Мои задачи</a>
-        <a href="ngo-applications.html">Отклики</a>
-        <a href="ngo-dashboard.html">Аналитика</a>
-        <div class="avatar">Н</div>
+        <a href="ngo-lk.html" id="navProfile">Профиль</a>
+        <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="navApplications">Отклики</a>
+        <a href="ngo-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar" id="avatarMini">Н</div>
       </nav>
     </header>
 
     <div class="container">
       <div class="breadcrumbs">
-        <a href="#">Мои задачи</a> / <a href="#">Отклики</a> / <a href="#">Профиль волонтёра</a>
+        <a href="#" id="crumbTasks">Мои задачи</a> / <a href="#" id="crumbApplications">Отклики</a> / <a href="#">Профиль волонтёра</a>
       </div>
 
       <div class="top-actions">
-        <button class="btn btn-outline" type="button">Назад к откликам</button>
+        <button class="btn btn-outline" id="backBtn" type="button">Назад к откликам</button>
       </div>
 
       <section class="hero">
         <div class="hero-left">
-          <div class="profile-avatar">
-            <div class="head"></div>
-            <div class="body"></div>
-          </div>
+          <div class="profile-avatar"><div class="head"></div><div class="body"></div></div>
           <div>
             <div class="pill blue">Профиль волонтёра</div>
-            <h1>Екатерина Тарабрина</h1>
-            <div class="hero-meta">Москва, Россия • 24 года • Онлайн / смешанный формат</div>
-            <div class="hero-tags">
-              <span class="pill green">Надёжный волонтёр</span>
-              <span class="pill blue">Рейтинг 9.2 / 10</span>
-              <span class="pill green">14 задач завершено</span>
-            </div>
+            <h1 id="candidateName">Загружаем профиль...</h1>
+            <div class="hero-meta" id="candidateMeta"></div>
+            <div class="hero-tags" id="candidateTags"></div>
           </div>
         </div>
 
         <div class="hero-right">
-          <button class="btn btn-primary action-invite" type="button">Пригласить</button>
+          <button class="btn btn-primary action-invite" type="button">Принять отклик</button>
           <button class="btn btn-outline action-reject" type="button">Отклонить</button>
         </div>
       </section>
@@ -62,83 +53,29 @@
         <div class="panel left-panel">
           <div class="section">
             <h2>О волонтёре</h2>
-            <p>Занимаюсь волонтёрством более 5 лет. Есть опыт работы с аналитикой, исследовательскими задачами, подготовкой материалов, координацией процессов и взаимодействием с командами. Интересуюсь социальными и образовательными проектами, готова помогать в задачах, где важны структура, внимательность и умение работать с информацией.</p>
+            <p id="candidateBio">Данные загружаются из Supabase.</p>
           </div>
 
           <div class="section">
             <h2>Навыки</h2>
-            <div class="note">Подходящие навыки выделены цветом</div>
-            <div class="chips">
-              <span class="chip green">Аналитика</span>
-              <span class="chip green">SMM</span>
-              <span class="chip green">Дизайн</span>
-              <span class="chip green">Копирайтинг</span>
-              <span class="chip">Организация событий</span>
-              <span class="chip">Наставничество</span>
-              <span class="chip">Работа с текстом</span>
-              <span class="chip">Коммуникация</span>
-              <span class="chip">Переводы</span>
-            </div>
+            <div class="note">Навыки из профиля волонтёра</div>
+            <div class="chips" id="skillsList"></div>
           </div>
 
           <div class="section">
             <h2>Направления помощи</h2>
-            <div class="chips">
-              <span class="chip">Образование</span>
-              <span class="chip">Соц. проекты</span>
-              <span class="chip">Экология</span>
-              <span class="chip">Культура</span>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2>Опыт и участие</h2>
-            <div class="cards-2">
-              <div class="info-card">
-                <h3>Образовательный проект для подростков</h3>
-                <p>Роль: аналитика обратной связи и отчётность</p>
-                <p>Статус: завершено • Оценка от НКО: 10/10</p>
-              </div>
-              <div class="info-card">
-                <h3>Благотворительное мероприятие</h3>
-                <p>Роль: координация участников и организация</p>
-                <p>Статус: завершено • Оценка от НКО: 9/10</p>
-              </div>
-              <div class="info-card">
-                <h3>Социальный исследовательский проект</h3>
-                <p>Роль: работа с данными</p>
-                <p>Статус: завершено • Оценка от НКО: 9/10</p>
-              </div>
-              <div class="info-card">
-                <h3>Подготовка материалов для НКО</h3>
-                <p>Роль: оформление и редактирование контента</p>
-                <p>Статус: завершено • Оценка от НКО: 10/10</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2>Отзывы от организаций</h2>
-            <div class="cards-2">
-              <div class="review-card">
-                <div class="review-score">Оценка 10/10</div>
-                <blockquote>«Очень ответственная и внимательная. Быстро включилась в работу, аккуратно структурировала обратную связь и подготовила полезные выводы для команды.»</blockquote>
-                <div class="source">АНО «Открытые знания»</div>
-              </div>
-              <div class="review-card">
-                <div class="review-score">Оценка 9/10</div>
-                <blockquote>«Хорошо справилась с задачей, была на связи и выполнила всё в срок. Коммуникация комфортная, качество работы высокое.»</blockquote>
-                <div class="source">Фонд «Тёплый дом»</div>
-              </div>
-            </div>
+            <div class="chips" id="directionsList"></div>
           </div>
 
           <div class="section">
             <h2>Предпочтения и доступность</h2>
-            <div class="chips">
-              <span class="chip blue">Онлайн / смешанный</span>
-              <span class="chip green">Несколько часов в неделю</span>
-              <span class="chip">Английский B2</span>
+            <div class="chips" id="preferencesList"></div>
+          </div>
+
+          <div class="section">
+            <h2>Сообщение в отклике</h2>
+            <div class="info-card">
+              <p id="applicationMessage">Сообщение не заполнено.</p>
             </div>
           </div>
         </div>
@@ -146,136 +83,153 @@
         <aside class="panel right-panel">
           <h2>Краткая сводка</h2>
           <div class="summary-grid">
-            <div class="summary-box">
-              <div class="label">Рейтинг</div>
-              <div class="value">9.2</div>
-            </div>
-            <div class="summary-box">
-              <div class="label">Завершено задач</div>
-              <div class="value">14</div>
-            </div>
-            <div class="summary-box">
-              <div class="label">Доля ответов</div>
-              <div class="value">96%</div>
-            </div>
-            <div class="summary-box">
-              <div class="label">Средняя оценка</div>
-              <div class="value">9.5/10</div>
-            </div>
-          </div>
-
-          <h2 class="subsection-title">Достижения</h2>
-          <div class="badge-list">
-            <span class="pill green">Надёжный волонтёр</span>
-            <span class="pill blue">Профиль заполнен</span>
-            <span class="pill green">Выполнено 10 задач</span>
+            <div class="summary-box"><div class="label">Статус</div><div class="value" id="statusValue">...</div></div>
+            <div class="summary-box"><div class="label">Формат</div><div class="value" id="formatValue">...</div></div>
+            <div class="summary-box"><div class="label">Навыков</div><div class="value" id="skillsCount">0</div></div>
+            <div class="summary-box"><div class="label">Материалы</div><div class="value" id="filesCount">0</div></div>
           </div>
 
           <h2 class="subsection-title">Документы и материалы</h2>
-          <div class="doc-list">
-            <a href="#" class="doc" download>
-              <span class="doc-icon"></span>
-              <span>
-                <div class="doc-title">Диплом_аналитика.pdf</div>
-                <div class="doc-meta">PDF • 2.1 MB</div>
-              </span>
-            </a>
-            <a href="#" class="doc" download>
-              <span class="doc-icon"></span>
-              <span>
-                <div class="doc-title">Сертификат_волонтёр.jpg</div>
-                <div class="doc-meta">JPG • 1.8 MB</div>
-              </span>
-            </a>
-            <a href="#" class="doc" download>
-              <span class="doc-icon"></span>
-              <span>
-                <div class="doc-title">Благодарность_НКО.pdf</div>
-                <div class="doc-meta">PDF • 1.2 MB</div>
-              </span>
-            </a>
-          </div>
+          <div class="doc-list" id="docsList"></div>
 
           <h2 class="subsection-title">Контакты</h2>
-          <div class="contacts">
-            <div>
-              <div class="label">Email</div>
-              <div class="value">ekaterina@example.com</div>
-            </div>
-            <div>
-              <div class="label">Телефон</div>
-              <div class="value">+7 999 123-45-67</div>
-            </div>
-            <div>
-              <div class="label">Предпочтительный способ связи</div>
-              <div class="value">Email / Telegram</div>
-            </div>
-          </div>
+          <div class="contacts" id="contactsList"></div>
 
           <div class="current-box">
             <h3>Текущий отклик</h3>
-            <p><strong>Задача:</strong> помощь в организации благотворительного мероприятия</p>
-            <p>Отклик отправлен 2 часа назад</p>
-            <div class="status-pill">Статус: на рассмотрении</div>
+            <p><strong>Задача:</strong> <span id="taskTitle">...</span></p>
+            <p id="applicationDate"></p>
+            <div class="status-pill" id="applicationStatus">Статус: ...</div>
           </div>
 
           <div class="sticky-actions">
-            <button class="btn btn-primary action-invite" type="button">Пригласить</button>
+            <button class="btn btn-primary action-invite" type="button">Принять отклик</button>
             <button class="btn btn-outline action-reject" type="button">Отклонить</button>
           </div>
         </aside>
       </section>
     </div>
-
-    <div class="modal-backdrop" id="modal">
-      <div class="modal">
-        <h3 id="modalTitle">Действие выполнено</h3>
-        <p id="modalText">Изменения сохранены.</p>
-        <div class="modal-row">
-          <button class="btn btn-outline" id="closeModal" type="button">Закрыть</button>
-        </div>
-      </div>
-    </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
   <script>
-    const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalText = document.getElementById('modalText');
-    const closeModal = document.getElementById('closeModal');
+    const params = new URLSearchParams(window.location.search);
+    const applicationId = params.get('applicationId');
+    const ngoProfileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+    const withProfileId = (path) => ngoProfileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(ngoProfileId)}` : path;
+    let activeApplication = null;
 
-    function openModal(title, text){
-      modalTitle.textContent = title;
-      modalText.textContent = text;
-      modal.classList.add('open');
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    })[char]);
+
+    function fullName(profile = {}) {
+      const about = profile.about || {};
+      return [about.lastName, about.firstName, about.middleName].filter(Boolean).join(' ') || profile.contact || 'Волонтёр';
     }
-    function hideModal(){
-      modal.classList.remove('open');
+
+    function renderChips(targetId, values, fallback) {
+      const target = document.getElementById(targetId);
+      const items = (Array.isArray(values) ? values : [values]).filter(Boolean);
+      target.innerHTML = items.length ? items.map((item) => `<span class="chip green">${escapeHtml(item)}</span>`).join('') : `<span class="chip">${fallback}</span>`;
     }
 
-    closeModal.addEventListener('click', hideModal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) hideModal();
-    });
-
-    document.querySelectorAll('.action-invite').forEach(btn => {
-      btn.addEventListener('click', () => {
-        openModal('Приглашение отправлено', 'Волонтёру «Екатерина Тарабрина» отправлено приглашение к участию в задаче.');
+    async function rejectApplication() {
+      if (!activeApplication) return;
+      await helperaDb.updateApplication(activeApplication.id, {
+        status: 'rejected',
+        payload: {
+          ...(activeApplication.payload || {}),
+          statusHistory: [
+            ...((activeApplication.payload || {}).statusHistory || []),
+            { status: 'rejected', actorRole: 'ngo', createdAt: new Date().toISOString() }
+          ]
+        }
       });
-    });
-
-    document.querySelectorAll('.action-reject').forEach(btn => {
-      btn.addEventListener('click', () => {
-        openModal('Отклик отклонён', 'Отклик волонтёра «Екатерина Тарабрина» был отклонён.');
+      await helperaDb.logEvent({
+        eventType: 'application_rejected',
+        actorRole: 'ngo',
+        actorProfileId: ngoProfileId,
+        applicationId: activeApplication.id,
+        taskId: activeApplication.task_id
       });
-    });
+      window.location.href = withProfileId('ngo-applications.html');
+    }
 
-    document.querySelectorAll('.doc').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const name = link.querySelector('.doc-title').textContent;
-        openModal('Скачивание файла', 'Здесь можно скачать файл «' + name + '».');
-      });
+    function goInvite() {
+      if (!activeApplication) return;
+      window.location.href = withProfileId(`ngo-invitation-confirm.html?applicationId=${encodeURIComponent(activeApplication.id)}`);
+    }
+
+    async function init() {
+      document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
+      document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
+      document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
+      document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
+      document.getElementById('crumbTasks').href = withProfileId('ngo-tasks.html');
+      document.getElementById('crumbApplications').href = withProfileId('ngo-applications.html');
+      document.getElementById('backBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-applications.html'));
+      document.querySelectorAll('.action-invite').forEach((button) => button.addEventListener('click', goInvite));
+      document.querySelectorAll('.action-reject').forEach((button) => button.addEventListener('click', rejectApplication));
+
+      if (!applicationId) {
+        document.getElementById('candidateName').textContent = 'Отклик не выбран';
+        return;
+      }
+
+      const application = await helperaDb.getApplication(applicationId);
+      if (!application) {
+        document.getElementById('candidateName').textContent = 'Отклик не найден';
+        return;
+      }
+      activeApplication = application;
+      const volunteer = application.volunteer_profiles || {};
+      const about = volunteer.about || {};
+      const skills = volunteer.skills || {};
+      const interests = volunteer.interests || {};
+      const files = [
+        about.profilePhotoDraft?.fileName,
+        ...((skills.filesDraft || []).map((file) => file.fileName))
+      ].filter(Boolean);
+      const name = fullName(volunteer);
+
+      document.getElementById('candidateName').textContent = name;
+      document.getElementById('candidateMeta').textContent = [about.city, about.country, interests.format].filter(Boolean).join(' • ');
+      document.getElementById('candidateTags').innerHTML = [
+        application.status === 'invite' ? 'Подтверждён' : 'На рассмотрении',
+        volunteer.registration_step === 'completed' ? 'Профиль заполнен' : 'Профиль в работе'
+      ].map((item) => `<span class="pill green">${escapeHtml(item)}</span>`).join('');
+      document.getElementById('candidateBio').textContent = about.bio || 'Волонтёр пока не добавил описание.';
+      document.getElementById('applicationMessage').textContent = application.message || 'Сообщение не заполнено.';
+      document.getElementById('statusValue').textContent = application.status || 'review';
+      document.getElementById('formatValue').textContent = application.format || application.tasks?.format || '...';
+      document.getElementById('skillsCount').textContent = String((skills.skills || []).length);
+      document.getElementById('filesCount').textContent = String(files.length);
+      document.getElementById('taskTitle').textContent = application.tasks?.title || 'Задача';
+      document.getElementById('applicationDate').textContent = `Отклик отправлен ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}`;
+      document.getElementById('applicationStatus').textContent = `Статус: ${application.status || 'review'}`;
+      document.getElementById('avatarMini').textContent = 'Н';
+
+      renderChips('skillsList', skills.skills || [], 'Навыки не указаны');
+      renderChips('directionsList', skills.helpDirections || interests.tasks || [], 'Направления не указаны');
+      renderChips('preferencesList', [interests.format, interests.duration, interests.city].filter(Boolean), 'Предпочтения не указаны');
+      document.getElementById('docsList').innerHTML = files.length
+        ? files.map((file) => `<a href="#" class="doc"><span class="doc-icon"></span><span><div class="doc-title">${escapeHtml(file)}</div><div class="doc-meta">Материал профиля</div></span></a>`).join('')
+        : '<div class="doc"><span class="doc-icon"></span><span><div class="doc-title">Материалы не добавлены</div><div class="doc-meta">Файлов пока нет</div></span></div>';
+      document.getElementById('contactsList').innerHTML = [
+        ['Email', volunteer.contact || volunteer.account?.contact],
+        ['Телефон', about.phone],
+        ['Город', about.city]
+      ].filter(([, value]) => value).map(([label, value]) => `
+        <div><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div></div>
+      `).join('') || '<div><div class="value">Контакты пока не заполнены.</div></div>';
+    }
+
+    init().catch((error) => {
+      console.error(error);
+      document.getElementById('candidateName').textContent = 'Не удалось загрузить профиль';
     });
   </script>
 </body>

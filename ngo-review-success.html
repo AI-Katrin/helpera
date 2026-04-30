@@ -3,21 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Helpera — Приглашение отправлено</title>
-
+<title>Helpera — Отзыв НКО отправлен</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/pages/ngo-invitation-success.css">
 <link rel="stylesheet" href="./css/base.css">
 </head>
-
 <body>
-
 <header class="topbar">
-  <a class="brand" href="index.html">
-    <div class="logo"></div>
-    Helpera
-  </a>
-
+  <a class="brand" href="index.html"><div class="logo"></div>Helpera</a>
   <div class="nav">
     <a href="ngo-lk.html" id="navProfile">Профиль</a>
     <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
@@ -28,46 +21,35 @@
 
 <div class="container">
   <div class="card">
-
     <div class="circle"></div>
-    <div class="badge">Приглашение отправлено</div>
-
-    <h1>Приглашение успешно отправлено</h1>
-
-    <p class="subtitle">
-      Волонтёр увидит подтверждение в своих откликах<br>
-      Чат по задаче теперь доступен обеим сторонам
-    </p>
-
+    <div class="badge">Отзыв отправлен</div>
+    <h1>Отзыв НКО успешно сохранён</h1>
+    <p class="subtitle">Задача отмечена как завершённая.<br>Оценка попадёт в историю волонтёра и события платформы.</p>
     <div class="info">
-      <h3>Что будет дальше</h3>
+      <h3>Что дальше</h3>
       <ul>
-        <li>статус обновился в разделе откликов</li>
-        <li>при подтверждении начнётся работа по задаче</li>
-        <li>откроется чат с волонтёром для общения</li>
+        <li>отзыв сохранён в отклике</li>
+        <li>событие доступно для будущей ML-модели</li>
+        <li>завершённую задачу можно увидеть в откликах</li>
       </ul>
     </div>
-
     <div class="actions">
       <button class="primary" id="applicationsBtn">К откликам</button>
-      <button class="secondary" id="tasksBtn">Перейти к задачам</button>
+      <button class="secondary" id="dashboardBtn">Аналитика</button>
     </div>
-
   </div>
 </div>
 
 <script>
   const params = new URLSearchParams(window.location.search);
   const profileId = params.get('profileId') || localStorage.getItem('activeNgoProfileId');
-  const applicationId = params.get('applicationId');
   const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
-
   document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
   document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
   document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
   document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
   document.getElementById('applicationsBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-applications.html'));
-  document.getElementById('tasksBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-tasks.html'));
+  document.getElementById('dashboardBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-dashboard.html'));
 </script>
 </body>
 </html>

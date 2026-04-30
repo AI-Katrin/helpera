@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Чат</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/pages/volunteer-applications.css">
+<link rel="stylesheet" href="./css/base.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark"></span><span>Helpera</span></a>
+      <nav class="nav" id="nav"></nav>
+    </header>
+
+    <main class="content">
+      <section class="panel hero">
+        <div>
+          <div class="badge">Чат</div>
+          <h1 class="hero-title" id="chatTitle">Чат по задаче</h1>
+          <p class="hero-text">Здесь позже появится переписка между НКО и волонтёром. Пока это страница-заглушка для проверки flow.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-primary" id="backBtn">Вернуться</button>
+        </div>
+      </section>
+
+      <section class="panel list-panel">
+        <article class="application-card">
+          <div>
+            <h3 class="application-title">Чат будет доступен после реализации модуля сообщений</h3>
+            <p class="application-meta" id="chatMeta">Загружаем данные отклика...</p>
+            <span class="status-pill status-active">Доступ открыт</span>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="card-link" id="taskLink">Посмотреть задачу</a>
+            <a href="#" class="card-link" id="applicationsLink">К откликам</a>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const role = params.get('role') === 'ngo' ? 'ngo' : 'volunteer';
+  const applicationId = params.get('applicationId');
+  const profileId = params.get('profileId') || localStorage.getItem(role === 'ngo' ? helperaDb.localKeys.activeNgoProfileId : helperaDb.localKeys.activeVolunteerProfileId);
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+  function renderNav() {
+    const nav = document.getElementById('nav');
+    if (role === 'ngo') {
+      nav.innerHTML = `
+        <a href="${withProfileId('ngo-lk.html')}">Профиль</a>
+        <a href="${withProfileId('ngo-tasks.html')}">Мои задачи</a>
+        <a href="${withProfileId('ngo-applications.html')}">Отклики</a>
+        <a href="${withProfileId('ngo-dashboard.html')}">Аналитика</a>
+        <div class="avatar-mini">Н</div>
+      `;
+    } else {
+      nav.innerHTML = `
+        <a href="${withProfileId('volunteer-lk.html')}">Профиль</a>
+        <a href="${withProfileId('volunteer-tasks.html')}">Поиск задач</a>
+        <a href="${withProfileId('volunteer-applications.html')}">Мои отклики</a>
+        <a href="${withProfileId('volunteer-dashboard.html')}">Аналитика</a>
+        <div class="avatar-mini">В</div>
+      `;
+    }
+  }
+
+  async function init() {
+    renderNav();
+    const backPath = role === 'ngo' ? 'ngo-applications.html' : 'volunteer-applications.html';
+    document.getElementById('backBtn').addEventListener('click', () => window.location.href = withProfileId(backPath));
+    document.getElementById('applicationsLink').href = withProfileId(backPath);
+
+    if (!applicationId) {
+      document.getElementById('chatMeta').textContent = 'Отклик не выбран.';
+      return;
+    }
+
+    const application = await helperaDb.getApplication(applicationId);
+    document.getElementById('chatTitle').textContent = application?.tasks?.title || 'Чат по задаче';
+    document.getElementById('chatMeta').textContent = application
+      ? `${application.tasks?.title || 'Задача'} • статус: ${application.status || 'invite'}`
+      : 'Отклик не найден.';
+    document.getElementById('taskLink').href = role === 'ngo'
+      ? withProfileId(`task-details.html?taskId=${encodeURIComponent(application?.task_id || '')}&role=ngo`)
+      : withProfileId(`task-details.html?taskId=${encodeURIComponent(application?.task_id || '')}`);
+
+    await helperaDb.logEvent({
+      eventType: 'chat_placeholder_opened',
+      actorRole: role,
+      actorProfileId: profileId,
+      applicationId,
+      taskId: application?.task_id
+    });
+  }
+
+  init().catch((error) => {
+    console.error(error);
+    document.getElementById('chatMeta').textContent = 'Не удалось загрузить данные чата.';
+  });
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/pages/task-apply.css">
+<link rel="stylesheet" href="./css/base.css">
 </head>
 <body>
   <div class="page">
@@ -259,7 +260,16 @@
   }
 
   async function saveApplication(status) {
-    return helperaDb.createApplication(collectApplication(status));
+    const application = await helperaDb.createApplication(collectApplication(status));
+    await helperaDb.logEvent({
+      eventType: status === 'draft' ? 'application_draft_saved' : 'application_submitted',
+      actorRole: 'volunteer',
+      actorProfileId: volunteerProfileId,
+      applicationId: application.id,
+      taskId,
+      payload: { status, source: 'task-apply.html' }
+    });
+    return application;
   }
 
   sendButton.addEventListener('click', async () => {

@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/pages/volunteer-review.css">
+<link rel="stylesheet" href="./css/base.css">
 </head>
 <body>
   <div class="page">
@@ -18,11 +19,11 @@
       </a>
 
       <nav class="nav">
-        <a href="volunteer-lk.html">Профиль</a>
-        <a href="volunteer-tasks.html">Поиск задач</a>
-        <a href="volunteer-applications.html">Мои отклики</a>
-        <a href="volunteer-dashboard.html">Аналитика</a>
-        <div class="avatar-mini">Е</div>
+        <a href="volunteer-lk.html" id="navProfile">Профиль</a>
+        <a href="volunteer-tasks.html" id="navTasks">Поиск задач</a>
+        <a href="volunteer-applications.html" id="navApplications">Мои отклики</a>
+        <a href="volunteer-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">В</div>
       </nav>
     </header>
 
@@ -181,13 +182,21 @@
 
         <div class="actions">
           <button id="submitReview" class="btn-primary" disabled>Отправить и завершить задачу</button>
-          <button class="btn-secondary">Назад</button>
+          <button class="btn-secondary" id="backBtn" type="button">Назад</button>
         </div>
       </section>
     </main>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
 <script>
+  const params = new URLSearchParams(window.location.search);
+  const applicationId = params.get('applicationId');
+  const profileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
   const shortReview = document.getElementById('shortReview');
   const shortWrap = document.getElementById('shortWrap');
   const shortCounter = document.getElementById('shortCounter');
@@ -201,6 +210,12 @@
   const confirmCheckbox = document.getElementById('confirmCheckbox');
   const confirmRow = document.getElementById('confirmRow');
   const submitButton = document.getElementById('submitReview');
+
+  document.getElementById('navProfile').href = withProfileId('volunteer-lk.html');
+  document.getElementById('navTasks').href = withProfileId('volunteer-tasks.html');
+  document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
+  document.getElementById('navDashboard').href = withProfileId('volunteer-dashboard.html');
+  document.getElementById('backBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-applications.html'));
 
   function updateConfirmState() {
     confirmRow.classList.toggle('checked', confirmCheckbox.checked);
@@ -252,6 +267,55 @@
   shortReview.addEventListener('input', validateForm);
   extendedReview.addEventListener('input', validateForm);
   confirmCheckbox.addEventListener('change', validateForm);
+
+  function getActiveValue(selector) {
+    return document.querySelector(selector + '.active')?.dataset.value || '';
+  }
+
+  submitButton.addEventListener('click', async () => {
+    validateForm();
+    if (submitButton.disabled || !applicationId) return;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Отправляем...';
+    try {
+      const application = await helperaDb.getApplication(applicationId);
+      const payload = {
+        ...(application?.payload || {}),
+        reviews: {
+          ...((application?.payload || {}).reviews || {}),
+          volunteer: {
+            ratings: {
+              taskAccuracy: Number(getActiveValue('.rating-btn[data-group="rating1"]')),
+              communication: Number(getActiveValue('.rating-btn[data-group="rating2"]')),
+              experience: Number(getActiveValue('.rating-btn[data-group="rating3"]'))
+            },
+            shortReview: shortReview.value.trim(),
+            extendedReview: extendedReview.value.trim(),
+            completion: document.querySelector('.result-btn.active')?.textContent.trim() || '',
+            createdAt: new Date().toISOString()
+          }
+        },
+        statusHistory: [
+          ...((application?.payload || {}).statusHistory || []),
+          { status: 'done', actorRole: 'volunteer', createdAt: new Date().toISOString(), reason: 'volunteer_review_submitted' }
+        ]
+      };
+      await helperaDb.updateApplication(applicationId, { status: 'done', payload });
+      await helperaDb.logEvent({
+        eventType: 'volunteer_review_submitted',
+        actorRole: 'volunteer',
+        actorProfileId: profileId,
+        applicationId,
+        taskId: application?.task_id,
+        payload: payload.reviews.volunteer
+      });
+      window.location.href = withProfileId(`volunteer-review-success.html?applicationId=${encodeURIComponent(applicationId)}`);
+    } catch (error) {
+      console.error(error);
+      submitButton.disabled = false;
+      submitButton.textContent = 'Отправить и завершить задачу';
+    }
+  });
 
   validateForm();
 </script>

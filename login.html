@@ -302,6 +302,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="./css/base.css">
 </head>
 
 <body>
@@ -333,12 +334,12 @@
         </div>
 
         <div class="form-group">
-          <label for="login">Логин</label>
+          <label for="login">Email</label>
           <input
             type="text"
             id="login"
             name="login"
-            placeholder="Введите логин"
+            placeholder="example@mail.com"
             autocomplete="username"
             required
           />
@@ -382,6 +383,9 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
   <script>
     const form = document.getElementById("loginForm");
     const message = document.getElementById("message");
@@ -400,16 +404,19 @@
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
 
-      const login = document.getElementById("login").value.trim();
+      const login = document.getElementById("login").value.trim().toLowerCase();
       const password = document.getElementById("password").value;
       const role = document.querySelector('input[name="role"]:checked').value;
-      const remember = document.getElementById("remember").checked;
-
       message.className = "message";
       message.textContent = "";
 
       if (!login || !password) {
-        showMessage("error", "Введите логин и пароль.");
+        showMessage("error", "Введите email и пароль.");
+        return;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(login)) {
+        showMessage("error", "Для входа через Supabase Auth используйте email.");
         return;
       }
 
@@ -417,51 +424,31 @@
       button.textContent = "Выполняется вход...";
 
       try {
-        const response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            login,
-            password,
-            role,
-            remember
-          })
-        });
+        await helperaDb.signInWithEmail({ email: login, password });
+        const profile = await helperaDb.getCurrentUserProfile(role);
 
-        const responseText = await response.text();
-        let data = {};
-
-        if (responseText) {
-          try {
-            data = JSON.parse(responseText);
-          } catch (parseError) {
-            throw new Error("Не удалось обработать ответ сервера. Попробуйте ещё раз.");
-          }
+        if (!profile) {
+          throw new Error(role === "volunteer"
+            ? "Профиль волонтёра для этого аккаунта не найден."
+            : "Профиль НКО для этого аккаунта не найден.");
         }
 
-        if (!response.ok) {
-          throw new Error(data.message || "Неверный логин или пароль.");
+        if (role === "volunteer") {
+          localStorage.setItem(helperaDb.localKeys.activeVolunteerProfileId, profile.profileId);
+        } else {
+          localStorage.setItem(helperaDb.localKeys.activeNgoProfileId, profile.profileId);
         }
-
-        /*
-          ВАЖНО:
-          Лучше хранить токен в httpOnly cookie на backend.
-          localStorage использовать нежелательно для настоящей системы авторизации.
-        */
 
         showMessage("success", "Вход выполнен успешно.");
 
         if (role === "volunteer") {
-          window.location.href = "volunteer-lk.html";
+          window.location.href = `volunteer-lk.html?profileId=${encodeURIComponent(profile.profileId)}`;
         } else {
-          window.location.href = "ngo-dashboard.html";
+          window.location.href = `ngo-lk.html?profileId=${encodeURIComponent(profile.profileId)}`;
         }
 
       } catch (error) {
-        showMessage("error", error.message || "Что-то пошло не так. Попробуйте ещё раз.");
+        showMessage("error", error.message || "Неверный email или пароль.");
       } finally {
         button.disabled = false;
         button.textContent = "Войти";

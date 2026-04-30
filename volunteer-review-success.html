@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Отзыв отправлен</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-invitation-success.css">
+<link rel="stylesheet" href="./css/base.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="index.html"><div class="logo"></div>Helpera</a>
+  <div class="nav">
+    <a href="volunteer-lk.html" id="navProfile">Профиль</a>
+    <a href="volunteer-tasks.html" id="navTasks">Поиск задач</a>
+    <a href="volunteer-applications.html" id="navApplications">Мои отклики</a>
+    <a href="volunteer-dashboard.html" id="navDashboard">Аналитика</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <div class="circle"></div>
+    <div class="badge">Отзыв отправлен</div>
+    <h1>Спасибо, отзыв сохранён</h1>
+    <p class="subtitle">Задача отмечена как завершённая в ваших откликах.<br>Данные сохранены для аналитики и будущих рекомендаций.</p>
+    <div class="info">
+      <h3>Что дальше</h3>
+      <ul>
+        <li>отзыв учтён в истории взаимодействия</li>
+        <li>задача отображается в завершённых</li>
+        <li>вы можете вернуться к откликам или искать новые задачи</li>
+      </ul>
+    </div>
+    <div class="actions">
+      <button class="primary" id="applicationsBtn">Мои отклики</button>
+      <button class="secondary" id="tasksBtn">Поиск задач</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const profileId = params.get('profileId') || localStorage.getItem('activeVolunteerProfileId');
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+  document.getElementById('navProfile').href = withProfileId('volunteer-lk.html');
+  document.getElementById('navTasks').href = withProfileId('volunteer-tasks.html');
+  document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
+  document.getElementById('navDashboard').href = withProfileId('volunteer-dashboard.html');
+  document.getElementById('applicationsBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-applications.html?filter=done'));
+  document.getElementById('tasksBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-tasks.html'));
+</script>
+</body>
+</html>

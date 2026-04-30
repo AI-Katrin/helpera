@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/pages/ngo-dashboard.css">
+<link rel="stylesheet" href="./css/base.css">
 </head>
 <body>
   <div class="page">
@@ -253,11 +254,49 @@
 
       try {
         if (event.target.classList.contains('invite-btn')) {
-          if (applicationId) await helperaDb.updateApplication(applicationId, { status: 'invite' });
+          if (applicationId) {
+            const application = await helperaDb.getApplication(applicationId);
+            await helperaDb.updateApplication(applicationId, {
+              status: 'invite',
+              payload: {
+                ...(application?.payload || {}),
+                statusHistory: [
+                  ...((application?.payload || {}).statusHistory || []),
+                  { status: 'invite', actorRole: 'ngo', createdAt: new Date().toISOString() }
+                ]
+              }
+            });
+            await helperaDb.logEvent({
+              eventType: 'application_invited',
+              actorRole: 'ngo',
+              actorProfileId: new URLSearchParams(window.location.search).get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId),
+              applicationId,
+              taskId: application?.task_id
+            });
+          }
           openModal('Приглашение отправлено', 'Приглашение для волонтёра «' + name + '» успешно отправлено.');
         }
         if (event.target.classList.contains('reject')) {
-          if (applicationId) await helperaDb.updateApplication(applicationId, { status: 'rejected' });
+          if (applicationId) {
+            const application = await helperaDb.getApplication(applicationId);
+            await helperaDb.updateApplication(applicationId, {
+              status: 'rejected',
+              payload: {
+                ...(application?.payload || {}),
+                statusHistory: [
+                  ...((application?.payload || {}).statusHistory || []),
+                  { status: 'rejected', actorRole: 'ngo', createdAt: new Date().toISOString() }
+                ]
+              }
+            });
+            await helperaDb.logEvent({
+              eventType: 'application_rejected',
+              actorRole: 'ngo',
+              actorProfileId: new URLSearchParams(window.location.search).get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId),
+              applicationId,
+              taskId: application?.task_id
+            });
+          }
           openModal('Кандидат отклонён', 'Отклик волонтёра «' + name + '» был отклонён.');
         }
         if (event.target.classList.contains('profile')) {

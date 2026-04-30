@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/pages/volunteer-applications.css">
+<link rel="stylesheet" href="./css/base.css">
 </head>
 <body>
   <div class="page">
@@ -49,7 +50,7 @@
           <p class="stat-value">5</p>
         </div>
         <div class="panel stat-card">
-          <p class="stat-label">Приглашения</p>
+          <p class="stat-label">Подтверждены</p>
           <p class="stat-value">2</p>
         </div>
         <div class="panel stat-card">
@@ -63,7 +64,7 @@
           <button class="tab active" data-filter="all">Все</button>
           <button class="tab" data-filter="active">Выполняется</button>
           <button class="tab" data-filter="review">На рассмотрении</button>
-          <button class="tab" data-filter="invite">Приглашения</button>
+          <button class="tab" data-filter="invite">Подтверждённые</button>
           <button class="tab" data-filter="rejected">Отклонённые</button>
           <button class="tab" data-filter="done">Завершённые</button>
           <button class="tab" data-filter="draft">Черновики</button>
@@ -88,7 +89,7 @@
           <div>
             <h3 class="application-title"><a href="#" class="application-title-link">Подготовка аналитического отчёта по социальному проекту</a></h3>
             <p class="application-meta">Фонд «Шаг вперёд» • Онлайн • Отклик отправлен 10 апреля</p>
-            <span class="status-pill status-invite">Приглашение</span>
+            <span class="status-pill status-invite">Подтверждён</span>
           </div>
           <div class="card-actions">
             <a href="#" class="card-link">Посмотреть задачу</a>
@@ -100,7 +101,7 @@
         <article class="application-card" data-status="active">
           <div>
             <h3 class="application-title"><a href="#" class="application-title-link">Наставничество для подростков в образовательной программе</a></h3>
-            <p class="application-meta">Центр поддержки молодёжи • Онлайн • Приглашение получено 8 апреля</p>
+            <p class="application-meta">Центр поддержки молодёжи • Онлайн • Участие подтверждено 8 апреля</p>
             <span class="status-pill status-active">Выполняется</span>
           </div>
           <div class="card-actions">
@@ -159,11 +160,18 @@
   const profileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
   const initialFilter = params.get('filter') || 'all';
   const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  })[char]);
 
   const statusLabels = {
     draft: ['Черновик', 'status-invite'],
     review: ['На рассмотрении', 'status-review'],
-    invite: ['Приглашение', 'status-invite'],
+    invite: ['Подтверждён', 'status-invite'],
     active: ['Выполняется', 'status-active'],
     rejected: ['Отклонён', 'status-rejected'],
     done: ['Завершён', 'status-feedback']
@@ -176,19 +184,23 @@
     const [label, className] = statusLabels[status] || statusLabels.review;
     const taskUrl = withProfileId(`task-details.html?taskId=${encodeURIComponent(application.task_id || '')}`);
     const draftUrl = withProfileId(`task-apply.html?taskId=${encodeURIComponent(application.task_id || '')}`);
+    const chatUrl = withProfileId(`chat-placeholder.html?applicationId=${encodeURIComponent(application.id)}&role=volunteer`);
+    const reviewUrl = withProfileId(`volunteer-review.html?applicationId=${encodeURIComponent(application.id)}`);
     const card = document.createElement('article');
     card.className = 'application-card';
     card.dataset.status = status;
     card.innerHTML = `
       <div>
-        <h3 class="application-title"><a href="${taskUrl}" class="application-title-link">${task.title || 'Отклик на задачу'}</a></h3>
-        <p class="application-meta">${orgName} • ${task.format || application.format || 'Формат не указан'} • ${status === 'draft' ? 'Черновик сохранён' : 'Отклик отправлен'} ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}</p>
+        <h3 class="application-title"><a href="${taskUrl}" class="application-title-link">${escapeHtml(task.title || 'Отклик на задачу')}</a></h3>
+        <p class="application-meta">${escapeHtml(orgName)} • ${escapeHtml(task.format || application.format || 'Формат не указан')} • ${status === 'draft' ? 'Черновик сохранён' : 'Отклик отправлен'} ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}</p>
         <span class="status-pill ${className}">${label}</span>
       </div>
       <div class="card-actions">
         <a href="${taskUrl}" class="card-link">Посмотреть задачу</a>
-        ${status === 'draft' ? `<a href="${draftUrl}" class="card-link">Продолжить отклик</a>` : '<a href="#" class="card-link">Отменить отклик</a>'}
-        <a href="#" class="card-link">Чат с организацией</a>
+        ${status === 'draft' ? `<a href="${draftUrl}" class="card-link">Продолжить отклик</a>` : ''}
+        ${status === 'review' ? '<a href="#" class="card-link">Отменить отклик</a>' : ''}
+        ${status === 'invite' || status === 'active' || status === 'done' ? `<a href="${chatUrl}" class="card-link">Чат с организацией</a>` : ''}
+        ${status === 'invite' || status === 'active' || status === 'done' ? `<a href="${reviewUrl}" class="card-link">Оставить отзыв</a>` : ''}
       </div>
     `;
     return card;

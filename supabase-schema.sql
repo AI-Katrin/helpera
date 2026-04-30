@@ -2,6 +2,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.volunteer_profiles (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
   contact text not null,
   account jsonb not null default '{}'::jsonb,
   about jsonb not null default '{}'::jsonb,
@@ -15,6 +16,7 @@ create table if not exists public.volunteer_profiles (
 
 create table if not exists public.ngo_profiles (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
   org_name text not null,
   contact text not null,
   account jsonb not null default '{}'::jsonb,
@@ -53,6 +55,23 @@ create table if not exists public.applications (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.app_events (
+  id uuid primary key default gen_random_uuid(),
+  event_type text not null,
+  actor_role text,
+  actor_profile_id uuid,
+  application_id uuid references public.applications(id) on delete cascade,
+  task_id uuid references public.tasks(id) on delete cascade,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.volunteer_profiles add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table public.ngo_profiles add column if not exists user_id uuid references auth.users(id) on delete set null;
+
+create index if not exists volunteer_profiles_user_id_idx on public.volunteer_profiles(user_id);
+create index if not exists ngo_profiles_user_id_idx on public.ngo_profiles(user_id);
+
 create or replace function public.set_updated_at()
 returns trigger as $$
 begin
@@ -85,6 +104,7 @@ alter table public.volunteer_profiles enable row level security;
 alter table public.ngo_profiles enable row level security;
 alter table public.tasks enable row level security;
 alter table public.applications enable row level security;
+alter table public.app_events enable row level security;
 
 drop policy if exists "Prototype read volunteer profiles" on public.volunteer_profiles;
 create policy "Prototype read volunteer profiles" on public.volunteer_profiles for select using (true);
@@ -105,3 +125,8 @@ drop policy if exists "Prototype read applications" on public.applications;
 create policy "Prototype read applications" on public.applications for select using (true);
 drop policy if exists "Prototype write applications" on public.applications;
 create policy "Prototype write applications" on public.applications for all using (true) with check (true);
+
+drop policy if exists "Prototype read app events" on public.app_events;
+create policy "Prototype read app events" on public.app_events for select using (true);
+drop policy if exists "Prototype write app events" on public.app_events;
+create policy "Prototype write app events" on public.app_events for all using (true) with check (true);

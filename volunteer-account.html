@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/pages/volunteer-account.css">
+<link rel="stylesheet" href="./css/base.css">
 </head>
 <body>
   <div class="page">
@@ -96,9 +97,9 @@
 
         <form id="volunteer-auth-form" action="volunteer-about.html">
           <div class="field">
-            <label class="label" for="contact">Email или телефон <span class="required">*</span></label>
-            <input class="input" id="contact" type="text" placeholder="example@mail.com / +7 ..." autocomplete="username" required />
-            <p class="field-hint" id="contact-hint">Введите email или российский номер телефона.</p>
+            <label class="label" for="contact">Email <span class="required">*</span></label>
+            <input class="input" id="contact" type="email" placeholder="example@mail.com" autocomplete="username" required />
+            <p class="field-hint" id="contact-hint">Введите email для входа через Supabase Auth.</p>
           </div>
 
           <div class="field">
@@ -141,13 +142,7 @@
     const validateContact = (value) => {
       const trimmedValue = value.trim();
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-      const phoneDigits = trimmedValue.replace(/\D/g, '');
-      const isRussianPhone = (
-        (trimmedValue.startsWith('+7') && phoneDigits.length === 11 && phoneDigits[0] === '7') ||
-        (trimmedValue.startsWith('8') && phoneDigits.length === 11 && phoneDigits[0] === '8')
-      );
-
-      return emailPattern.test(trimmedValue) || isRussianPhone;
+      return emailPattern.test(trimmedValue);
     };
 
     const validatePassword = (value) => {
@@ -179,8 +174,8 @@
         contactInput,
         contactHint,
         isContactValid,
-        'Введите email или российский номер телефона.',
-        'Проверьте формат: example@mail.com, +7 900 000-00-00 или 8 900 000-00-00.'
+        'Введите email для входа через Supabase Auth.',
+        'Проверьте формат email: example@mail.com.'
       );
       setFieldState(
         passwordInput,
@@ -214,8 +209,16 @@
       continueBtn.disabled = true;
 
       try {
+        const email = contactInput.value.trim().toLowerCase();
+        const auth = await helperaDb.signUpWithEmail({
+          email,
+          password: passwordInput.value,
+          role: 'volunteer',
+          metadata: { role: 'volunteer' }
+        });
         const profile = await helperaDb.createVolunteerProfile({
-          contact: contactInput.value.trim()
+          contact: email,
+          userId: auth.user?.id || auth.session?.user?.id || null
         });
         window.location.href = `volunteer-about.html?profileId=${encodeURIComponent(profile.profileId)}`;
       } catch (error) {

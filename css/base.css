@@ -1,0 +1,455 @@
+:root {
+  --ui-green: #2E7D32;
+  --ui-green-dark: #1B5E20;
+  --ui-green-soft: #E8F5E9;
+  --ui-blue: #4A90E2;
+  --ui-blue-dark: #1D4ED8;
+  --ui-blue-soft: #E3F2FD;
+  --ui-text: #1F2937;
+  --ui-muted: #6B7280;
+  --ui-line: #E5E7EB;
+  --ui-line-strong: #D1D5DB;
+  --ui-panel: #FFFFFF;
+  --ui-bg: #F5F8F7;
+  --ui-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  --ui-radius-panel: 28px;
+  --ui-radius-card: 20px;
+  --ui-radius-control: 16px;
+}
+
+html,
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  color: var(--ui-text);
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  letter-spacing: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.topbar {
+  min-height: 88px;
+  background: var(--ui-panel);
+  border-bottom: 1px solid var(--ui-line);
+}
+
+.brand,
+.nav a {
+  text-decoration: none;
+}
+
+.brand {
+  color: var(--ui-text);
+  font-size: 32px;
+  line-height: 39px;
+  font-weight: 700;
+}
+
+.brand-mark,
+.brand-icon,
+.brand .logo,
+.logo-icon {
+  width: 40px !important;
+  height: 40px !important;
+  flex: 0 0 40px !important;
+}
+
+.brand-mark,
+.brand-icon,
+.brand .logo,
+.logo-icon {
+  border-radius: 0 !important;
+  background: url("../assets/helpera-logo.png") center / contain no-repeat !important;
+  color: transparent !important;
+  overflow: hidden !important;
+}
+
+.brand-mark::before,
+.brand-mark::after,
+.brand-icon::before,
+.brand-icon::after,
+.logo-icon::before,
+.logo-icon::after,
+.brand .logo::before,
+.brand .logo::after {
+  display: none !important;
+  content: none !important;
+}
+
+.brand-mark > *,
+.brand-icon > *,
+.logo-icon > *,
+.brand .logo > * {
+  display: none !important;
+}
+
+.avatar,
+.avatar-mini {
+  background: var(--ui-green-soft);
+  color: var(--ui-green);
+  font-weight: 700;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.nav a {
+  color: #374151;
+  font-size: 16px;
+  line-height: 19px;
+  font-weight: 500;
+}
+
+.nav a:hover {
+  color: var(--ui-green);
+}
+
+.panel,
+.card,
+.modal,
+.task-card,
+.application-card,
+.candidate,
+.info-card,
+.feature-card,
+.review-card,
+.summary-box,
+.file-card,
+.doc,
+.task-box {
+  border-radius: var(--ui-radius-panel);
+}
+
+.panel,
+.card {
+  background: var(--ui-panel);
+  box-shadow: var(--ui-shadow);
+}
+
+.task-card,
+.application-card,
+.candidate,
+.info-card,
+.feature-card,
+.review-card,
+.summary-box,
+.file-card,
+.doc,
+.task-box {
+  border-color: var(--ui-line);
+}
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-outline,
+.btn-outline-green,
+.btn-full,
+.primary,
+.secondary,
+.primary-action,
+.secondary-action,
+.card-link.action-link,
+.btn-login {
+  min-height: 48px;
+  border-radius: var(--ui-radius-control);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 19px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+a.btn,
+a.btn-primary,
+a.btn-secondary,
+a.btn-outline,
+a.btn-outline-green,
+a.btn-full,
+a.primary,
+a.secondary,
+a.btn-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.btn-primary,
+.btn-full,
+.primary,
+.primary-action {
+  border: 0;
+  background: var(--ui-green);
+  color: #FFFFFF;
+}
+
+.btn-primary:hover,
+.btn-full:hover,
+.primary:hover,
+.primary-action:hover {
+  background: var(--ui-green-dark);
+}
+
+.btn-secondary,
+.btn-outline,
+.btn-outline-green,
+.secondary,
+.secondary-action,
+.btn-login {
+  border: 1px solid var(--ui-line-strong);
+  background: #FFFFFF;
+  color: var(--ui-text);
+}
+
+.btn-secondary:hover,
+.btn-outline:hover,
+.btn-outline-green:hover,
+.secondary:hover,
+.secondary-action:hover,
+.btn-login:hover {
+  border-color: var(--ui-green);
+  background: var(--ui-green-soft);
+  color: var(--ui-green-dark);
+}
+
+.btn-primary:disabled,
+.btn-full:disabled,
+.primary:disabled,
+.primary-action:disabled,
+button:disabled {
+  background: #B7C6B8;
+  color: #EEF2EF;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.badge,
+.pill,
+.chip,
+.tag,
+.tag-chip,
+.status-pill,
+.mini-badge,
+.hero-badge,
+.status,
+.status-badge {
+  border-radius: 999px;
+  letter-spacing: 0;
+}
+
+.chip,
+.tag,
+.tag-chip,
+.pill,
+.mini-badge,
+.status-pill {
+  font-size: 12px;
+  line-height: 15px;
+  font-weight: 700;
+}
+
+.input,
+.search-input,
+.select-button,
+.textarea,
+textarea,
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="date"] {
+  border-radius: var(--ui-radius-control);
+}
+
+.input:focus,
+.search-input:focus,
+.select-button:focus,
+.textarea:focus,
+textarea:focus,
+input:focus {
+  outline: none;
+  border-color: #9BBCEB;
+  box-shadow: 0 0 0 4px rgba(74, 144, 226, .09);
+}
+
+.hero-title,
+.tasks-title,
+.form-title,
+.sidebar-title,
+.panel-title,
+.section-title {
+  color: var(--ui-text);
+  letter-spacing: 0;
+}
+
+.hero-text,
+.tasks-subtitle,
+.form-subtitle,
+.panel-subtitle,
+.subtitle,
+.section-text,
+.application-meta,
+.task-meta,
+.field-hint,
+.sidebar-text {
+  color: var(--ui-muted);
+}
+
+.card-link,
+.task-link,
+.reset-link,
+.profile-link,
+.link-draft {
+  color: var(--ui-blue-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.card-link:hover,
+.task-link:hover,
+.reset-link:hover,
+.profile-link:hover,
+.link-draft:hover {
+  color: var(--ui-green-dark);
+}
+
+/* Layout contract shared by all app pages. Keep this block last: it intentionally
+   overrides older page-specific fixed-width shells and mismatched header spacing. */
+:root {
+  --app-header-height: 88px;
+  --app-page-x: 72px;
+  --app-main-top: 28px;
+  --app-main-bottom: 56px;
+}
+
+body {
+  min-width: 0 !important;
+  background: linear-gradient(136.57deg, #F6FBF7 0%, #EEF6FF 100%);
+}
+
+.page {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+.topbar,
+header.topbar,
+body > header:not(.topbar) {
+  width: 100% !important;
+  height: var(--app-header-height) !important;
+  min-height: var(--app-header-height) !important;
+  padding: 0 var(--app-page-x) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+}
+
+.topbar .brand,
+header.topbar .brand,
+.topbar > .brand,
+body > header:not(.topbar) .logo {
+  font-size: 32px !important;
+  line-height: 39px !important;
+  font-weight: 700 !important;
+  gap: 14px !important;
+}
+
+.topbar .nav,
+header.topbar .nav,
+.topbar > .nav {
+  gap: 24px !important;
+}
+
+.topbar .nav a,
+header.topbar .nav a,
+.topbar > .nav a {
+  font-size: 16px !important;
+  line-height: 19px !important;
+  font-weight: 500 !important;
+}
+
+.topbar .avatar,
+.topbar .avatar-mini,
+header.topbar .avatar,
+header.topbar .avatar-mini {
+  width: 42px !important;
+  height: 42px !important;
+  margin-left: 0 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+.page > .content,
+.page > main.content,
+.page > .container,
+body > .container {
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  padding: var(--app-main-top) var(--app-page-x) var(--app-main-bottom) !important;
+}
+
+.page > .layout,
+.page > main.layout {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: var(--app-main-top) var(--app-page-x) var(--app-main-bottom) !important;
+}
+
+.page > .hero {
+  margin: var(--app-main-top) var(--app-page-x) 28px !important;
+}
+
+.page > .breadcrumbs,
+.page > .breadcrumb,
+.page > .container > .breadcrumbs {
+  padding: var(--app-main-top) var(--app-page-x) 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.page > .container > .breadcrumbs {
+  padding: 0 !important;
+}
+
+.page > .breadcrumbs + .layout,
+.page > .breadcrumb + .layout,
+.page > .breadcrumbs + main.layout,
+.page > .breadcrumb + main.layout {
+  padding-top: 20px !important;
+}
+
+.page > .hero + .layout,
+.page > .hero + main.layout {
+  padding-top: 0 !important;
+}
+
+.page > .top-actions,
+.page > .container > .top-actions {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 20px 0 20px !important;
+}
+
+.content,
+.container,
+.layout {
+  font-family: 'Inter', Arial, sans-serif !important;
+}

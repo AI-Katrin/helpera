@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Отзыв НКО</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-review.css">
+<link rel="stylesheet" href="./css/base.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark"></span><span>Helpera</span></a>
+      <nav class="nav">
+        <a href="ngo-lk.html" id="navProfile">Профиль</a>
+        <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="navApplications">Отклики</a>
+        <a href="ngo-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">Н</div>
+      </nav>
+    </header>
+
+    <div class="breadcrumb">Отклики / Завершение задачи / Отзыв НКО</div>
+
+    <main class="layout">
+      <aside class="panel sidebar">
+        <div class="badge">Завершение задачи</div>
+        <h1 class="sidebar-title">Оцените<br>работу<br>волонтёра</h1>
+        <p class="sidebar-text">Отзыв нужен, чтобы закрыть задачу, обновить историю взаимодействия и улучшить рекомендации платформы.</p>
+
+        <div class="info-card">
+          <div class="info-row">
+            <div class="info-icon check"></div>
+            <div>
+              <p class="info-title">Что фиксируем</p>
+              <div class="bullet-text">
+                <p>• качество результата</p>
+                <p>• коммуникацию и самостоятельность</p>
+                <p>• итог выполнения задачи</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card highlight">
+          <p class="info-title">Данные пригодятся для ML</p>
+          <div class="subtext">
+            <p>Отзыв сохраняется в отклике и отдельным событием, чтобы позже обучать модель подбора задач и волонтёров.</p>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel form-panel">
+        <h2 class="form-title">Оцените участие волонтёра</h2>
+        <p class="form-subtitle" id="taskContext">Заполните обязательный отзыв, чтобы завершить задачу</p>
+
+        <p class="section-label">Обязательная оценка</p>
+        <p class="section-hint">Поставьте оценки по каждому критерию от 1 до 10</p>
+
+        <div class="criterion">
+          <p class="criterion-title">Насколько качественно был выполнен результат?</p>
+          <div class="rating-row" data-rating-group="rating1"></div>
+        </div>
+
+        <div class="criterion">
+          <p class="criterion-title">Насколько удобной была коммуникация с волонтёром?</p>
+          <div class="rating-row" data-rating-group="rating2"></div>
+        </div>
+
+        <div class="criterion">
+          <p class="criterion-title">Насколько волонтёр был самостоятельным и ответственным?</p>
+          <div class="rating-row" data-rating-group="rating3"></div>
+        </div>
+
+        <div class="field">
+          <p class="field-label">Короткий отзыв</p>
+          <p class="field-hint">Обязательное поле, минимум 50 символов</p>
+          <div id="shortWrap" class="textarea-wrap">
+            <textarea id="shortReview" placeholder="Что получилось хорошо? Что можно улучшить? Хотели бы вы снова работать с этим волонтёром?"></textarea>
+            <div id="shortCounter" class="textarea-counter">0 / минимум 50 символов</div>
+          </div>
+          <div id="shortError" class="field-error">Нужно ввести не менее 50 символов.</div>
+        </div>
+
+        <div class="field">
+          <p class="field-label">Расширенный отзыв</p>
+          <p class="field-hint">Необязательно. Если заполняете, напишите минимум 200 символов.</p>
+          <div id="extendedWrap" class="extended-box textarea-wrap">
+            <textarea id="extendedReview" placeholder="Опишите сильные стороны волонтёра, качество результата, коммуникацию и рекомендации для похожих задач."></textarea>
+            <div id="extendedCounter" class="textarea-counter">0 / минимум 200 символов</div>
+          </div>
+          <div id="extendedError" class="field-error">Если вы заполняете расширенный отзыв, нужно написать не менее 200 символов.</div>
+        </div>
+
+        <div class="field">
+          <p class="field-label">Итог выполнения задачи</p>
+          <div class="result-row">
+            <button type="button" class="result-btn active" data-result-group="completion" data-value="completed">Задача выполнена</button>
+            <button type="button" class="result-btn" data-result-group="completion" data-value="partial">Выполнена частично</button>
+            <button type="button" class="result-btn" data-result-group="completion" data-value="not_completed">Не выполнена</button>
+          </div>
+        </div>
+
+        <label id="confirmRow" class="confirm-row">
+          <input id="confirmCheckbox" type="checkbox">
+          <div class="check"></div>
+          <div>Подтверждаю отправку отзыва и завершение задачи со стороны НКО.</div>
+        </label>
+
+        <div class="actions">
+          <button id="submitReview" class="btn-primary" disabled>Отправить отзыв</button>
+          <button class="btn-secondary" id="backBtn" type="button">Назад</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const applicationId = params.get('applicationId');
+  const ngoProfileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  const withProfileId = (path) => ngoProfileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(ngoProfileId)}` : path;
+
+  ['rating1', 'rating2', 'rating3'].forEach((group) => {
+    const row = document.querySelector(`[data-rating-group="${group}"]`);
+    row.innerHTML = Array.from({ length: 10 }, (_, index) => {
+      const value = index + 1;
+      return `<button type="button" class="rating-btn ${value === 9 ? 'active' : ''}" data-group="${group}" data-value="${value}">${value}</button>`;
+    }).join('');
+  });
+
+  const shortReview = document.getElementById('shortReview');
+  const shortWrap = document.getElementById('shortWrap');
+  const shortCounter = document.getElementById('shortCounter');
+  const shortError = document.getElementById('shortError');
+  const extendedReview = document.getElementById('extendedReview');
+  const extendedWrap = document.getElementById('extendedWrap');
+  const extendedCounter = document.getElementById('extendedCounter');
+  const extendedError = document.getElementById('extendedError');
+  const confirmCheckbox = document.getElementById('confirmCheckbox');
+  const confirmRow = document.getElementById('confirmRow');
+  const submitButton = document.getElementById('submitReview');
+
+  document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
+  document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
+  document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
+  document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
+  document.getElementById('backBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-applications.html'));
+
+  function validateShort() {
+    const length = shortReview.value.trim().length;
+    shortCounter.textContent = `${length} / минимум 50 символов`;
+    const valid = length >= 50;
+    shortWrap.classList.toggle('invalid', !valid && length > 0);
+    shortError.style.display = !valid && length > 0 ? 'block' : 'none';
+    return valid;
+  }
+
+  function validateExtended() {
+    const length = extendedReview.value.trim().length;
+    extendedCounter.textContent = `${length} / минимум 200 символов`;
+    const valid = length === 0 || length >= 200;
+    extendedWrap.classList.toggle('invalid', !valid);
+    extendedError.style.display = !valid ? 'block' : 'none';
+    return valid;
+  }
+
+  function validateForm() {
+    confirmRow.classList.toggle('checked', confirmCheckbox.checked);
+    submitButton.disabled = !(validateShort() && validateExtended() && confirmCheckbox.checked);
+  }
+
+  function getActiveValue(selector) {
+    return document.querySelector(selector + '.active')?.dataset.value || '';
+  }
+
+  document.querySelectorAll('.rating-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll(`.rating-btn[data-group="${btn.dataset.group}"]`).forEach(item => item.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  document.querySelectorAll('.result-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.result-btn[data-result-group="completion"]').forEach(item => item.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  shortReview.addEventListener('input', validateForm);
+  extendedReview.addEventListener('input', validateForm);
+  confirmCheckbox.addEventListener('change', validateForm);
+
+  submitButton.addEventListener('click', async () => {
+    validateForm();
+    if (submitButton.disabled || !applicationId) return;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Отправляем...';
+    try {
+      const application = await helperaDb.getApplication(applicationId);
+      const payload = {
+        ...(application?.payload || {}),
+        reviews: {
+          ...((application?.payload || {}).reviews || {}),
+          ngo: {
+            ratings: {
+              quality: Number(getActiveValue('.rating-btn[data-group="rating1"]')),
+              communication: Number(getActiveValue('.rating-btn[data-group="rating2"]')),
+              responsibility: Number(getActiveValue('.rating-btn[data-group="rating3"]'))
+            },
+            shortReview: shortReview.value.trim(),
+            extendedReview: extendedReview.value.trim(),
+            completion: document.querySelector('.result-btn.active')?.dataset.value || '',
+            createdAt: new Date().toISOString()
+          }
+        },
+        statusHistory: [
+          ...((application?.payload || {}).statusHistory || []),
+          { status: 'done', actorRole: 'ngo', createdAt: new Date().toISOString(), reason: 'ngo_review_submitted' }
+        ]
+      };
+      await helperaDb.updateApplication(applicationId, { status: 'done', payload });
+      await helperaDb.logEvent({
+        eventType: 'ngo_review_submitted',
+        actorRole: 'ngo',
+        actorProfileId: ngoProfileId,
+        applicationId,
+        taskId: application?.task_id,
+        payload: payload.reviews.ngo
+      });
+      window.location.href = withProfileId(`ngo-review-success.html?applicationId=${encodeURIComponent(applicationId)}`);
+    } catch (error) {
+      console.error(error);
+      submitButton.disabled = false;
+      submitButton.textContent = 'Отправить отзыв';
+    }
+  });
+
+  async function initContext() {
+    if (!applicationId) return;
+    const application = await helperaDb.getApplication(applicationId);
+    if (application) document.getElementById('taskContext').textContent = application.tasks?.title || 'Оцените выполненную задачу';
+  }
+
+  validateForm();
+  initContext();
+</script>
+</body>
+</html>

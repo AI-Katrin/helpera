@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/pages/volunteer-applications.css">
+<link rel="stylesheet" href="./css/base.css">
 </head>
 <body>
   <div class="page">
@@ -49,7 +50,7 @@
           <p class="stat-value">0</p>
         </div>
         <div class="panel stat-card">
-          <p class="stat-label">Приглашения</p>
+          <p class="stat-label">Подтверждены</p>
           <p class="stat-value">0</p>
         </div>
         <div class="panel stat-card">
@@ -62,9 +63,10 @@
         <div class="tabs">
           <button class="tab active" data-filter="all">Все</button>
           <button class="tab" data-filter="review">На рассмотрении</button>
-          <button class="tab" data-filter="invite">Приглашения</button>
+          <button class="tab" data-filter="invite">Подтверждённые</button>
           <button class="tab" data-filter="rejected">Отклонённые</button>
           <button class="tab" data-filter="active">В работе</button>
+          <button class="tab" data-filter="done">Завершённые</button>
         </div>
       </section>
 
@@ -98,7 +100,7 @@
   })[char]);
   const statusLabels = {
     review: ['На рассмотрении', 'status-review'],
-    invite: ['Приглашение', 'status-invite'],
+    invite: ['Подтверждён', 'status-invite'],
     active: ['В работе', 'status-active'],
     rejected: ['Отклонён', 'status-rejected'],
     done: ['Завершён', 'status-feedback']
@@ -114,19 +116,26 @@
     const volunteer = application.volunteer_profiles || {};
     const status = application.status || 'review';
     const [label, className] = statusLabels[status] || statusLabels.review;
+    const candidateUrl = withProfileId(`volunteer-candidate-profile.html?applicationId=${encodeURIComponent(application.id)}`);
+    const inviteUrl = withProfileId(`ngo-invitation-confirm.html?applicationId=${encodeURIComponent(application.id)}`);
+    const chatUrl = withProfileId(`chat-placeholder.html?applicationId=${encodeURIComponent(application.id)}&role=ngo`);
+    const reviewUrl = withProfileId(`ngo-review.html?applicationId=${encodeURIComponent(application.id)}`);
     const card = document.createElement('article');
     card.className = 'application-card';
     card.dataset.status = status;
     card.innerHTML = `
       <div>
-        <h3 class="application-title"><a href="volunteer-candidate-profile.html" class="application-title-link">${escapeHtml(volunteerName(volunteer))}</a></h3>
+        <h3 class="application-title"><a href="${candidateUrl}" class="application-title-link">${escapeHtml(volunteerName(volunteer))}</a></h3>
         <p class="application-meta">${escapeHtml(task.title || 'Задача')} • ${escapeHtml(application.format || task.format || 'Формат не указан')} • ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}</p>
         <p class="application-meta">${escapeHtml(application.message || 'Сообщение не заполнено')}</p>
         <span class="status-pill ${className}">${label}</span>
       </div>
       <div class="card-actions">
         <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(application.task_id || '')}&role=ngo`)}" class="card-link">Посмотреть задачу</a>
-        <button class="card-link action-link" type="button" data-action="invite" data-id="${application.id}">Пригласить</button>
+        <a href="${candidateUrl}" class="card-link">Профиль</a>
+        ${status === 'review' ? `<a href="${inviteUrl}" class="card-link">Принять</a>` : ''}
+        ${status === 'invite' || status === 'active' || status === 'done' ? `<a href="${chatUrl}" class="card-link">Чат</a>` : ''}
+        ${status === 'invite' || status === 'active' || status === 'done' ? `<a href="${reviewUrl}" class="card-link">Оставить отзыв</a>` : ''}
         <button class="card-link action-link" type="button" data-action="rejected" data-id="${application.id}">Отклонить</button>
       </div>
     `;
@@ -153,7 +162,25 @@
   }
 
   async function changeStatus(id, status) {
-    await helperaDb.updateApplication(id, { status });
+    const application = await helperaDb.getApplication(id);
+    await helperaDb.updateApplication(id, {
+      status,
+      payload: {
+        ...(application?.payload || {}),
+        statusHistory: [
+          ...((application?.payload || {}).statusHistory || []),
+          { status, actorRole: 'ngo', createdAt: new Date().toISOString() }
+        ]
+      }
+    });
+    await helperaDb.logEvent({
+      eventType: 'application_status_changed',
+      actorRole: 'ngo',
+      actorProfileId: ngoProfileId,
+      applicationId: id,
+      taskId: application?.task_id,
+      payload: { status }
+    });
     await loadApplications();
   }
 
