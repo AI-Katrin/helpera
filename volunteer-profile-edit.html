@@ -90,15 +90,25 @@
           <h2 class="panel-title">Навыки и интересы</h2>
           <div class="edit-form">
             <div class="field">
-              <label for="skills">Навыки</label>
-              <input class="input" id="skills" type="text" placeholder="Например: SMM, Дизайн">
-              <p class="hint">Перечислите через запятую.</p>
+              <label>Навыки</label>
+              <div class="autocomplete">
+                <input class="input autocomplete-input" id="skillsInput" type="text" placeholder="Выберите или введите навык" autocomplete="off">
+                <button class="autocomplete-toggle" id="skillsToggle" type="button" aria-label="Показать все навыки"></button>
+                <div class="suggestions" id="skillsSuggestions"></div>
+              </div>
+              <div class="selected-skills" id="skillsChips"></div>
+              <input id="skills" type="hidden">
             </div>
 
             <div class="field">
-              <label for="helpDirections">В чём готовы помогать</label>
-              <input class="input" id="helpDirections" type="text" placeholder="Например: Экология, Животные">
-              <p class="hint">Перечислите через запятую.</p>
+              <label>В чём готовы помогать</label>
+              <div class="autocomplete">
+                <input class="input autocomplete-input" id="directionsInput" type="text" placeholder="Выберите или введите направление" autocomplete="off">
+                <button class="autocomplete-toggle" id="directionsToggle" type="button" aria-label="Показать все направления"></button>
+                <div class="suggestions" id="directionsSuggestions"></div>
+              </div>
+              <div class="selected-skills" id="directionsChips"></div>
+              <input id="helpDirections" type="hidden">
             </div>
 
             <div class="field">
@@ -167,7 +177,42 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/supabase-config.js"></script>
   <script src="./js/app-db.js"></script>
+  <script src="./js/tag-select.js"></script>
   <script>
+    const SKILL_OPTIONS = [
+      'Аналитика', 'SMM', 'Дизайн', 'Копирайтинг',
+      'Организация мероприятий', 'Работа с детьми', 'Наставничество',
+      'Переводы', 'Фото и видео', 'Работа с документами',
+      'Коммуникация', 'Фандрайзинг', 'PR', 'Исследования',
+      'Координация волонтёров', 'IT', 'Программирование',
+      'Юридические услуги', 'Педагогика', 'Медицина', 'Психология'
+    ];
+
+    const DIRECTION_OPTIONS = [
+      'Экология', 'Животные', 'Помощь пожилым', 'Дети и молодёжь',
+      'Здравоохранение', 'Образование', 'Культура и искусство',
+      'Спорт и ЗОЖ', 'Социальная помощь', 'Люди без жилья', 'Инклюзия',
+      'Кризисные ситуации', 'Правозащита', 'Миграция', 'Сельские территории'
+    ];
+
+    const skillsSelect = TagSelect({
+      inputEl:   document.getElementById('skillsInput'),
+      toggleEl:  document.getElementById('skillsToggle'),
+      dropdownEl: document.getElementById('skillsSuggestions'),
+      chipsEl:   document.getElementById('skillsChips'),
+      hiddenEl:  document.getElementById('skills'),
+      options:   SKILL_OPTIONS
+    });
+
+    const directionsSelect = TagSelect({
+      inputEl:   document.getElementById('directionsInput'),
+      toggleEl:  document.getElementById('directionsToggle'),
+      dropdownEl: document.getElementById('directionsSuggestions'),
+      chipsEl:   document.getElementById('directionsChips'),
+      hiddenEl:  document.getElementById('helpDirections'),
+      options:   DIRECTION_OPTIONS
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
     const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
     const form = document.getElementById('edit-form');
@@ -214,8 +259,8 @@
       Array.from(document.querySelectorAll('[data-about-field]')).forEach((field) => {
         field.value = about[field.dataset.aboutField] || '';
       });
-      setValue('skills', fromList(skills.skills));
-      setValue('helpDirections', fromList(skills.helpDirections));
+      skillsSelect.setValue(fromList(skills.skills));
+      directionsSelect.setValue(fromList(skills.helpDirections));
       setValue('experience', skills.experience || '');
       setValue('taskTypes', fromList(interests.tasks));
       setValue('format', interests.format || '');

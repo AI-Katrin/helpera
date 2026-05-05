@@ -162,7 +162,11 @@ a {
 .primary-action,
 .secondary-action,
 .card-link.action-link,
-.btn-login {
+.btn-login,
+.create-button,
+.login-button,
+.btn-question,
+.btn-hero-outline {
   min-height: 48px;
   border-radius: var(--ui-radius-control);
   font-family: inherit;
@@ -173,6 +177,25 @@ a {
   transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
+/* Unified height for all main action buttons */
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-outline,
+.btn-outline-green,
+.btn-full,
+.primary,
+.secondary,
+.primary-action,
+.secondary-action,
+.create-button,
+.login-button,
+.btn-question,
+.btn-hero-outline {
+  height: 52px;
+}
+
+
 a.btn,
 a.btn-primary,
 a.btn-secondary,
@@ -181,7 +204,10 @@ a.btn-outline-green,
 a.btn-full,
 a.primary,
 a.secondary,
-a.btn-login {
+a.btn-login,
+a.create-button,
+a.login-button,
+a.btn-hero-outline {
   display: inline-flex;
   align-items: center;
   justify-content: center;

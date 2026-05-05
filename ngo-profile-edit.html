@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Редактирование профиля НКО</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-profile.css">
+<link rel="stylesheet" href="./css/base.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="ngo-lk.html" id="nav-profile">Профиль</a>
+        <a href="ngo-tasks.html" id="nav-tasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="nav-applications">Отклики</a>
+        <a href="ngo-dashboard.html" id="nav-dashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatar-mini">Н</div>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="badge">Редактирование профиля</div>
+        <h1 class="hero-title">Данные организации</h1>
+        <p class="hero-text">Здесь можно изменить информацию, которую НКО указывала при регистрации. После сохранения кабинет обновится из Supabase.</p>
+      </div>
+      <a class="btn-primary" href="ngo-lk.html" id="back-profile-top">Вернуться в профиль</a>
+    </section>
+
+    <form id="edit-form">
+      <div class="edit-layout">
+        <section class="panel edit-panel">
+          <h2 class="panel-title">Об организации</h2>
+          <div class="edit-form">
+            <div class="field">
+              <label for="shortName">Короткое название</label>
+              <input class="input" id="shortName" type="text" placeholder='НКО "Ромашка"'>
+            </div>
+
+            <div class="edit-grid">
+              <div class="field">
+                <label for="orgType">Тип организации</label>
+                <select class="select" id="orgType">
+                  <option value="">Не указано</option>
+                  <option>Некоммерческая организация</option>
+                  <option>Благотворительный фонд</option>
+                  <option>Образовательный проект</option>
+                  <option>Социальная инициатива</option>
+                  <option>Волонтёрский центр</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="legalForm">Правовая форма</label>
+                <input class="input" id="legalForm" type="text" placeholder="АНО, Фонд, НКО...">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Направления деятельности</label>
+              <div class="autocomplete">
+                <input class="input autocomplete-input" id="activityInput" type="text" placeholder="Выберите или введите направление" autocomplete="off">
+                <button class="autocomplete-toggle" id="activityToggle" type="button" aria-label="Показать все направления"></button>
+                <div class="suggestions" id="activitySuggestions"></div>
+              </div>
+              <div class="selected-skills" id="activityChips"></div>
+              <input id="activity" type="hidden">
+            </div>
+
+            <div class="edit-grid">
+              <div class="field">
+                <label for="country">Страна</label>
+                <select class="select" id="country">
+                  <option value="">Не указано</option>
+                  <option>Россия</option>
+                  <option>Казахстан</option>
+                  <option>Беларусь</option>
+                  <option>Армения</option>
+                  <option>Кыргызстан</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="city">Город</label>
+                <input class="input" id="city" type="text" placeholder="Укажите город">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="description">Краткое описание</label>
+              <textarea class="textarea" id="description" placeholder="Расскажите, чем занимается организация, какие проекты вы реализуете и кому помогаете"></textarea>
+            </div>
+
+            <div class="field">
+              <label for="site">Сайт или страница</label>
+              <input class="input" id="site" type="text" placeholder="Например: сайт организации или страница в соцсети">
+            </div>
+          </div>
+        </section>
+
+        <section class="panel edit-panel">
+          <h2 class="panel-title">Контактное лицо</h2>
+          <div class="edit-form">
+            <div class="edit-grid">
+              <div class="field">
+                <label for="lastName">Фамилия</label>
+                <input class="input" id="lastName" type="text">
+              </div>
+              <div class="field">
+                <label for="firstName">Имя</label>
+                <input class="input" id="firstName" type="text">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="middleName">Отчество</label>
+              <input class="input" id="middleName" type="text">
+            </div>
+
+            <div class="field">
+              <label for="position">Должность</label>
+              <input class="input" id="position" type="text" placeholder="Координатор волонтёров">
+            </div>
+
+            <div class="edit-grid">
+              <div class="field">
+                <label for="phone">Телефон</label>
+                <input class="input" id="phone" type="tel" placeholder="+7 999 123-45-67">
+              </div>
+              <div class="field">
+                <label for="email">Email</label>
+                <input class="input" id="email" type="email" placeholder="example@mail.com">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="preferredMethod">Способ связи</label>
+              <input class="input" id="preferredMethod" type="text" placeholder="Телефон / Email / Telegram">
+            </div>
+
+            <div class="field">
+              <label for="comment">Комментарий</label>
+              <textarea class="textarea" id="comment" placeholder="В какое время удобно отвечать или кто занимается обработкой откликов"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel edit-panel wide">
+          <h2 class="panel-title">Уведомления</h2>
+          <div class="checks">
+            <label class="check-row"><input id="notify-email" type="checkbox"> Получать уведомления об откликах на email</label>
+            <label class="check-row"><input id="notify-phone" type="checkbox"> Дублировать срочные уведомления по телефону</label>
+          </div>
+        </section>
+      </div>
+
+      <div class="edit-actions">
+        <button class="btn-primary" type="submit" id="save-btn">Сохранить</button>
+        <a class="btn-outline-green" href="ngo-lk.html" id="back-profile-bottom">Отмена</a>
+        <span class="save-status" id="save-status"></span>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script src="./js/tag-select.js"></script>
+  <script>
+    const DIRECTION_OPTIONS = [
+      'Экология', 'Животные', 'Помощь пожилым', 'Дети и молодёжь',
+      'Здравоохранение', 'Образование', 'Культура и искусство',
+      'Спорт и ЗОЖ', 'Социальная помощь', 'Люди без жилья', 'Инклюзия',
+      'Кризисные ситуации', 'Правозащита', 'Миграция', 'Сельские территории'
+    ];
+
+    const activitySelect = TagSelect({
+      inputEl:    document.getElementById('activityInput'),
+      toggleEl:   document.getElementById('activityToggle'),
+      dropdownEl: document.getElementById('activitySuggestions'),
+      chipsEl:    document.getElementById('activityChips'),
+      hiddenEl:   document.getElementById('activity'),
+      options:    DIRECTION_OPTIONS
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+    const form = document.getElementById('edit-form');
+    const saveBtn = document.getElementById('save-btn');
+    const saveStatus = document.getElementById('save-status');
+    let currentProfile = null;
+
+    const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+    function setValue(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.value = value || '';
+    }
+
+    async function hydrate() {
+      if (!profileId) {
+        saveStatus.textContent = 'Профиль не выбран.';
+        saveBtn.disabled = true;
+        return;
+      }
+
+      currentProfile = await helperaDb.getNgoProfile(profileId);
+      if (!currentProfile) {
+        saveStatus.textContent = 'Профиль не найден.';
+        saveBtn.disabled = true;
+        return;
+      }
+
+      const about = currentProfile.about || {};
+      const contacts = currentProfile.contacts || {};
+      const notifications = contacts.notifications || {};
+      const title = about.shortName || currentProfile.account?.orgName || 'Н';
+
+      setValue('shortName', about.shortName);
+      setValue('orgType', about.orgType);
+      setValue('legalForm', about.legalForm);
+      activitySelect.setValue(about.activity || '');
+      setValue('country', about.country);
+      setValue('city', about.city);
+      setValue('description', about.description);
+      setValue('site', about.site);
+
+      setValue('lastName', contacts.lastName);
+      setValue('firstName', contacts.firstName);
+      setValue('middleName', contacts.middleName);
+      setValue('position', contacts.position);
+      setValue('phone', contacts.phone);
+      setValue('email', contacts.email);
+      setValue('preferredMethod', contacts.preferredMethod);
+      setValue('comment', contacts.comment);
+
+      document.getElementById('notify-email').checked = Boolean(notifications.email);
+      document.getElementById('notify-phone').checked = Boolean(notifications.phone);
+
+      document.getElementById('avatar-mini').textContent = title.slice(0, 1).toUpperCase();
+
+      document.getElementById('nav-profile').href = withProfileId('ngo-lk.html');
+      document.getElementById('nav-tasks').href = withProfileId('ngo-tasks.html');
+      document.getElementById('nav-applications').href = withProfileId('ngo-applications.html');
+      document.getElementById('nav-dashboard').href = withProfileId('ngo-dashboard.html');
+      document.getElementById('back-profile-top').href = withProfileId('ngo-lk.html');
+      document.getElementById('back-profile-bottom').href = withProfileId('ngo-lk.html');
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!profileId) return;
+      saveBtn.disabled = true;
+      saveStatus.textContent = 'Сохраняем...';
+
+      try {
+        await helperaDb.updateNgoProfile(profileId, {
+          about: {
+            ...(currentProfile?.about || {}),
+            shortName: document.getElementById('shortName').value.trim(),
+            orgType: document.getElementById('orgType').value || null,
+            legalForm: document.getElementById('legalForm').value.trim(),
+            activity: document.getElementById('activity').value,
+            country: document.getElementById('country').value || null,
+            city: document.getElementById('city').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            site: document.getElementById('site').value.trim()
+          },
+          contacts: {
+            ...(currentProfile?.contacts || {}),
+            lastName: document.getElementById('lastName').value.trim(),
+            firstName: document.getElementById('firstName').value.trim(),
+            middleName: document.getElementById('middleName').value.trim(),
+            position: document.getElementById('position').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            preferredMethod: document.getElementById('preferredMethod').value.trim(),
+            comment: document.getElementById('comment').value.trim(),
+            notifications: {
+              ...(currentProfile?.contacts?.notifications || {}),
+              email: document.getElementById('notify-email').checked,
+              phone: document.getElementById('notify-phone').checked
+            }
+          },
+          registrationStep: 'completed'
+        });
+        window.location.href = withProfileId('ngo-lk.html');
+      } catch (error) {
+        console.error(error);
+        saveStatus.textContent = `Не удалось сохранить: ${error?.message || 'проверьте Supabase.'}`;
+        saveBtn.disabled = false;
+      }
+    });
+
+    hydrate().catch((error) => {
+      console.error(error);
+      saveStatus.textContent = 'Не удалось загрузить данные профиля.';
+      saveBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>

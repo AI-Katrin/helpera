@@ -89,33 +89,29 @@
   .nav-actions { display: flex; gap: 16px; align-items: center; }
 
   .btn-outline {
-    padding: 12px 24px;
+    padding: 0 24px;
     border: 1px solid var(--gray-200);
     background: var(--white);
-    border-radius: 6px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    font-size: 16px;
     color: var(--gray-900);
     cursor: pointer;
     text-decoration: none;
-    transition: border-color .2s, background .2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .btn-outline:hover { border-color: var(--green); background: var(--green-light); }
 
   .btn-primary {
-    padding: 12px 24px;
+    padding: 0 24px;
     background: var(--green);
     border: none;
-    border-radius: 6px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    font-size: 16px;
     color: var(--white);
     cursor: pointer;
     text-decoration: none;
-    transition: background .2s, transform .15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .btn-primary:hover { background: #256427; transform: translateY(-1px); }
@@ -156,17 +152,15 @@
   .hero-buttons { display: flex; gap: 16px; flex-wrap: wrap; }
 
   .btn-hero-outline {
-    padding: 14px 28px;
+    padding: 0 28px;
     border: 2px solid var(--green);
     background: var(--white);
-    border-radius: 6px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    font-size: 16px;
     color: var(--green);
     cursor: pointer;
     text-decoration: none;
-    transition: background .2s, color .2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .btn-hero-outline:hover { background: var(--green); color: var(--white); }

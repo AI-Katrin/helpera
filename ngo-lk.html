@@ -84,7 +84,7 @@
           </div>
         </div>
 
-        <a class="btn-outline" href="ngo-about.html" id="edit-profile-link">Редактировать профиль</a>
+        <a class="btn-outline" href="ngo-profile-edit.html" id="edit-profile-link">Редактировать профиль</a>
         <button class="btn-outline logout-profile-btn" type="button" id="logout-profile-btn">Выйти из профиля</button>
       </aside>
 
@@ -169,7 +169,7 @@
       document.getElementById('nav-dashboard').href = withProfileId('ngo-dashboard.html');
       document.getElementById('create-task-link').href = withProfileId('ngo-task-create.html');
       document.getElementById('all-tasks-small-link').href = withProfileId('ngo-tasks.html');
-      document.getElementById('edit-profile-link').href = withProfileId('ngo-about.html');
+      document.getElementById('edit-profile-link').href = withProfileId('ngo-profile-edit.html');
     }
 
     function renderProfile(profile, tasks, applications) {
