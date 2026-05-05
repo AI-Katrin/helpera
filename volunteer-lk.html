@@ -73,6 +73,7 @@
         </div>
 
         <a class="btn-outline" href="volunteer-profile-edit.html" id="edit-profile-link">Редактировать профиль</a>
+        <button class="btn-outline logout-profile-btn" type="button" id="logout-profile-btn">Выйти из профиля</button>
       </aside>
 
       <section class="panel tasks-panel">
@@ -185,6 +186,16 @@
       document.getElementById('all-tasks-small-link').href = withProfileId('volunteer-tasks.html');
     }
 
+    async function logoutProfile() {
+      localStorage.removeItem(helperaDb.localKeys.activeVolunteerProfileId);
+      try {
+        await helperaDb.signOut();
+      } catch (error) {
+        console.warn('Не удалось завершить сессию Supabase Auth', error);
+      }
+      window.location.href = 'index.html';
+    }
+
     function scoreTask(task, profile) {
       const volunteerSkills = (profile.skills?.skills || []).map(normalizeText);
       const volunteerDirections = (profile.skills?.helpDirections || []).map(normalizeText);
@@ -258,6 +269,8 @@
       console.error(error);
       document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Не удалось загрузить профиль или задачи из Supabase.</p>';
     });
+
+    document.getElementById('logout-profile-btn').addEventListener('click', logoutProfile);
   </script>
 </body>
 </html>

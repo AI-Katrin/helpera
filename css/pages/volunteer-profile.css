@@ -221,6 +221,33 @@
     transform: translateX(-50%);
   }
 
+  .org-profile-avatar {
+    background: var(--green-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .org-profile-avatar::before,
+  .org-profile-avatar::after {
+    content: none;
+    display: none;
+  }
+
+  .org-profile-avatar::after {
+    content: "НКО";
+    display: flex;
+    position: static;
+    width: auto;
+    height: auto;
+    border: 0;
+    color: var(--green-dark);
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 800;
+    transform: none;
+  }
+
   .profile-name {
     margin: 0 0 10px;
     font-size: 16px;
@@ -298,6 +325,33 @@
     color: var(--blue-dark);
   }
 
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .summary-box {
+    border: 1px solid var(--gray-200);
+    background: var(--gray-100);
+    border-radius: 18px;
+    padding: 18px 16px;
+  }
+
+  .summary-box .label {
+    margin-bottom: 10px;
+    color: var(--gray-500);
+    font-size: 14px;
+    line-height: 17px;
+  }
+
+  .summary-box .value {
+    color: var(--gray-900);
+    font-size: 36px;
+    line-height: 29px;
+    font-weight: 700;
+  }
+
   .btn-outline {
     width: 100%;
     height: 56px;
@@ -313,6 +367,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .logout-profile-btn {
+    margin-top: 12px;
   }
 
   .tasks-panel {
