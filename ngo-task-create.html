@@ -17,7 +17,7 @@
       <span class="brand-mark"></span>
       <span>Helpera</span>
     </a>
-    <a class="profile-link" href="#">Профиль организации</a>
+    <span class="profile-link">Профиль организации</span>
   </header>
 
   <main class="content">
@@ -65,12 +65,16 @@
           </div>
         </div>
 
-        <div id="aiDraft" class="ai-text">Мы ищем волонтёра, который поможет организовать мероприятие. Нужно подготовить материалы, помочь с координацией и взаимодействием с участниками. Ожидаемая занятость — 3–4 часа.</div>
+        <textarea id="aiPrompt" class="textarea ai-prompt" placeholder="Например: сделай описание короче, добавь больше тепла или подчеркни пользу для волонтёра"></textarea>
+        <div id="aiDraft" class="ai-text">
+          <span id="aiDraftContent">Мы ищем волонтёра, который поможет организовать мероприятие. Нужно подготовить материалы, помочь с координацией и взаимодействием с участниками. Ожидаемая занятость — 3–4 часа.</span>
+          <button type="button" id="applyAi" class="ai-apply-inline">Применить</button>
+        </div>
+        <p id="aiStatus" class="ai-status" aria-live="polite"></p>
 
         <div class="ai-actions">
-          <button type="button" id="applyAi" class="small-btn primary">Применить</button>
+          <button type="button" id="transformDraftAi" class="small-btn primary">Преобразовать</button>
           <button type="button" id="regenAi" class="small-btn">Сгенерировать ещё</button>
-          <a href="#" id="clearAi" class="small-link">Очистить</a>
         </div>
       </section>
     </div>
@@ -125,6 +129,17 @@
         </div>
 
         <div class="field">
+          <label class="label" for="directionsInput">Направление деятельности <span class="req">*</span></label>
+          <div class="autocomplete">
+            <input id="directionsInput" class="input title-input autocomplete-input" type="text" placeholder="Начните вводить направление" autocomplete="off">
+            <button class="autocomplete-toggle" id="directionsToggle" type="button" aria-label="Показать все направления"></button>
+            <div class="suggestions" id="directionsSuggestions"></div>
+          </div>
+          <div class="selected-skills" id="selectedDirections"></div>
+          <input id="directions" type="hidden" required>
+        </div>
+
+        <div class="field">
           <div class="label">Период выполнения <span class="req">*</span></div>
           <div class="row">
             <input id="dateStart" class="input title-input" type="date" required>
@@ -169,6 +184,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./js/supabase-config.js"></script>
 <script src="./js/app-db.js"></script>
+<script src="./js/tag-select.js"></script>
 <script>
   const nativeAlert = window.alert.bind(window);
   window.alert = (message, ...args) => {
@@ -199,36 +215,148 @@
   const taskFileList = document.getElementById('taskFileList');
   let uploadedFiles = [];
   const skillOptions = [
-    'Аналитика',
-    'SMM',
-    'Дизайн',
-    'Копирайтинг',
-    'Организация мероприятий',
-    'Работа с детьми',
-    'Наставничество',
-    'Переводы',
-    'Фото и видео',
-    'Работа с документами',
-    'Коммуникация',
-    'Фандрайзинг',
-    'PR',
-    'Исследования',
-    'Координация волонтёров'
+    'Аналитика', 'SMM', 'Дизайн', 'Копирайтинг',
+    'Организация мероприятий', 'Работа с детьми', 'Наставничество',
+    'Переводы', 'Фото и видео', 'Работа с документами',
+    'Коммуникация', 'Фандрайзинг', 'PR', 'Исследования',
+    'Координация волонтёров', 'IT', 'Программирование',
+    'Юридические услуги', 'Педагогика', 'Медицина', 'Психология'
   ];
   const selectedSkillValues = new Set();
 
+  const DIRECTION_OPTIONS = [
+    'Экология', 'Животные', 'Помощь пожилым', 'Дети и молодёжь',
+    'Здравоохранение', 'Образование', 'Культура и искусство',
+    'Спорт и ЗОЖ', 'Социальная помощь', 'Люди без жилья', 'Инклюзия',
+    'Кризисные ситуации', 'Правозащита', 'Миграция', 'Сельские территории'
+  ];
+
+  const directionsSelect = TagSelect({
+    inputEl:    document.getElementById('directionsInput'),
+    toggleEl:   document.getElementById('directionsToggle'),
+    dropdownEl: document.getElementById('directionsSuggestions'),
+    chipsEl:    document.getElementById('selectedDirections'),
+    hiddenEl:   document.getElementById('directions'),
+    options:    DIRECTION_OPTIONS
+  });
+
   const aiDraft = document.getElementById('aiDraft');
+  const aiDraftContent = document.getElementById('aiDraftContent');
+  const transformDraftAi = document.getElementById('transformDraftAi');
   const applyAi = document.getElementById('applyAi');
   const regenAi = document.getElementById('regenAi');
-  const clearAi = document.getElementById('clearAi');
   const transformAi = document.getElementById('transformAi');
+  const aiStatus = document.getElementById('aiStatus');
+  const aiPrompt = document.getElementById('aiPrompt');
 
   const aiVariants = [
     'Мы ищем волонтёра, который поможет организовать мероприятие. Нужно подготовить материалы, помочь с координацией и взаимодействием с участниками. Ожидаемая занятость — 3–4 часа.',
     'Нужен волонтёр для сопровождения небольшого мероприятия: подготовить раздаточные материалы, помочь на площадке и поддержать коммуникацию с участниками. Задача подойдёт тем, кто любит организацию и умеет быстро включаться в процесс.',
     'Ищем помощника для проведения события. Нужно проверить готовность материалов, помочь с навигацией участников и поддержать команду в день мероприятия. Важно внимание к деталям и готовность быть на связи.'
   ];
+  const aiGenerationProfiles = [
+    { temperature: 0.3, maxOutputTokens: 500, style: 'Сделай формулировку спокойной, ясной и структурной.' },
+    { temperature: 0.5, maxOutputTokens: 550, style: 'Сделай вариант более тёплым и мотивирующим, но без лишнего пафоса.' },
+    { temperature: 0.7, maxOutputTokens: 650, style: 'Предложи более живой и подробный вариант с конкретными ожидаемыми действиями.' },
+    { temperature: 0.4, maxOutputTokens: 420, style: 'Сделай вариант короче, плотнее и проще для быстрого чтения.' }
+  ];
   let aiIndex = 0;
+  let aiGenerationIndex = 0;
+  let aiBusy = false;
+
+  function setAiBusy(isBusy, message = '') {
+    aiBusy = isBusy;
+    transformDraftAi.disabled = isBusy;
+    applyAi.disabled = isBusy || !aiDraftContent.textContent.trim();
+    regenAi.disabled = isBusy;
+    transformAi.classList.toggle('disabled', isBusy);
+    transformAi.setAttribute('aria-disabled', String(isBusy));
+    aiStatus.textContent = message;
+  }
+
+  function setAiDraftText(text) {
+    aiDraftContent.textContent = text;
+    applyAi.disabled = aiBusy || !aiDraftContent.textContent.trim();
+  }
+
+  function applyAiDraftToDescription() {
+    const text = aiDraftContent.textContent.trim();
+    if (!text) {
+      aiStatus.textContent = 'Сначала сгенерируйте текст в AI-помощнике.';
+      applyAi.disabled = true;
+      return;
+    }
+    descInput.value = text;
+    descInput.dispatchEvent(new Event('input', { bubbles: true }));
+    descInput.dispatchEvent(new Event('change', { bubbles: true }));
+    validate();
+    saveDraft();
+    aiStatus.textContent = 'Текст применён в описание задачи';
+  }
+
+  async function generateAiDraft(profile = aiGenerationProfiles[0]) {
+    const generated = await requestAi('transform', profile);
+    if (generated) {
+      setAiDraftText(generated);
+      aiStatus.textContent = 'Готов новый вариант. Можно применить его в описание задачи.';
+      return true;
+    }
+    return false;
+  }
+
+  function nextAiGenerationProfile() {
+    const profile = aiGenerationProfiles[aiGenerationIndex % aiGenerationProfiles.length];
+    aiGenerationIndex += 1;
+    return profile;
+  }
+
+  function aiPayload(action, profile = aiGenerationProfiles[0]) {
+    return {
+      action,
+      prompt: aiPrompt.value.trim(),
+      options: {
+        temperature: profile.temperature,
+        maxOutputTokens: profile.maxOutputTokens,
+        style: profile.style
+      },
+      task: {
+        title: titleInput.value.trim(),
+        description: descInput.value.trim(),
+        format: formatInput.value.trim(),
+        skills: skillsHiddenInput.value.trim(),
+        directions: document.getElementById('directions').value.trim(),
+        dateStart: dateStart.value,
+        dateEnd: dateEnd.value,
+        comment: document.getElementById('comment').value.trim()
+      }
+    };
+  }
+
+  async function requestAi(action, profile = aiGenerationProfiles[0]) {
+    if (aiBusy) return null;
+    const hasDescription = descInput.value.trim().length > 0;
+    const hasPrompt = aiPrompt.value.trim().length > 0;
+    setAiBusy(true, action === 'transform' || hasDescription || hasPrompt ? 'AI улучшает описание с учётом заполненных полей и требований...' : 'AI готовит вариант задачи...');
+    try {
+      const response = await fetch('/api/ai/task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(aiPayload(action, profile))
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.text) {
+        throw new Error(data.error || 'AI сейчас недоступен');
+      }
+      aiStatus.textContent = 'Готово';
+      return data.text.trim();
+    } catch (error) {
+      console.error(error);
+      aiStatus.textContent = `${error.message}. Проверьте запуск через python3 server.py и переменные Yandex AI.`;
+      return null;
+    } finally {
+      setAiBusy(false, aiStatus.textContent);
+    }
+  }
 
   async function updateProfile(mutator) {
     if (!profileId) return null;
@@ -386,6 +514,7 @@
     const titleOk = titleInput.value.trim().length >= 5;
     const descOk = descInput.value.trim().length >= 20;
     const skillsOk = skillsHiddenInput.value.trim().length >= 3;
+    const directionsOk = document.getElementById('directions').value.trim().length >= 3;
     const formatOk = formatInput.value.trim().length > 0;
     const startOk = dateStart.value !== '';
     const endOk = dateEnd.value !== '';
@@ -393,7 +522,7 @@
     if (startOk && endOk){
       periodOk = new Date(dateEnd.value) >= new Date(dateStart.value);
     }
-    return titleOk && descOk && skillsOk && formatOk && periodOk && taskAgreement.checked;
+    return titleOk && descOk && skillsOk && directionsOk && formatOk && periodOk && taskAgreement.checked;
   }
 
   function validate(){
@@ -448,6 +577,7 @@
       description: descInput.value.trim(),
       format: formatInput.value.trim(),
       skills: skillsHiddenInput.value.trim(),
+      directions: document.getElementById('directions').value.trim(),
       dateStart: dateStart.value,
       dateEnd: dateEnd.value,
       comment: document.getElementById('comment').value.trim(),
@@ -480,6 +610,7 @@
     titleInput.value = firstTask.title || '';
     descInput.value = firstTask.description || '';
     setSkillsFromString(firstTask.skills || '');
+    directionsSelect.setValue(firstTask.directions || '');
     dateStart.value = firstTask.dateStart || '';
     dateEnd.value = firstTask.dateEnd || '';
     document.getElementById('comment').value = firstTask.comment || '';
@@ -516,29 +647,45 @@
   });
   taskDropzone.addEventListener('drop', (event) => addFiles(event.dataTransfer.files));
 
-  applyAi.addEventListener('click', () => {
-    descInput.value = aiDraft.textContent.trim();
-    validate();
+  transformDraftAi.addEventListener('click', () => {
+    generateAiDraft(aiGenerationProfiles[0]);
   });
 
-  regenAi.addEventListener('click', () => {
+  regenAi.addEventListener('click', async () => {
+    const generated = await requestAi('transform', nextAiGenerationProfile());
+    if (generated) {
+      setAiDraftText(generated);
+      aiStatus.textContent = 'Готов альтернативный вариант. Можно применить его в описание задачи.';
+      return;
+    }
     aiIndex = (aiIndex + 1) % aiVariants.length;
-    aiDraft.textContent = aiVariants[aiIndex];
+    setAiDraftText(aiVariants[aiIndex]);
   });
 
-  clearAi.addEventListener('click', (e) => {
-    e.preventDefault();
-    aiDraft.textContent = '';
+  applyAi.addEventListener('click', () => {
+    applyAiDraftToDescription();
   });
 
-  transformAi.addEventListener('click', (e) => {
+  transformAi.addEventListener('click', async (e) => {
     e.preventDefault();
+    if (aiBusy) return;
+    const transformed = await requestAi('transform', aiGenerationProfiles[0]);
+    if (transformed) {
+      descInput.value = transformed;
+      setAiDraftText(transformed);
+      validate();
+      saveDraft();
+      return;
+    }
     if (!descInput.value.trim()) {
-      descInput.value = aiDraft.textContent.trim();
+      descInput.value = aiDraftContent.textContent.trim();
     } else {
       descInput.value = descInput.value.trim() + ' Также важно, чтобы волонтёр понимал цель задачи и ожидаемый результат.';
     }
+    descInput.dispatchEvent(new Event('input', { bubbles: true }));
+    descInput.dispatchEvent(new Event('change', { bubbles: true }));
     validate();
+    saveDraft();
   });
 
   form.addEventListener('submit', async (e) => {
