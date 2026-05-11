@@ -139,6 +139,26 @@
     const profileId = params.get('profileId') || localStorage.getItem(isNgoView ? helperaDb.localKeys.activeNgoProfileId : helperaDb.localKeys.activeVolunteerProfileId);
     let activeTask = null;
     let activeProfile = null;
+    let viewStartTime = null;
+
+    function logTaskViewed() {
+      if (!taskId || !viewStartTime || isNgoView) return;
+      const timeMs = Math.round(performance.now() - viewStartTime);
+      const scrolled = document.documentElement.scrollTop + window.innerHeight;
+      const total = document.documentElement.scrollHeight;
+      const scrollPct = total > 0 ? Math.round((scrolled / total) * 100) : 0;
+      helperaDb.logEvent({
+        eventType: 'task_details_viewed',
+        actorRole: 'volunteer',
+        actorProfileId: profileId,
+        taskId,
+        payload: { time_spent_ms: timeMs, scroll_depth_pct: Math.min(scrollPct, 100) }
+      }).catch(() => {});
+      viewStartTime = null;
+    }
+
+    document.addEventListener('visibilitychange', () => { if (document.hidden) logTaskViewed(); });
+    window.addEventListener('pagehide', logTaskViewed);
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
       '&': '&amp;',
@@ -292,6 +312,14 @@
 
     function goApply() {
       if (!activeTask?.id) return;
+      helperaDb.logEvent({
+        eventType: 'task_apply_started',
+        actorRole: 'volunteer',
+        actorProfileId: profileId,
+        taskId: activeTask.id,
+        payload: { source: 'task-details.html' }
+      }).catch(() => {});
+      logTaskViewed();
       window.location.href = withParams(`task-apply.html?taskId=${encodeURIComponent(activeTask.id)}`);
     }
 
@@ -340,6 +368,7 @@
 
       renderTask(task);
       renderSimilar(await helperaDb.listTasks());
+      if (!isNgoView) viewStartTime = performance.now();
     }
 
     init().catch((error) => {

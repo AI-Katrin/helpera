@@ -8,6 +8,9 @@ loadEnvFile('.env.local');
 loadEnvFile('.env');
 
 const PORT = Number(process.env.PORT || 3000);
+const YANDEX_API_KEY = process.env.YANDEX_CLOUD_API_KEY || '';
+const YANDEX_FOLDER = process.env.YANDEX_CLOUD_FOLDER || '';
+const YANDEX_MODEL = resolveYandexModel(YANDEX_FOLDER);
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -132,11 +135,7 @@ function clampNumber(value, fallback, min, max) {
 }
 
 async function handleAiTask(req, res) {
-  const apiKey = process.env.YANDEX_CLOUD_API_KEY;
-  const folder = process.env.YANDEX_CLOUD_FOLDER;
-  const model = resolveYandexModel(folder);
-
-  if (!apiKey || !folder) {
+  if (!YANDEX_API_KEY || !YANDEX_FOLDER) {
     sendJson(res, 500, { error: 'Не заданы YANDEX_CLOUD_API_KEY и YANDEX_CLOUD_FOLDER в .env.local' });
     return;
   }
@@ -154,11 +153,11 @@ async function handleAiTask(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        'OpenAI-Project': folder
+        Authorization: `Bearer ${YANDEX_API_KEY}`,
+        'OpenAI-Project': YANDEX_FOLDER
       },
       body: JSON.stringify({
-        model,
+        model: YANDEX_MODEL,
         temperature,
         instructions: 'Ты помогаешь НКО формулировать задачи для волонтёров. Отвечай только готовым текстом для поля описания.',
         input: prompt,
@@ -220,7 +219,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Helpera is running at http://localhost:${PORT}`);
-  console.log(`YANDEX_CLOUD_FOLDER: ${process.env.YANDEX_CLOUD_FOLDER ? 'set' : 'missing'}`);
-  console.log(`YANDEX_CLOUD_API_KEY: ${process.env.YANDEX_CLOUD_API_KEY ? 'set' : 'missing'}`);
-  console.log(`YANDEX_CLOUD_MODEL: ${process.env.YANDEX_CLOUD_MODEL || 'yandexgpt-lite/latest'}`);
+  console.log(`YANDEX_CLOUD_FOLDER: ${YANDEX_FOLDER ? 'set' : 'missing'}`);
+  console.log(`YANDEX_CLOUD_API_KEY: ${YANDEX_API_KEY ? 'set' : 'missing'}`);
+  console.log(`YANDEX_CLOUD_MODEL: ${YANDEX_MODEL}`);
 });

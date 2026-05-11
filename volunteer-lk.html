@@ -221,7 +221,7 @@
       const skills = splitSkills(task.skills || task.payload?.skills).slice(0, 3);
       const score = scoreTask(task, profile);
       return `
-        <article class="task-card">
+        <article class="task-card" data-task-id="${task.id}">
           <div>
             <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
             <p class="task-sub">${escapeHtml(orgName)} • ${escapeHtml(task.ngo_profiles?.about?.city || 'Город не указан')} • ${escapeHtml(task.format || task.payload?.format || 'Формат не указан')}</p>
@@ -263,7 +263,34 @@
       document.getElementById('tasks-list').innerHTML = topTasks.length
         ? topTasks.map((task) => renderTask(task, profile)).join('')
         : '<p class="empty-state">В базе пока нет опубликованных задач.</p>';
+
+      topTasks.forEach((task, rank) => {
+        helperaDb.logEvent({
+          eventType: 'task_shown',
+          actorRole: 'volunteer',
+          actorProfileId: profileId,
+          taskId: task.id,
+          payload: { source: 'volunteer-lk.html', rank }
+        }).catch(() => {});
+      });
     }
+
+    document.getElementById('tasks-list').addEventListener('click', (event) => {
+      const link = event.target.closest('a.task-link');
+      if (!link) return;
+      const card = link.closest('[data-task-id]');
+      if (!card?.dataset.taskId) return;
+      helperaDb.logEvent({
+        eventType: 'task_card_clicked',
+        actorRole: 'volunteer',
+        actorProfileId: profileId,
+        taskId: card.dataset.taskId,
+        payload: {
+          source: 'volunteer-lk.html',
+          action: link.classList.contains('green') ? 'apply' : 'details'
+        }
+      }).catch(() => {});
+    });
 
     initProfilePage().catch((error) => {
       console.error(error);

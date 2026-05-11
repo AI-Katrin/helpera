@@ -302,6 +302,13 @@
   });
 
   document.getElementById('backBtn').addEventListener('click', () => {
+    helperaDb.logEvent({
+      eventType: 'task_apply_cancelled',
+      actorRole: 'volunteer',
+      actorProfileId: volunteerProfileId,
+      taskId,
+      payload: { source: 'task-apply.html' }
+    }).catch(() => {});
     window.location.href = taskId ? withProfileId(`task-details.html?taskId=${encodeURIComponent(taskId)}`) : withProfileId('volunteer-tasks.html');
   });
 

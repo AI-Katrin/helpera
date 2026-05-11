@@ -61,7 +61,7 @@
     document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
     document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
     document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
-    document.getElementById('createTaskBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-task-create.html'));
+    document.getElementById('createTaskBtn').addEventListener('click', () => window.location.href = withProfileId('new-task.html'));
 
     if (!profileId) {
       document.getElementById('tasksSubtitle').textContent = 'Профиль НКО не выбран.';

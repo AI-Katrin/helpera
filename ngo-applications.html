@@ -181,6 +181,17 @@
       taskId: application?.task_id,
       payload: { status }
     });
+    const specificType = status === 'invite' ? 'application_accepted' : status === 'rejected' ? 'application_rejected' : null;
+    if (specificType) {
+      await helperaDb.logEvent({
+        eventType: specificType,
+        actorRole: 'ngo',
+        actorProfileId: ngoProfileId,
+        applicationId: id,
+        taskId: application?.task_id,
+        payload: { status }
+      });
+    }
     await loadApplications();
   }
 

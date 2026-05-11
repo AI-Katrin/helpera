@@ -32,6 +32,8 @@ load_env_file(".env.local")
 load_env_file(".env")
 
 PORT = int(os.environ.get("PORT", "3000"))
+YANDEX_API_KEY = os.environ.get("YANDEX_CLOUD_API_KEY") or ""
+YANDEX_FOLDER = os.environ.get("YANDEX_CLOUD_FOLDER") or ""
 
 
 def json_response(handler, status_code, body):
@@ -103,6 +105,9 @@ def resolve_yandex_model(folder):
     return f"gpt://{folder}/{model}"
 
 
+YANDEX_MODEL = resolve_yandex_model(YANDEX_FOLDER)
+
+
 def clamp_number(value, default, min_value, max_value):
     try:
         number = float(value)
@@ -112,19 +117,16 @@ def clamp_number(value, default, min_value, max_value):
 
 
 def call_yandex_ai(action, task, user_prompt="", options=None):
-    api_key = os.environ.get("YANDEX_CLOUD_API_KEY")
-    folder = os.environ.get("YANDEX_CLOUD_FOLDER")
-    model = resolve_yandex_model(folder)
+    if not YANDEX_API_KEY or not YANDEX_FOLDER:
+        return 500, {"error": "Не заданы YANDEX_CLOUD_API_KEY и YANDEX_CLOUD_FOLDER в .env.local"}
+
     options = options or {}
     temperature = clamp_number(options.get("temperature"), 0.3, 0.0, 1.0)
     max_output_tokens = int(clamp_number(options.get("maxOutputTokens"), 500, 150, 900))
     style = str(options.get("style") or "")[:300]
 
-    if not api_key or not folder:
-        return 500, {"error": "Не заданы YANDEX_CLOUD_API_KEY и YANDEX_CLOUD_FOLDER в .env.local"}
-
     payload = {
-        "model": model,
+        "model": YANDEX_MODEL,
         "temperature": temperature,
         "instructions": "Ты помогаешь НКО формулировать задачи для волонтёров. Отвечай только готовым текстом для поля описания.",
         "input": task_prompt(action, task, str(user_prompt or "")[:500], style),
@@ -135,8 +137,8 @@ def call_yandex_ai(action, task, user_prompt="", options=None):
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-            "OpenAI-Project": folder,
+            "Authorization": f"Bearer {YANDEX_API_KEY}",
+            "OpenAI-Project": YANDEX_FOLDER,
         },
         method="POST",
     )
@@ -193,7 +195,7 @@ class HelperaHandler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     server = ThreadingHTTPServer(("localhost", PORT), HelperaHandler)
     print(f"Helpera is running at http://localhost:{PORT}")
-    print(f"YANDEX_CLOUD_FOLDER: {'set' if os.environ.get('YANDEX_CLOUD_FOLDER') else 'missing'}")
-    print(f"YANDEX_CLOUD_API_KEY: {'set' if os.environ.get('YANDEX_CLOUD_API_KEY') else 'missing'}")
-    print(f"YANDEX_CLOUD_MODEL: {os.environ.get('YANDEX_CLOUD_MODEL') or 'yandexgpt-lite/latest'}")
+    print(f"YANDEX_CLOUD_FOLDER: {'set' if YANDEX_FOLDER else 'missing'}")
+    print(f"YANDEX_CLOUD_API_KEY: {'set' if YANDEX_API_KEY else 'missing'}")
+    print(f"YANDEX_CLOUD_MODEL: {YANDEX_MODEL}")
     server.serve_forever()

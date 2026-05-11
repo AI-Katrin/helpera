@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Создать задачу</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-new-task.css">
+<link rel="stylesheet" href="./css/base.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark"></span><span>Helpera</span></a>
+      <nav class="nav">
+        <a href="ngo-lk.html" id="navProfile">Профиль</a>
+        <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="navApplications">Отклики</a>
+        <a href="ngo-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">Н</div>
+      </nav>
+    </header>
+
+    <div class="breadcrumb">Мои задачи / Создать задачу</div>
+
+    <div class="layout">
+      <aside class="panel sidebar">
+        <div class="badge">Создать задачу</div>
+        <h1 class="sidebar-title">Новая задача для волонтёров</h1>
+        <p class="sidebar-text">Заполните информацию о задаче — чем точнее описание, тем лучше совпадение с подходящими кандидатами.</p>
+
+        <div class="info-card">
+          <div class="info-row">
+            <div class="info-icon check"></div>
+            <div>
+              <p class="info-title">Чем подробнее — тем лучше</p>
+              <div class="bullet-text">
+                <p>• укажите конкретный результат</p>
+                <p>• опишите нужные навыки</p>
+                <p>• задайте реальные сроки</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-row">
+            <div class="info-icon plus"></div>
+            <div>
+              <p class="info-title">AI-помощник поможет</p>
+              <div class="bullet-text">
+                <p>Нажмите «Улучшить с AI» в поле описания, чтобы получить готовый вариант текста.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card highlight">
+          <p class="info-title">После публикации</p>
+          <div class="subtext">
+            <p>• задача появится в ленте волонтёров</p>
+            <p>• система предложит её подходящим кандидатам</p>
+            <p>• отклики придут в раздел «Отклики»</p>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel form-panel">
+        <h2 class="form-title">Заполните информацию о задаче</h2>
+        <p class="form-subtitle">Поля со звёздочкой обязательны для публикации</p>
+
+        <div class="field">
+          <label class="label" for="taskTitle">Название задачи <span class="req">*</span></label>
+          <input id="taskTitle" class="input" type="text" placeholder="Например: помощь в организации мероприятия" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label class="label" for="taskDesc">Описание задачи <span class="req">*</span></label>
+          <div class="ai-wrap">
+            <textarea id="taskDesc" class="form-textarea" style="min-height:110px;padding-bottom:36px" placeholder="Опишите, что именно нужно сделать, какой ожидается результат и чем будет полезен волонтёр"></textarea>
+            <a href="#" class="ai-link" id="aiToggleLink">✧ Улучшить с AI</a>
+          </div>
+          <div class="ai-box" id="aiBox" style="display:none">
+            <div class="ai-header" id="aiHeader">
+              <div class="ai-icon">AI</div>
+              <p class="ai-title">AI-помощник</p>
+            </div>
+            <div class="ai-body" id="aiBody">
+              <textarea id="aiPrompt" class="ai-prompt-box" placeholder="Например: сделай текст короче, добавь тепла или подчеркни пользу для волонтёра"></textarea>
+              <div class="ai-draft" id="aiDraft"><span id="aiDraftText">Нажмите «Сгенерировать», чтобы получить вариант описания задачи.</span><button type="button" class="ai-apply" id="aiApply" disabled>Применить</button></div>
+              <p class="ai-status" id="aiStatus" aria-live="polite"></p>
+              <div class="ai-actions">
+                <button type="button" class="small-btn primary" id="aiGenerate">Сгенерировать</button>
+                <button type="button" class="small-btn" id="aiRegen">Ещё вариант</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label">Формат участия <span class="req">*</span></div>
+          <div class="chip-row" id="formatChips">
+            <button type="button" class="format-chip active" data-format="Онлайн">Онлайн</button>
+            <button type="button" class="format-chip" data-format="Оффлайн">Оффлайн</button>
+            <button type="button" class="format-chip" data-format="Смешанный">Смешанный</button>
+          </div>
+          <input type="hidden" id="taskFormat" value="Онлайн">
+        </div>
+
+        <div class="field" id="cityField" style="display:none">
+          <label class="label" for="taskCity">Город <span class="req">*</span></label>
+          <input id="taskCity" class="input" type="text" placeholder="Москва" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label class="label" for="skillsInput">Нужные навыки <span class="req">*</span></label>
+          <div class="autocomplete" id="skillsAutocomplete">
+            <input id="skillsInput" class="input autocomplete-input" type="text" placeholder="Начните вводить навык" autocomplete="off">
+            <button class="autocomplete-toggle" id="skillsToggle" type="button" aria-label="Показать все навыки"></button>
+            <div class="suggestions" id="skillsSuggestions"></div>
+          </div>
+          <div class="selected-tags" id="selectedSkills"></div>
+          <input id="skillsHidden" type="hidden">
+        </div>
+
+        <div class="field">
+          <label class="label" for="directionsInput">Направление деятельности <span class="req">*</span></label>
+          <div class="autocomplete" id="directionsAutocomplete">
+            <input id="directionsInput" class="input autocomplete-input" type="text" placeholder="Начните вводить направление" autocomplete="off">
+            <button class="autocomplete-toggle" id="directionsToggle" type="button" aria-label="Показать все направления"></button>
+            <div class="suggestions" id="directionsSuggestions"></div>
+          </div>
+          <div class="selected-tags" id="selectedDirections"></div>
+          <input id="directionsHidden" type="hidden">
+        </div>
+
+        <div class="field">
+          <div class="label">Период выполнения <span class="req">*</span></div>
+          <div class="date-row">
+            <input id="dateStart" class="input" type="date">
+            <input id="dateEnd" class="input" type="date">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="taskComment">Комментарий для волонтёров <span class="optional">(необязательно)</span></label>
+          <textarea id="taskComment" class="form-textarea" placeholder="Например: сколько часов займёт задача или почему участие особенно важно"></textarea>
+        </div>
+
+        <div class="field">
+          <label class="label">Файл к задаче <span class="optional">(необязательно)</span></label>
+          <input id="fileInput" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple hidden>
+          <div class="dropzone" id="dropzone">
+            <div class="drop-icon"></div>
+            <div>
+              <p class="drop-title">Перетащите файл или загрузите с устройства</p>
+              <p class="drop-text">Бриф, макет или материалы для волонтёра (PDF, JPG, PNG)</p>
+            </div>
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </div>
+
+        <div class="field">
+          <label class="agreement" id="agreementRow">
+            <input type="checkbox" id="taskAgreement">
+            <span class="check-box"></span>
+            <span>Подтверждаю, что задача соответствует правилам платформы и все указанные данные корректны</span>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" id="publishBtn" type="button" disabled>Опубликовать задачу</button>
+          <button class="btn-secondary" id="cancelBtn" type="button">Отмена</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script src="./js/tag-select.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const ngoProfileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  const withProfileId = (path) => ngoProfileId
+    ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(ngoProfileId)}`
+    : path;
+
+  const SKILL_OPTIONS = [
+    'Аналитика', 'SMM', 'Дизайн', 'Копирайтинг',
+    'Организация мероприятий', 'Работа с детьми', 'Наставничество',
+    'Переводы', 'Фото и видео', 'Работа с документами',
+    'Коммуникация', 'Фандрайзинг', 'PR', 'Исследования',
+    'Координация волонтёров', 'IT', 'Программирование',
+    'Юридические услуги', 'Педагогика', 'Медицина', 'Психология'
+  ];
+
+  const DIRECTION_OPTIONS = [
+    'Экология', 'Животные', 'Помощь пожилым', 'Дети и молодёжь',
+    'Здравоохранение', 'Образование', 'Культура и искусство',
+    'Спорт и ЗОЖ', 'Социальная помощь', 'Люди без жилья', 'Инклюзия',
+    'Кризисные ситуации', 'Правозащита', 'Миграция', 'Сельские территории'
+  ];
+
+  const skillsHidden = document.getElementById('skillsHidden');
+  const directionsHidden = document.getElementById('directionsHidden');
+
+  TagSelect({
+    inputEl:    document.getElementById('skillsInput'),
+    toggleEl:   document.getElementById('skillsToggle'),
+    dropdownEl: document.getElementById('skillsSuggestions'),
+    chipsEl:    document.getElementById('selectedSkills'),
+    hiddenEl:   skillsHidden,
+    options:    SKILL_OPTIONS
+  });
+
+  TagSelect({
+    inputEl:    document.getElementById('directionsInput'),
+    toggleEl:   document.getElementById('directionsToggle'),
+    dropdownEl: document.getElementById('directionsSuggestions'),
+    chipsEl:    document.getElementById('selectedDirections'),
+    hiddenEl:   directionsHidden,
+    options:    DIRECTION_OPTIONS
+  });
+
+  // Nav links
+  document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
+  document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
+  document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
+  document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
+  document.getElementById('cancelBtn').addEventListener('click', () => {
+    window.location.href = withProfileId('ngo-tasks.html');
+  });
+
+  // Format chips
+  const formatInput = document.getElementById('taskFormat');
+  const cityField = document.getElementById('cityField');
+  document.querySelectorAll('.format-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.format-chip').forEach((item) => item.classList.remove('active'));
+      chip.classList.add('active');
+      formatInput.value = chip.dataset.format;
+      const isOffline = chip.dataset.format === 'Оффлайн' || chip.dataset.format === 'Смешанный';
+      cityField.style.display = isOffline ? 'block' : 'none';
+      validate();
+    });
+  });
+
+  // Agreement
+  const agreementRow = document.getElementById('agreementRow');
+  const agreementChk = document.getElementById('taskAgreement');
+  agreementChk.addEventListener('change', () => {
+    agreementRow.classList.toggle('checked', agreementChk.checked);
+    validate();
+  });
+
+  // Validation
+  const publishBtn = document.getElementById('publishBtn');
+  function validate() {
+    const title = document.getElementById('taskTitle').value.trim();
+    const desc  = document.getElementById('taskDesc').value.trim();
+    const format = formatInput.value;
+    const isOffline = format === 'Оффлайн' || format === 'Смешанный';
+    const city = isOffline ? document.getElementById('taskCity').value.trim() : 'ok';
+    const skills = skillsHidden.value.trim();
+    const directions = directionsHidden.value.trim();
+    const dateStart = document.getElementById('dateStart').value;
+    const dateEnd   = document.getElementById('dateEnd').value;
+    const agreed    = agreementChk.checked;
+    publishBtn.disabled = !(title && desc.length >= 30 && format && city && skills && directions && dateStart && dateEnd && agreed);
+  }
+
+  ['taskTitle', 'taskDesc', 'taskCity'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', validate);
+  });
+  ['dateStart', 'dateEnd'].forEach((id) => {
+    document.getElementById(id).addEventListener('change', validate);
+  });
+  skillsHidden.addEventListener('change', validate);
+  directionsHidden.addEventListener('change', validate);
+
+  // File upload
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileList  = document.getElementById('fileList');
+  const uploadedFiles = [];
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    addFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+  function addFiles(files) {
+    Array.from(files).forEach((file) => {
+      const ext  = file.name.split('.').pop().toUpperCase();
+      const size = (file.size / 1024 / 1024).toFixed(1);
+      uploadedFiles.push({ fileName: file.name, fileType: file.type, fileSize: file.size });
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.innerHTML = `
+        <div class="file-icon-sm"></div>
+        <div><p class="file-name">${file.name}</p><p class="file-meta">${ext} • ${size} MB</p></div>
+        <button class="file-remove" type="button" aria-label="Удалить">×</button>
+      `;
+      card.querySelector('.file-remove').addEventListener('click', () => card.remove());
+      fileList.appendChild(card);
+    });
+  }
+
+  // AI assistant
+  const aiBox        = document.getElementById('aiBox');
+  const aiToggleLink = document.getElementById('aiToggleLink');
+  const aiPrompt     = document.getElementById('aiPrompt');
+  const aiDraftText  = document.getElementById('aiDraftText');
+  const aiApply      = document.getElementById('aiApply');
+  const aiStatus     = document.getElementById('aiStatus');
+  const aiGenerate   = document.getElementById('aiGenerate');
+  const aiRegen      = document.getElementById('aiRegen');
+  const taskDesc     = document.getElementById('taskDesc');
+  let aiBusy = false;
+
+  aiToggleLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    aiBox.style.display = aiBox.style.display === 'none' ? 'block' : 'none';
+  });
+
+  aiApply.addEventListener('click', () => {
+    const text = aiDraftText.textContent.trim();
+    if (!text || text.startsWith('Нажмите')) return;
+    taskDesc.value = text;
+    taskDesc.dispatchEvent(new Event('input', { bubbles: true }));
+    validate();
+    aiStatus.textContent = 'Текст применён в описание задачи';
+  });
+
+  async function callAi(style) {
+    if (aiBusy) return;
+    aiBusy = true;
+    aiGenerate.disabled = true;
+    aiRegen.disabled = true;
+    aiApply.disabled = true;
+    aiStatus.textContent = 'Генерируем текст...';
+
+    const title = document.getElementById('taskTitle').value.trim();
+    const currentDesc = taskDesc.value.trim();
+    const userHint = aiPrompt.value.trim();
+    const systemPrompt = style || 'Составь понятное и краткое описание задачи для волонтёра на платформе НКО. Опиши цель, ожидаемый результат и почему это важно. До 200 слов.';
+    const userContent = [
+      title ? `Название: ${title}` : '',
+      currentDesc ? `Текущее описание: ${currentDesc}` : '',
+      userHint ? `Пожелание: ${userHint}` : ''
+    ].filter(Boolean).join('\n') || 'Создай общее описание задачи для волонтёра НКО.';
+
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ systemPrompt, userContent })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const text = data.result || data.text || '';
+      if (text) {
+        aiDraftText.textContent = text;
+        aiApply.disabled = false;
+        aiStatus.textContent = '';
+      } else {
+        aiStatus.textContent = 'Не удалось получить ответ от AI.';
+      }
+    } catch {
+      aiStatus.textContent = 'Сервер AI недоступен. Попробуйте позже.';
+    } finally {
+      aiBusy = false;
+      aiGenerate.disabled = false;
+      aiRegen.disabled = false;
+    }
+  }
+
+  aiGenerate.addEventListener('click', () => callAi('Составь понятное и краткое описание задачи для волонтёра. Опиши цель и ожидаемый результат. До 200 слов.'));
+  aiRegen.addEventListener('click', () => callAi('Предложи другой вариант описания той же задачи — более живой и конкретный. До 200 слов.'));
+
+  // Publish
+  publishBtn.addEventListener('click', async () => {
+    if (publishBtn.disabled || !ngoProfileId) return;
+    publishBtn.disabled = true;
+    publishBtn.textContent = 'Публикуем...';
+
+    const format = formatInput.value;
+    const isOffline = format === 'Оффлайн' || format === 'Смешанный';
+    const task = {
+      title:       document.getElementById('taskTitle').value.trim(),
+      description: document.getElementById('taskDesc').value.trim(),
+      format,
+      skills:      skillsHidden.value.trim(),
+      directions:  directionsHidden.value.trim(),
+      dateStart:   document.getElementById('dateStart').value,
+      dateEnd:     document.getElementById('dateEnd').value,
+      comment:     document.getElementById('taskComment').value.trim(),
+      city:        isOffline ? document.getElementById('taskCity').value.trim() : '',
+      filesDraft:  uploadedFiles,
+      createdFrom: 'new-task.html'
+    };
+
+    try {
+      const created = await helperaDb.createTask(ngoProfileId, task);
+      await helperaDb.logEvent({
+        eventType: 'task_published',
+        actorRole: 'ngo',
+        actorProfileId: ngoProfileId,
+        taskId: created?.id,
+        payload: { source: 'new-task.html', format, skills: task.skills, directions: task.directions }
+      });
+      window.location.href = withProfileId('ngo-tasks.html');
+    } catch (error) {
+      console.error(error);
+      publishBtn.disabled = false;
+      publishBtn.textContent = 'Опубликовать задачу';
+      alert(`Не удалось опубликовать задачу: ${error?.message || 'проверьте подключение к Supabase'}`);
+    }
+  });
+
+  // Init nav avatar
+  (async () => {
+    if (!ngoProfileId) return;
+    try {
+      const profile = await helperaDb.getNgoProfile(ngoProfileId);
+      const name = profile?.account?.orgName || profile?.about?.shortName || 'Н';
+      document.getElementById('avatarMini').textContent = name.slice(0, 1).toUpperCase();
+    } catch {}
+  })();
+</script>
+</body>
+</html>

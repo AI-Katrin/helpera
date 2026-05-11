@@ -225,13 +225,15 @@
         ]
       };
       await helperaDb.updateApplication(applicationId, { status: 'done', payload });
+      const ratings = payload.reviews.ngo.ratings;
+      const avgRating = Math.round((ratings.quality + ratings.communication + ratings.responsibility) / 3 * 10) / 10;
       await helperaDb.logEvent({
-        eventType: 'ngo_review_submitted',
+        eventType: 'review_left_by_ngo',
         actorRole: 'ngo',
         actorProfileId: ngoProfileId,
         applicationId,
         taskId: application?.task_id,
-        payload: payload.reviews.ngo
+        payload: { ...payload.reviews.ngo, avg_rating: avgRating }
       });
       window.location.href = withProfileId(`ngo-review-success.html?applicationId=${encodeURIComponent(applicationId)}`);
     } catch (error) {

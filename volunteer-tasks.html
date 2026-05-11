@@ -295,6 +295,7 @@
     ].filter(Boolean).join(', ');
     const article = document.createElement('article');
     article.className = 'task-card task-item';
+    article.dataset.taskId = task.id;
     article.dataset.title = task.title || '';
     article.dataset.org = orgName;
     article.dataset.description = task.description || payload.description || '';
@@ -488,7 +489,57 @@
   updateDropdownLabel(directionDropdown, 'Выбрать направления');
   updateDropdownLabel(skillDropdown, 'Выбрать навыки');
   applyFilters();
-  loadTasksFromDb();
+
+  // --- Event tracking ---
+  const shownAt = {};
+  const shownTimers = {};
+
+  function observeTasks(cards) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const taskId = entry.target.dataset.taskId;
+        if (!taskId) return;
+        if (entry.isIntersecting) {
+          shownAt[taskId] = Date.now();
+          shownTimers[taskId] = setTimeout(() => {
+            helperaDb.logEvent({
+              eventType: 'task_shown',
+              actorRole: 'volunteer',
+              actorProfileId: profileId,
+              taskId,
+              payload: { source: 'volunteer-tasks.html', rank: Array.from(document.querySelectorAll('.task-item')).indexOf(entry.target) }
+            }).catch(() => {});
+          }, 1000);
+        } else {
+          clearTimeout(shownTimers[taskId]);
+          delete shownTimers[taskId];
+        }
+      });
+    }, { threshold: 0.5 });
+    cards.forEach((card) => { if (card.dataset.taskId) observer.observe(card); });
+  }
+
+  document.querySelector('.tasks-panel').addEventListener('click', (event) => {
+    const link = event.target.closest('a.task-link');
+    if (!link) return;
+    const card = link.closest('[data-task-id]');
+    if (!card?.dataset.taskId) return;
+    helperaDb.logEvent({
+      eventType: 'task_card_clicked',
+      actorRole: 'volunteer',
+      actorProfileId: profileId,
+      taskId: card.dataset.taskId,
+      payload: {
+        source: 'volunteer-tasks.html',
+        action: link.classList.contains('green') ? 'apply' : 'details',
+        dwell_ms: shownAt[card.dataset.taskId] ? Date.now() - shownAt[card.dataset.taskId] : null
+      }
+    }).catch(() => {});
+  });
+
+  loadTasksFromDb().then(() => {
+    observeTasks(Array.from(document.querySelectorAll('.task-item[data-task-id]')));
+  });
 </script>
 
 </body>

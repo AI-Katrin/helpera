@@ -20,6 +20,12 @@
     return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   };
 
+  const sessionId = sessionStorage.getItem('helperaSessionId') || (() => {
+    const id = getId('session');
+    sessionStorage.setItem('helperaSessionId', id);
+    return id;
+  })();
+
   const normalizeVolunteer = (row) => row && ({
     profileId: row.id || row.profileId,
     userId: row.user_id || row.userId,
@@ -391,7 +397,7 @@
       actor_profile_id: event.actorProfileId || event.actor_profile_id || null,
       application_id: event.applicationId || event.application_id || null,
       task_id: event.taskId || event.task_id || null,
-      payload: event.payload || {}
+      payload: { session_id: sessionId, ...(event.payload || {}) }
     };
 
     if (client) {

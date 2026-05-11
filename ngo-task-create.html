@@ -201,10 +201,6 @@
   const titleInput = document.getElementById('taskTitle');
   const descInput = document.getElementById('taskDesc');
   const skillsHiddenInput = document.getElementById('skills');
-  const skillsTextInput = document.getElementById('skillsInput');
-  const skillsToggle = document.getElementById('skillsToggle');
-  const skillsSuggestions = document.getElementById('skillsSuggestions');
-  const selectedSkills = document.getElementById('selectedSkills');
   const dateStart = document.getElementById('dateStart');
   const dateEnd = document.getElementById('dateEnd');
   const formatInput = document.getElementById('taskFormat');
@@ -222,8 +218,6 @@
     'Координация волонтёров', 'IT', 'Программирование',
     'Юридические услуги', 'Педагогика', 'Медицина', 'Психология'
   ];
-  const selectedSkillValues = new Set();
-
   const DIRECTION_OPTIONS = [
     'Экология', 'Животные', 'Помощь пожилым', 'Дети и молодёжь',
     'Здравоохранение', 'Образование', 'Культура и искусство',
@@ -239,6 +233,17 @@
     hiddenEl:   document.getElementById('directions'),
     options:    DIRECTION_OPTIONS
   });
+
+  const skillsSelect = TagSelect({
+    inputEl:    document.getElementById('skillsInput'),
+    toggleEl:   document.getElementById('skillsToggle'),
+    dropdownEl: document.getElementById('skillsSuggestions'),
+    chipsEl:    document.getElementById('selectedSkills'),
+    hiddenEl:   skillsHiddenInput,
+    options:    skillOptions
+  });
+  skillsHiddenInput.addEventListener('change', validate);
+  skillsHiddenInput.addEventListener('change', saveDraft);
 
   const aiDraft = document.getElementById('aiDraft');
   const aiDraftContent = document.getElementById('aiDraftContent');
@@ -409,107 +414,6 @@
     chip.addEventListener('click', () => setActiveFormat(chip.dataset.format));
   });
 
-  function syncSkillsInput() {
-    skillsHiddenInput.value = Array.from(selectedSkillValues).join(', ');
-    validate();
-  }
-
-  function addSkill(value) {
-    const skill = value.trim();
-    if (!skill || selectedSkillValues.has(skill)) return;
-    selectedSkillValues.add(skill);
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip active skill-chip';
-    chip.innerHTML = `<span>${skill}</span><span class="skill-remove" aria-hidden="true">×</span>`;
-    chip.addEventListener('click', () => {
-      selectedSkillValues.delete(skill);
-      chip.remove();
-      syncSkillsInput();
-      saveDraft();
-    });
-    selectedSkills.appendChild(chip);
-    skillsTextInput.value = '';
-    skillsSuggestions.classList.remove('visible');
-    skillsTextInput.closest('.autocomplete').classList.remove('open');
-    syncSkillsInput();
-  }
-
-  function renderSkillSuggestions(showAll = false) {
-    const value = skillsTextInput.value.trim().toLowerCase();
-    skillsSuggestions.innerHTML = '';
-    const autocomplete = skillsTextInput.closest('.autocomplete');
-    if (!value && !showAll) {
-      skillsSuggestions.classList.remove('visible');
-      autocomplete.classList.remove('open');
-      return;
-    }
-
-    const matches = skillOptions.filter((skill) => (
-      (showAll || skill.toLowerCase().includes(value)) && !selectedSkillValues.has(skill)
-    ));
-
-    const customValue = skillsTextInput.value.trim();
-    if (!showAll && customValue && !skillOptions.some((skill) => skill.toLowerCase() === customValue.toLowerCase()) && !selectedSkillValues.has(customValue)) {
-      matches.unshift(`Добавить «${customValue}»`);
-    }
-
-    if (!matches.length) {
-      skillsSuggestions.classList.remove('visible');
-      autocomplete.classList.remove('open');
-      return;
-    }
-
-    matches.forEach((item) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'suggestion-item';
-      button.textContent = item;
-      button.addEventListener('click', () => {
-        const customMatch = item.match(/^Добавить «(.+)»$/);
-        addSkill(customMatch ? customMatch[1] : item);
-        saveDraft();
-      });
-      skillsSuggestions.appendChild(button);
-    });
-    skillsSuggestions.classList.add('visible');
-    autocomplete.classList.add('open');
-  }
-
-  function setSkillsFromString(value) {
-    selectedSkillValues.clear();
-    selectedSkills.innerHTML = '';
-    value.split(',').map((skill) => skill.trim()).filter(Boolean).forEach(addSkill);
-    syncSkillsInput();
-  }
-
-  skillsTextInput.addEventListener('input', renderSkillSuggestions);
-  skillsTextInput.addEventListener('focus', renderSkillSuggestions);
-  skillsToggle.addEventListener('click', () => {
-    const autocomplete = skillsTextInput.closest('.autocomplete');
-    const isOpen = skillsSuggestions.classList.contains('visible') && !skillsTextInput.value.trim();
-    if (isOpen) {
-      skillsSuggestions.classList.remove('visible');
-      autocomplete.classList.remove('open');
-    } else {
-      skillsTextInput.focus();
-      renderSkillSuggestions(true);
-    }
-  });
-  skillsTextInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addSkill(skillsTextInput.value);
-      saveDraft();
-    }
-  });
-  skillsTextInput.addEventListener('blur', () => {
-    setTimeout(() => {
-      skillsSuggestions.classList.remove('visible');
-      skillsTextInput.closest('.autocomplete').classList.remove('open');
-    }, 120);
-  });
-
   function fieldsValid(){
     const titleOk = titleInput.value.trim().length >= 5;
     const descOk = descInput.value.trim().length >= 20;
@@ -609,7 +513,7 @@
     const firstTask = profile.firstTask;
     titleInput.value = firstTask.title || '';
     descInput.value = firstTask.description || '';
-    setSkillsFromString(firstTask.skills || '');
+    skillsSelect.setValue(firstTask.skills || '');
     directionsSelect.setValue(firstTask.directions || '');
     dateStart.value = firstTask.dateStart || '';
     dateEnd.value = firstTask.dateEnd || '';
