@@ -153,7 +153,8 @@
         actorRole: 'ngo',
         actorProfileId: ngoProfileId,
         applicationId: activeApplication.id,
-        taskId: activeApplication.task_id
+        taskId: activeApplication.task_id,
+        payload: { previousStatus: activeApplication.status || null, status: 'rejected' }
       });
       window.location.href = withProfileId('ngo-applications.html');
     }

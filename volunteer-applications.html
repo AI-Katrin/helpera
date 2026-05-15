@@ -34,10 +34,6 @@
           <h1 class="hero-title">Все ваши отклики в одном месте</h1>
           <p class="hero-text">Персональная подборка на основе вашего профиля и указанных предпочтений</p>
         </div>
-        <div class="hero-actions">
-          <button class="btn-primary" id="heroTasksBtn">Перейти к поиску задач</button>
-          <button class="btn-outline-green" id="allTasksBtn">Поиск задач</button>
-        </div>
       </section>
 
       <section class="stats">
@@ -274,8 +270,6 @@
   document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
   document.getElementById('navProfile').href = withProfileId('volunteer-lk.html');
   document.getElementById('navDashboard').href = withProfileId('volunteer-dashboard.html');
-  document.getElementById('heroTasksBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-tasks.html'));
-  document.getElementById('allTasksBtn').addEventListener('click', () => window.location.href = withProfileId('volunteer-tasks.html'));
   if (profileId) {
     helperaDb.getVolunteerProfile(profileId).then((profile) => {
       document.getElementById('avatarMini').textContent = (profile?.about?.firstName || 'В').slice(0, 1).toUpperCase();

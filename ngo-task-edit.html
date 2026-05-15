@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Редактирование задачи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/volunteer-profile.css">
+<link rel="stylesheet" href="./css/base.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark"></span>
+        <span>Helpera</span>
+      </a>
+
+      <nav class="nav">
+        <a href="ngo-lk.html" id="nav-profile">Профиль</a>
+        <a href="ngo-tasks.html" id="nav-tasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="nav-applications">Отклики</a>
+        <a href="ngo-dashboard.html" id="nav-dashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatar-mini">Н</div>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="badge">Редактирование задачи</div>
+        <h1 class="hero-title">Данные задачи</h1>
+        <p class="hero-text">Обновите описание, формат, навыки и сроки задачи. После сохранения изменения появятся в ленте волонтёров.</p>
+      </div>
+      <a class="btn-primary" href="ngo-tasks.html" id="back-top">Вернуться к задачам</a>
+    </section>
+
+    <form id="edit-form">
+      <div class="edit-layout">
+        <section class="panel edit-panel wide">
+          <h2 class="panel-title">Описание</h2>
+          <div class="edit-form">
+            <div class="field">
+              <label for="taskTitle">Название задачи</label>
+              <input class="input" id="taskTitle" type="text">
+            </div>
+
+            <div class="field">
+              <label for="taskDesc">О задаче</label>
+              <textarea class="textarea" id="taskDesc"></textarea>
+            </div>
+
+            <div class="field">
+              <label for="taskComment">Комментарий для волонтёров</label>
+              <textarea class="textarea" id="taskComment"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel edit-panel">
+          <h2 class="panel-title">Параметры</h2>
+          <div class="edit-form">
+            <div class="field">
+              <label for="format">Формат участия</label>
+              <select class="select" id="format">
+                <option>Онлайн</option>
+                <option>Оффлайн</option>
+                <option>Смешанный</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="taskCity">Город</label>
+              <input class="input" id="taskCity" type="text" placeholder="Для оффлайн или смешанного формата">
+            </div>
+
+            <div class="edit-grid">
+              <div class="field">
+                <label for="dateStart">Дата начала</label>
+                <input class="input" id="dateStart" type="date">
+              </div>
+              <div class="field">
+                <label for="dateEnd">Дата окончания</label>
+                <input class="input" id="dateEnd" type="date">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel edit-panel">
+          <h2 class="panel-title">Навыки и направление</h2>
+          <div class="edit-form">
+            <div class="field">
+              <label>Навыки</label>
+              <div class="autocomplete">
+                <input class="input autocomplete-input" id="skillsInput" type="text" placeholder="Выберите или введите навык" autocomplete="off">
+                <button class="autocomplete-toggle" id="skillsToggle" type="button" aria-label="Показать все навыки"></button>
+                <div class="suggestions" id="skillsSuggestions"></div>
+              </div>
+              <div class="selected-skills" id="skillsChips"></div>
+              <input id="skills" type="hidden">
+            </div>
+
+            <div class="field">
+              <label>Направление деятельности</label>
+              <div class="autocomplete">
+                <input class="input autocomplete-input" id="directionsInput" type="text" placeholder="Выберите или введите направление" autocomplete="off">
+                <button class="autocomplete-toggle" id="directionsToggle" type="button" aria-label="Показать все направления"></button>
+                <div class="suggestions" id="directionsSuggestions"></div>
+              </div>
+              <div class="selected-skills" id="directionsChips"></div>
+              <input id="directions" type="hidden">
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="edit-actions">
+        <button class="btn-primary" type="submit" id="save-btn">Сохранить</button>
+        <a class="btn-outline-green" href="ngo-tasks.html" id="back-bottom">Отмена</a>
+        <span class="save-status" id="save-status"></span>
+      </div>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script src="./js/tag-select.js"></script>
+  <script>
+    const SKILL_OPTIONS = [
+      'Аналитика', 'SMM', 'Дизайн', 'Копирайтинг',
+      'Организация мероприятий', 'Работа с детьми', 'Наставничество',
+      'Переводы', 'Фото и видео', 'Работа с документами',
+      'Коммуникация', 'Фандрайзинг', 'PR', 'Исследования',
+      'Координация волонтёров', 'IT', 'Программирование',
+      'Юридические услуги', 'Педагогика', 'Медицина', 'Психология'
+    ];
+
+    const DIRECTION_OPTIONS = [
+      'Экология', 'Животные', 'Помощь пожилым', 'Дети и молодёжь',
+      'Здравоохранение', 'Образование', 'Культура и искусство',
+      'Спорт и ЗОЖ', 'Социальная помощь', 'Люди без жилья', 'Инклюзия',
+      'Кризисные ситуации', 'Правозащита', 'Миграция', 'Сельские территории'
+    ];
+
+    const params = new URLSearchParams(window.location.search);
+    const profileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+    const taskId = params.get('taskId');
+    const form = document.getElementById('edit-form');
+    const saveBtn = document.getElementById('save-btn');
+    const saveStatus = document.getElementById('save-status');
+    let currentTask = null;
+
+    const skillsSelect = TagSelect({
+      inputEl: document.getElementById('skillsInput'),
+      toggleEl: document.getElementById('skillsToggle'),
+      dropdownEl: document.getElementById('skillsSuggestions'),
+      chipsEl: document.getElementById('skillsChips'),
+      hiddenEl: document.getElementById('skills'),
+      options: SKILL_OPTIONS
+    });
+
+    const directionsSelect = TagSelect({
+      inputEl: document.getElementById('directionsInput'),
+      toggleEl: document.getElementById('directionsToggle'),
+      dropdownEl: document.getElementById('directionsSuggestions'),
+      chipsEl: document.getElementById('directionsChips'),
+      hiddenEl: document.getElementById('directions'),
+      options: DIRECTION_OPTIONS
+    });
+
+    const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+    function setNav() {
+      document.getElementById('nav-profile').href = withProfileId('ngo-lk.html');
+      document.getElementById('nav-tasks').href = withProfileId('ngo-tasks.html');
+      document.getElementById('nav-applications').href = withProfileId('ngo-applications.html');
+      document.getElementById('nav-dashboard').href = withProfileId('ngo-dashboard.html');
+      document.getElementById('back-top').href = withProfileId('ngo-tasks.html');
+      document.getElementById('back-bottom').href = withProfileId('ngo-tasks.html');
+    }
+
+    function validate() {
+      const title = document.getElementById('taskTitle').value.trim();
+      const desc = document.getElementById('taskDesc').value.trim();
+      const skills = document.getElementById('skills').value.trim();
+      const directions = document.getElementById('directions').value.trim();
+      const start = document.getElementById('dateStart').value;
+      const end = document.getElementById('dateEnd').value;
+      saveBtn.disabled = !(title && desc.length >= 30 && skills && directions && start && end);
+    }
+
+    function collectTask() {
+      const payload = currentTask?.payload || {};
+      return {
+        ...payload,
+        title: document.getElementById('taskTitle').value.trim(),
+        description: document.getElementById('taskDesc').value.trim(),
+        format: document.getElementById('format').value,
+        skills: document.getElementById('skills').value.trim(),
+        directions: document.getElementById('directions').value.trim(),
+        dateStart: document.getElementById('dateStart').value,
+        dateEnd: document.getElementById('dateEnd').value,
+        comment: document.getElementById('taskComment').value.trim(),
+        city: document.getElementById('taskCity').value.trim(),
+        ngoProfileId: profileId,
+        updatedFrom: 'ngo-task-edit.html'
+      };
+    }
+
+    async function hydrate() {
+      setNav();
+      if (!profileId || !taskId) {
+        saveStatus.textContent = 'Задача или профиль НКО не выбраны.';
+        saveBtn.disabled = true;
+        return;
+      }
+
+      const [profile, task] = await Promise.all([
+        helperaDb.getNgoProfile(profileId),
+        helperaDb.getTask(taskId)
+      ]);
+      if (!task || task.ngo_profile_id !== profileId) {
+        saveStatus.textContent = 'Задача не найдена или недоступна для редактирования.';
+        saveBtn.disabled = true;
+        return;
+      }
+
+      currentTask = task;
+      const payload = task.payload || {};
+      document.getElementById('avatar-mini').textContent = (profile?.account?.orgName || profile?.about?.shortName || 'Н').slice(0, 1).toUpperCase();
+      document.getElementById('taskTitle').value = task.title || '';
+      document.getElementById('taskDesc').value = task.description || payload.description || '';
+      document.getElementById('format').value = task.format || payload.format || 'Онлайн';
+      document.getElementById('taskCity').value = payload.city || '';
+      document.getElementById('dateStart').value = task.date_start || payload.dateStart || '';
+      document.getElementById('dateEnd').value = task.date_end || payload.dateEnd || '';
+      document.getElementById('taskComment').value = payload.comment || '';
+      skillsSelect.setValue(task.skills || payload.skills || '');
+      directionsSelect.setValue(payload.directions || '');
+      validate();
+    }
+
+    ['taskTitle', 'taskDesc', 'taskCity', 'taskComment'].forEach((id) => {
+      document.getElementById(id).addEventListener('input', validate);
+    });
+    ['format', 'dateStart', 'dateEnd', 'skills', 'directions'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', validate);
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      validate();
+      if (saveBtn.disabled) return;
+      saveBtn.disabled = true;
+      saveStatus.textContent = 'Сохраняем...';
+
+      try {
+        const task = collectTask();
+        const saved = await helperaDb.updateTask(taskId, task);
+        await helperaDb.logEvent({
+          eventType: 'task_updated',
+          actorRole: 'ngo',
+          actorProfileId: profileId,
+          taskId: saved?.id || taskId,
+          payload: { source: 'ngo-task-edit.html', format: task.format, skills: task.skills, directions: task.directions }
+        });
+        window.location.href = withProfileId('ngo-tasks.html');
+      } catch (error) {
+        console.error(error);
+        saveStatus.textContent = `Не удалось сохранить: ${error?.message || 'проверьте Supabase.'}`;
+        saveBtn.disabled = false;
+      }
+    });
+
+    hydrate().catch((error) => {
+      console.error(error);
+      saveStatus.textContent = 'Не удалось загрузить задачу.';
+      saveBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>

@@ -29,7 +29,7 @@
       <aside class="panel sidebar">
         <div class="badge">Завершение задачи</div>
         <h1 class="sidebar-title">Оцените<br>работу<br>волонтёра</h1>
-        <p class="sidebar-text">Отзыв нужен, чтобы закрыть задачу, обновить историю взаимодействия и улучшить рекомендации платформы.</p>
+        <p class="sidebar-text">Это обязательно. Иначе не получится завершить задачу. Ваши отзывы помогают нам улучшать рекомендации платформы и более качественно подбирать волонтеров для выполнения ваших задач.</p>
 
         <div class="info-card">
           <div class="info-row">
@@ -46,9 +46,9 @@
         </div>
 
         <div class="info-card highlight">
-          <p class="info-title">Данные пригодятся для ML</p>
+          <p class="info-title">Получите знак отличия</p>
           <div class="subtext">
-            <p>Отзыв сохраняется в отклике и отдельным событием, чтобы позже обучать модель подбора задач и волонтёров.</p>
+            <p>Оставьте расширенный отзыв для того, чтобы получить значок "Ответственная НКО".</p>
           </div>
         </div>
       </aside>
@@ -233,7 +233,7 @@
         actorProfileId: ngoProfileId,
         applicationId,
         taskId: application?.task_id,
-        payload: { ...payload.reviews.ngo, avg_rating: avgRating }
+        payload: { ...payload.reviews.ngo, avg_rating: avgRating, previousStatus: application?.status || null, status: 'done' }
       });
       window.location.href = withProfileId(`ngo-review-success.html?applicationId=${encodeURIComponent(applicationId)}`);
     } catch (error) {

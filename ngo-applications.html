@@ -34,10 +34,6 @@
           <h1 class="hero-title">Кандидаты на ваши задачи</h1>
           <p class="hero-text">Здесь отображаются отклики волонтёров по задачам вашей организации.</p>
         </div>
-        <div class="hero-actions">
-          <button class="btn-primary" id="dashboardBtn">Аналитика</button>
-          <button class="btn-outline-green" id="tasksBtn">Мои задачи</button>
-        </div>
       </section>
 
       <section class="stats">
@@ -179,7 +175,7 @@
       actorProfileId: ngoProfileId,
       applicationId: id,
       taskId: application?.task_id,
-      payload: { status }
+      payload: { previousStatus: application?.status || null, status }
     });
     const specificType = status === 'invite' ? 'application_accepted' : status === 'rejected' ? 'application_rejected' : null;
     if (specificType) {
@@ -189,7 +185,7 @@
         actorProfileId: ngoProfileId,
         applicationId: id,
         taskId: application?.task_id,
-        payload: { status }
+        payload: { previousStatus: application?.status || null, status }
       });
     }
     await loadApplications();
@@ -224,8 +220,6 @@
   document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
   document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
   document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
-  document.getElementById('dashboardBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-dashboard.html'));
-  document.getElementById('tasksBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-tasks.html'));
 
   loadApplications().catch((error) => {
     console.error(error);

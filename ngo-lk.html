@@ -200,7 +200,7 @@
       return `
         <article class="task-card">
           <div>
-            <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}&role=ngo`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
+            <h3 class="task-title"><a href="${withProfileId(`ngo-task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
             <p class="task-sub">${escapeHtml(task.format || task.payload?.format || 'Формат не указан')} • ${escapeHtml(task.payload?.dateStart || 'Сроки уточняются')}</p>
             <div class="chips">
               <span class="chip blue">${taskApplications.length} откликов</span>
@@ -209,7 +209,7 @@
             </div>
           </div>
           <div class="task-actions">
-            <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}&role=ngo`)}" class="task-link blue">Подробнее</a>
+            <a href="${withProfileId(`ngo-task-details.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link blue">Подробнее</a>
             <a href="${withProfileId('ngo-applications.html')}" class="task-link green">Отклики</a>
           </div>
         </article>

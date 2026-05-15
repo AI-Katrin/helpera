@@ -157,7 +157,7 @@
       actorProfileId: ngoProfileId,
       applicationId: activeApplication.id,
       taskId: activeApplication.task_id,
-      payload: payload.invitation
+      payload: { ...payload.invitation, previousStatus: activeApplication.status || null, status: 'invite' }
     });
     window.location.href = withProfileId(`ngo-invitation-success.html?applicationId=${encodeURIComponent(activeApplication.id)}`);
   }

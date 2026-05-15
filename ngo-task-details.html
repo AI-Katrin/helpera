@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Helpera — Задача НКО</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/pages/ngo-task-details.css">
+<link rel="stylesheet" href="./css/base.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark"></span><span>Helpera</span></a>
+      <nav class="nav">
+        <a href="ngo-lk.html" id="navProfile">Профиль</a>
+        <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
+        <a href="ngo-applications.html" id="navApplications">Отклики</a>
+        <a href="ngo-dashboard.html" id="navDashboard">Аналитика</a>
+        <div class="avatar-mini" id="avatarMini">Н</div>
+      </nav>
+    </header>
+
+    <div class="breadcrumbs">
+      <a href="ngo-tasks.html" id="breadcrumbTasks">Мои задачи</a> / <span id="breadcrumbTitle">Задача</span>
+    </div>
+
+    <div class="layout">
+      <main class="main-panel" id="mainPanel">
+        <div class="task-badge" id="taskBadge">Ваша задача</div>
+        <h1 id="taskTitle">Загружаем задачу...</h1>
+        <p class="task-meta" id="taskMeta"></p>
+
+        <div class="actions">
+          <button class="btn-primary" id="editBtn" type="button">Редактировать задачу</button>
+          <button class="btn-danger" id="deleteBtn" type="button">Удалить задачу</button>
+        </div>
+
+        <section class="section">
+          <h2>О задаче</h2>
+          <p id="taskDescription">Получаем описание задачи...</p>
+        </section>
+
+        <section class="section">
+          <h2>Что нужно будет сделать</h2>
+          <ul class="bullets" id="taskBullets"></ul>
+        </section>
+
+        <section class="section">
+          <h2>Нужные навыки</h2>
+          <div class="chips" id="taskSkills"></div>
+        </section>
+
+        <section class="section" id="materialsSection" style="display:none">
+          <h2>Материалы к задаче</h2>
+          <div class="files" id="taskFiles"></div>
+        </section>
+
+        <section class="section" style="margin-bottom:0">
+          <h2>Последние отклики</h2>
+          <div id="appList" class="app-list"></div>
+        </section>
+      </main>
+
+      <aside class="sidebar">
+        <section class="side-panel">
+          <h2>Кратко о задаче</h2>
+          <div class="side-block">
+            <p class="side-label">Формат</p>
+            <p class="side-value" id="sideFormat">—</p>
+          </div>
+          <div class="side-block">
+            <p class="side-label">Сроки</p>
+            <p class="side-value" id="sideDates">—</p>
+          </div>
+          <div class="side-block" id="sideCityBlock" style="display:none">
+            <p class="side-label">Город</p>
+            <p class="side-value" id="sideCity">—</p>
+          </div>
+          <div class="side-block">
+            <p class="side-label">Направления</p>
+            <div class="chips" id="sideDirections"></div>
+          </div>
+          <div class="side-block">
+            <p class="side-label">Статус задачи</p>
+            <p class="side-value" id="sideStatus">—</p>
+          </div>
+        </section>
+
+        <section class="side-panel">
+          <h2>Отклики</h2>
+          <div class="stat-grid">
+            <div class="stat-box">
+              <p class="stat-num" id="statTotal">0</p>
+              <p class="stat-label">Всего</p>
+            </div>
+            <div class="stat-box">
+              <p class="stat-num" id="statReview">0</p>
+              <p class="stat-label">На рассмотрении</p>
+            </div>
+            <div class="stat-box">
+              <p class="stat-num" id="statInvite">0</p>
+              <p class="stat-label">Подтверждены</p>
+            </div>
+            <div class="stat-box">
+              <p class="stat-num" id="statDone">0</p>
+              <p class="stat-label">Завершены</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="side-panel">
+          <h2>Действия</h2>
+          <div class="side-actions">
+            <a class="side-btn primary" id="allAppsBtn" href="ngo-applications.html">Все отклики</a>
+            <a class="side-btn secondary" id="editLink" href="#">Редактировать задачу</a>
+            <a class="side-btn secondary" id="newTaskLink" href="new-task.html">Создать похожую</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/supabase-config.js"></script>
+<script src="./js/app-db.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const taskId = params.get('taskId');
+  const ngoProfileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+
+  const withProfileId = (path) => ngoProfileId
+    ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(ngoProfileId)}`
+    : path;
+
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  })[char]);
+
+  const splitList = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+
+  function formatDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('ru-RU');
+  }
+
+  function getTaskDates(task) {
+    const start = task.date_start || task.payload?.dateStart;
+    const end   = task.date_end   || task.payload?.dateEnd;
+    if (start && end && start !== end) return `${formatDate(start)} — ${formatDate(end)}`;
+    return start ? formatDate(start) : 'Сроки уточняются';
+  }
+
+  function renderBullets(task) {
+    const description = task.description || task.payload?.description || '';
+    const comment = task.payload?.comment || '';
+    const skills = splitList(task.skills || task.payload?.skills);
+    const actionItems = task.payload?.actionItems || [];
+    const items = Array.isArray(actionItems) && actionItems.length
+      ? actionItems
+      : [
+          description ? `Выполнить задачу: ${description}` : '',
+          skills.length ? `Нужные навыки: ${skills.join(', ')}` : '',
+          comment,
+          'Передать результат координатору'
+        ].filter(Boolean);
+    document.getElementById('taskBullets').innerHTML = items.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  }
+
+  function renderFiles(task) {
+    const files = task.payload?.filesDraft || [];
+    const section = document.getElementById('materialsSection');
+    if (!files.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    document.getElementById('taskFiles').innerHTML = files.map((file) => `
+      <div class="file-card">
+        <div class="file-icon"></div>
+        <div>
+          <p class="file-name">${escapeHtml(file.fileName || 'Файл')}</p>
+          <p class="file-meta">${escapeHtml((file.fileType || '').split('/').pop()?.toUpperCase() || 'FILE')}${file.fileSize ? ` • ${(file.fileSize / 1048576).toFixed(1)} MB` : ''}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const STATUS_LABELS = {
+    review:   ['На рассмотрении', 'status-review'],
+    invite:   ['Подтверждён',      'status-invite'],
+    active:   ['В работе',         'status-active'],
+    done:     ['Завершён',         'status-done'],
+    rejected: ['Отклонён',         'status-rejected']
+  };
+
+  function volunteerName(profile = {}) {
+    const about = profile.about || {};
+    return [about.lastName, about.firstName].filter(Boolean).join(' ') || profile.contact || 'Волонтёр';
+  }
+
+  function renderApplications(applications) {
+    const taskApps = applications.filter((app) => app.task_id === taskId);
+    document.getElementById('statTotal').textContent  = String(taskApps.length);
+    document.getElementById('statReview').textContent = String(taskApps.filter((a) => a.status === 'review').length);
+    document.getElementById('statInvite').textContent = String(taskApps.filter((a) => a.status === 'invite' || a.status === 'active').length);
+    document.getElementById('statDone').textContent   = String(taskApps.filter((a) => a.status === 'done').length);
+
+    const recent = taskApps.slice(0, 5);
+    const appList = document.getElementById('appList');
+    if (!recent.length) {
+      appList.innerHTML = '<p class="empty-state">По этой задаче пока нет откликов.</p>';
+      return;
+    }
+    appList.innerHTML = recent.map((app) => {
+      const volunteer = app.volunteer_profiles || {};
+      const name = volunteerName(volunteer);
+      const initial = name.slice(0, 1).toUpperCase();
+      const [label, cls] = STATUS_LABELS[app.status] || ['Неизвестно', 'status-review'];
+      const date = new Date(app.created_at || Date.now()).toLocaleDateString('ru-RU');
+      const profileUrl = withProfileId(`volunteer-candidate-profile.html?applicationId=${encodeURIComponent(app.id)}`);
+      return `
+        <div class="app-card">
+          <div class="app-avatar">${escapeHtml(initial)}</div>
+          <div class="app-info">
+            <p class="app-name">${escapeHtml(name)}</p>
+            <p class="app-meta">${date}</p>
+          </div>
+          <span class="status-pill ${cls}">${label}</span>
+          <a class="app-link" href="${profileUrl}">Профиль →</a>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderTask(task) {
+    const org = task.ngo_profiles || {};
+    const about = org.about || {};
+    const orgName = org.org_name || about.shortName || 'НКО';
+    const format = task.format || task.payload?.format || 'Формат не указан';
+    const skills = splitList(task.skills || task.payload?.skills);
+    const directions = splitList(task.payload?.directions || '');
+    const city = task.payload?.city || '';
+    const dates = getTaskDates(task);
+
+    document.title = `Helpera — ${task.title || 'Задача'}`;
+    document.getElementById('breadcrumbTitle').textContent = task.title || 'Задача';
+    document.getElementById('taskTitle').textContent = task.title || 'Задача без названия';
+    document.getElementById('taskMeta').textContent = `${orgName} • ${format} • ${dates}`;
+    document.getElementById('taskDescription').textContent = task.description || task.payload?.description || 'Описание не добавлено.';
+
+    document.getElementById('sideFormat').textContent = format;
+    document.getElementById('sideDates').textContent = dates;
+    document.getElementById('sideStatus').textContent = task.status === 'published' ? 'Опубликована' : task.status || 'Неизвестно';
+
+    if (city) {
+      document.getElementById('sideCity').textContent = city;
+      document.getElementById('sideCityBlock').style.display = 'block';
+    }
+
+    document.getElementById('sideDirections').innerHTML = directions.length
+      ? directions.map((d) => `<span class="chip green">${escapeHtml(d)}</span>`).join('')
+      : '<span class="chip">Не указаны</span>';
+
+    document.getElementById('taskSkills').innerHTML = skills.length
+      ? skills.map((s) => `<span class="chip green">${escapeHtml(s)}</span>`).join('')
+      : '<span class="chip">Не указаны</span>';
+
+    renderBullets(task);
+    renderFiles(task);
+  }
+
+  async function init() {
+    document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
+    document.getElementById('navTasks').href = withProfileId('ngo-tasks.html');
+    document.getElementById('navApplications').href = withProfileId('ngo-applications.html');
+    document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
+    document.getElementById('breadcrumbTasks').href = withProfileId('ngo-tasks.html');
+    document.getElementById('allAppsBtn').href = withProfileId('ngo-applications.html');
+    document.getElementById('newTaskLink').href = withProfileId('new-task.html');
+
+    const editUrl = withProfileId(`ngo-task-edit.html?taskId=${encodeURIComponent(taskId || '')}`);
+    document.getElementById('editBtn').addEventListener('click', () => { window.location.href = editUrl; });
+    document.getElementById('editLink').href = editUrl;
+
+    if (ngoProfileId) {
+      const profile = await helperaDb.getNgoProfile(ngoProfileId);
+      const name = profile?.account?.orgName || profile?.about?.shortName || 'Н';
+      document.getElementById('avatarMini').textContent = name.slice(0, 1).toUpperCase();
+    }
+
+    if (!taskId) {
+      document.getElementById('mainPanel').innerHTML = '<p class="empty-state">Задача не выбрана. Откройте задачу из списка.</p>';
+      return;
+    }
+
+    const [task, applications] = await Promise.all([
+      helperaDb.getTask(taskId),
+      ngoProfileId ? helperaDb.listApplications({ ngoProfileId, includeDrafts: false }) : Promise.resolve([])
+    ]);
+
+    if (!task) {
+      document.getElementById('mainPanel').innerHTML = '<p class="empty-state">Задача не найдена. Возможно, она была удалена.</p>';
+      return;
+    }
+
+    renderTask(task);
+    renderApplications(applications);
+  }
+
+  document.getElementById('deleteBtn').addEventListener('click', async () => {
+    const title = document.getElementById('taskTitle').textContent;
+    if (!window.confirm(`Удалить задачу «${title}»? Она исчезнет из ленты волонтёров.`)) return;
+    const btn = document.getElementById('deleteBtn');
+    btn.disabled = true;
+    btn.textContent = 'Удаляем...';
+    try {
+      await helperaDb.deleteTask(taskId);
+      await helperaDb.logEvent({
+        eventType: 'task_deleted',
+        actorRole: 'ngo',
+        actorProfileId: ngoProfileId,
+        taskId,
+        payload: { source: 'ngo-task-details.html' }
+      });
+      window.location.href = withProfileId('ngo-tasks.html');
+    } catch (error) {
+      console.error(error);
+      btn.disabled = false;
+      btn.textContent = 'Удалить задачу';
+      alert(`Не удалось удалить задачу: ${error?.message || 'проверьте подключение к Supabase'}`);
+    }
+  });
+
+  init().catch((error) => {
+    console.error(error);
+    document.getElementById('mainPanel').innerHTML = '<p class="empty-state">Не удалось загрузить задачу из Supabase.</p>';
+  });
+</script>
+</body>
+</html>

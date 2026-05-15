@@ -307,7 +307,7 @@
         actorProfileId: profileId,
         applicationId,
         taskId: application?.task_id,
-        payload: payload.reviews.volunteer
+        payload: { ...payload.reviews.volunteer, previousStatus: application?.status || null, status: 'done' }
       });
       window.location.href = withProfileId(`volunteer-review-success.html?applicationId=${encodeURIComponent(applicationId)}`);
     } catch (error) {

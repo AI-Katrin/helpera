@@ -227,14 +227,6 @@
       });
     });
 
-    document.querySelectorAll('.profile').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const card = e.target.closest('.candidate');
-        const name = card.dataset.name;
-        openModal('Профиль волонтёра', 'Здесь может открываться профиль волонтёра «' + name + '».');
-      });
-    });
-
     document.querySelectorAll('.task-card').forEach(card => {
       card.addEventListener('click', () => {
         const type = card.dataset.task;
@@ -271,7 +263,8 @@
               actorRole: 'ngo',
               actorProfileId: new URLSearchParams(window.location.search).get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId),
               applicationId,
-              taskId: application?.task_id
+              taskId: application?.task_id,
+              payload: { previousStatus: application?.status || null, status: 'invite' }
             });
           }
           openModal('Приглашение отправлено', 'Приглашение для волонтёра «' + name + '» успешно отправлено.');
@@ -294,13 +287,22 @@
               actorRole: 'ngo',
               actorProfileId: new URLSearchParams(window.location.search).get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId),
               applicationId,
-              taskId: application?.task_id
+              taskId: application?.task_id,
+              payload: { previousStatus: application?.status || null, status: 'rejected' }
             });
           }
           openModal('Кандидат отклонён', 'Отклик волонтёра «' + name + '» был отклонён.');
         }
         if (event.target.classList.contains('profile')) {
-          openModal('Профиль волонтёра', 'Здесь может открываться профиль волонтёра «' + name + '».');
+          if (!applicationId) {
+            openModal('Профиль волонтёра', 'Профиль доступен для откликов, загруженных из Supabase.');
+            return;
+          }
+          const ngoProfileId = new URLSearchParams(window.location.search).get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+          const url = new URL('volunteer-candidate-profile.html', window.location.href);
+          url.searchParams.set('applicationId', applicationId);
+          if (ngoProfileId) url.searchParams.set('profileId', ngoProfileId);
+          window.location.href = `${url.pathname.split('/').pop()}${url.search}`;
         }
       } catch (error) {
         console.error('Не удалось обновить статус отклика', error);

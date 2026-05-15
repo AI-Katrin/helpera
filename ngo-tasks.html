@@ -55,6 +55,7 @@
     '"': '&quot;',
     "'": '&#039;'
   })[char]);
+  let currentApplications = [];
 
   async function initNgoTasks() {
     document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
@@ -74,13 +75,14 @@
       helperaDb.listTasks(),
       helperaDb.listApplications({ ngoProfileId: profileId, includeDrafts: false })
     ]);
+    currentApplications = applications;
     const ownTasks = tasks.filter((task) => task.ngo_profile_id === profileId);
     document.getElementById('avatarMini').textContent = (profile?.account?.orgName || profile?.about?.shortName || 'Н').slice(0, 1).toUpperCase();
     document.getElementById('tasksSubtitle').textContent = `${ownTasks.length} задач • ${applications.length} откликов`;
     document.getElementById('tasksList').innerHTML = ownTasks.length ? ownTasks.map((task) => {
       const count = applications.filter((item) => item.task_id === task.id).length;
       return `
-        <article class="candidate">
+        <article class="candidate" data-task-id="${escapeHtml(task.id)}">
           <div class="cand-left">
               <div class="initial">З</div>
             <div>
@@ -90,12 +92,56 @@
             </div>
           </div>
           <div class="cand-actions">
-            <button class="primary-action" type="button" onclick="window.location.href='task-details.html?taskId=${encodeURIComponent(task.id)}&profileId=${encodeURIComponent(profileId)}&role=ngo'">Подробнее</button>
+            <button class="primary-action task-details-btn" type="button">Подробнее</button>
+            <button class="secondary-action task-edit-btn" type="button">Редактировать</button>
+            <button class="secondary-action task-delete-btn" type="button">Удалить</button>
           </div>
         </article>
       `;
     }).join('') : '<p class="subtitle">У этой НКО пока нет опубликованных задач.</p>';
   }
+
+  document.getElementById('tasksList').addEventListener('click', async (event) => {
+    const card = event.target.closest('.candidate[data-task-id]');
+    if (!card) return;
+    const taskId = card.dataset.taskId;
+    if (event.target.classList.contains('task-details-btn')) {
+      window.location.href = withProfileId(`ngo-task-details.html?taskId=${encodeURIComponent(taskId)}`);
+      return;
+    }
+    if (event.target.classList.contains('task-edit-btn')) {
+      window.location.href = withProfileId(`ngo-task-edit.html?taskId=${encodeURIComponent(taskId)}`);
+      return;
+    }
+    if (event.target.classList.contains('task-delete-btn')) {
+      const title = card.querySelector('.cand-name')?.textContent || 'эту задачу';
+      const confirmed = window.confirm(`Удалить задачу «${title}»? Она исчезнет из списка опубликованных задач для волонтёров.`);
+      if (!confirmed) return;
+      event.target.disabled = true;
+      event.target.textContent = 'Удаляем...';
+      try {
+        await helperaDb.deleteTask(taskId);
+        await helperaDb.logEvent({
+          eventType: 'task_deleted',
+          actorRole: 'ngo',
+          actorProfileId: profileId,
+          taskId,
+          payload: { source: 'ngo-tasks.html' }
+        });
+        card.remove();
+        const remaining = document.querySelectorAll('#tasksList .candidate').length;
+        document.getElementById('tasksSubtitle').textContent = `${remaining} задач • ${currentApplications.length} откликов`;
+        if (!remaining) {
+          document.getElementById('tasksList').innerHTML = '<p class="subtitle">У этой НКО пока нет опубликованных задач.</p>';
+        }
+      } catch (error) {
+        console.error(error);
+        event.target.disabled = false;
+        event.target.textContent = 'Удалить';
+        alert(`Не удалось удалить задачу: ${error?.message || 'проверьте подключение к Supabase'}`);
+      }
+    }
+  });
 
   initNgoTasks().catch((error) => {
     console.error(error);

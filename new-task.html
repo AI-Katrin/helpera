@@ -23,12 +23,12 @@
       </nav>
     </header>
 
-    <div class="breadcrumb">Мои задачи / Создать задачу</div>
+    <div class="breadcrumb" id="breadcrumbText">Мои задачи / Создать задачу</div>
 
     <div class="layout">
       <aside class="panel sidebar">
-        <div class="badge">Создать задачу</div>
-        <h1 class="sidebar-title">Новая задача для волонтёров</h1>
+        <div class="badge" id="pageBadge">Создать задачу</div>
+        <h1 class="sidebar-title" id="sidebarTitle">Новая задача для волонтёров</h1>
         <p class="sidebar-text">Заполните информацию о задаче — чем точнее описание, тем лучше совпадение с подходящими кандидатами.</p>
 
         <div class="info-card">
@@ -68,7 +68,7 @@
       </aside>
 
       <section class="panel form-panel">
-        <h2 class="form-title">Заполните информацию о задаче</h2>
+        <h2 class="form-title" id="formTitle">Заполните информацию о задаче</h2>
         <p class="form-subtitle">Поля со звёздочкой обязательны для публикации</p>
 
         <div class="field">
@@ -185,9 +185,18 @@
 <script>
   const params = new URLSearchParams(window.location.search);
   const ngoProfileId = params.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeNgoProfileId);
+  const editingTaskId = params.get('taskId');
+  const isEditMode = Boolean(editingTaskId);
   const withProfileId = (path) => ngoProfileId
     ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(ngoProfileId)}`
     : path;
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  })[char]);
 
   const SKILL_OPTIONS = [
     'Аналитика', 'SMM', 'Дизайн', 'Копирайтинг',
@@ -208,7 +217,7 @@
   const skillsHidden = document.getElementById('skillsHidden');
   const directionsHidden = document.getElementById('directionsHidden');
 
-  TagSelect({
+  const skillsSelect = TagSelect({
     inputEl:    document.getElementById('skillsInput'),
     toggleEl:   document.getElementById('skillsToggle'),
     dropdownEl: document.getElementById('skillsSuggestions'),
@@ -217,7 +226,7 @@
     options:    SKILL_OPTIONS
   });
 
-  TagSelect({
+  const directionsSelect = TagSelect({
     inputEl:    document.getElementById('directionsInput'),
     toggleEl:   document.getElementById('directionsToggle'),
     dropdownEl: document.getElementById('directionsSuggestions'),
@@ -238,14 +247,18 @@
   // Format chips
   const formatInput = document.getElementById('taskFormat');
   const cityField = document.getElementById('cityField');
+  function setActiveFormat(value) {
+    formatInput.value = value || 'Онлайн';
+    document.querySelectorAll('.format-chip').forEach((item) => {
+      item.classList.toggle('active', item.dataset.format === formatInput.value);
+    });
+    const isOffline = formatInput.value === 'Оффлайн' || formatInput.value === 'Смешанный';
+    cityField.style.display = isOffline ? 'block' : 'none';
+    validate();
+  }
   document.querySelectorAll('.format-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
-      document.querySelectorAll('.format-chip').forEach((item) => item.classList.remove('active'));
-      chip.classList.add('active');
-      formatInput.value = chip.dataset.format;
-      const isOffline = chip.dataset.format === 'Оффлайн' || chip.dataset.format === 'Смешанный';
-      cityField.style.display = isOffline ? 'block' : 'none';
-      validate();
+      setActiveFormat(chip.dataset.format);
     });
   });
 
@@ -406,24 +419,27 @@
       comment:     document.getElementById('taskComment').value.trim(),
       city:        isOffline ? document.getElementById('taskCity').value.trim() : '',
       filesDraft:  uploadedFiles,
-      createdFrom: 'new-task.html'
+      createdFrom: 'new-task.html',
+      ngoProfileId
     };
 
     try {
-      const created = await helperaDb.createTask(ngoProfileId, task);
+      const saved = isEditMode
+        ? await helperaDb.updateTask(editingTaskId, task)
+        : await helperaDb.createTask(ngoProfileId, task);
       await helperaDb.logEvent({
-        eventType: 'task_published',
+        eventType: isEditMode ? 'task_updated' : 'task_published',
         actorRole: 'ngo',
         actorProfileId: ngoProfileId,
-        taskId: created?.id,
+        taskId: saved?.id || editingTaskId,
         payload: { source: 'new-task.html', format, skills: task.skills, directions: task.directions }
       });
       window.location.href = withProfileId('ngo-tasks.html');
     } catch (error) {
       console.error(error);
       publishBtn.disabled = false;
-      publishBtn.textContent = 'Опубликовать задачу';
-      alert(`Не удалось опубликовать задачу: ${error?.message || 'проверьте подключение к Supabase'}`);
+      publishBtn.textContent = isEditMode ? 'Сохранить изменения' : 'Опубликовать задачу';
+      alert(`Не удалось ${isEditMode ? 'сохранить изменения' : 'опубликовать задачу'}: ${error?.message || 'проверьте подключение к Supabase'}`);
     }
   });
 
@@ -435,6 +451,47 @@
       const name = profile?.account?.orgName || profile?.about?.shortName || 'Н';
       document.getElementById('avatarMini').textContent = name.slice(0, 1).toUpperCase();
     } catch {}
+    if (!isEditMode) return;
+    try {
+      const task = await helperaDb.getTask(editingTaskId);
+      if (!task || task.ngo_profile_id !== ngoProfileId) {
+        alert('Задача не найдена или недоступна для редактирования.');
+        window.location.href = withProfileId('ngo-tasks.html');
+        return;
+      }
+      document.title = 'Helpera — Редактировать задачу';
+      document.getElementById('breadcrumbText').textContent = 'Мои задачи / Редактировать задачу';
+      document.getElementById('pageBadge').textContent = 'Редактировать задачу';
+      document.getElementById('sidebarTitle').textContent = 'Обновите задачу для волонтёров';
+      document.getElementById('formTitle').textContent = 'Измените информацию о задаче';
+      publishBtn.textContent = 'Сохранить изменения';
+
+      const payload = task.payload || {};
+      document.getElementById('taskTitle').value = task.title || '';
+      document.getElementById('taskDesc').value = task.description || payload.description || '';
+      setActiveFormat(task.format || payload.format || 'Онлайн');
+      document.getElementById('taskCity').value = payload.city || '';
+      skillsSelect.setValue(task.skills || payload.skills || '');
+      directionsSelect.setValue(payload.directions || '');
+      document.getElementById('dateStart').value = task.date_start || payload.dateStart || '';
+      document.getElementById('dateEnd').value = task.date_end || payload.dateEnd || '';
+      document.getElementById('taskComment').value = payload.comment || '';
+      if (Array.isArray(payload.filesDraft)) {
+        uploadedFiles.push(...payload.filesDraft);
+        fileList.innerHTML = payload.filesDraft.map((file) => `
+          <div class="file-card">
+            <div class="file-icon-sm"></div>
+            <div><p class="file-name">${escapeHtml(file.fileName || 'Файл')}</p><p class="file-meta">${escapeHtml((file.fileType || 'FILE').split('/').pop().toUpperCase())}</p></div>
+          </div>
+        `).join('');
+      }
+      agreementChk.checked = true;
+      agreementRow.classList.add('checked');
+      validate();
+    } catch (error) {
+      console.error(error);
+      alert('Не удалось загрузить задачу для редактирования.');
+    }
   })();
 </script>
 </body>

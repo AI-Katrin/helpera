@@ -49,6 +49,69 @@
     firstTask: row.first_task || row.firstTask || {}
   });
 
+  const cleanText = (value) => String(value || '').trim().replace(/\s+/g, ' ');
+  const listText = (value) => Array.isArray(value) ? value.map(cleanText).filter(Boolean).join(', ') : cleanText(value);
+  const ageFromBirthDate = (value) => {
+    if (!value) return null;
+    const birth = new Date(value);
+    if (Number.isNaN(birth.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDelta = today.getMonth() - birth.getMonth();
+    if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < birth.getDate())) age -= 1;
+    return age >= 10 && age <= 100 ? age : null;
+  };
+  const profileCompleteness = (about = {}, skills = {}, interests = {}) => {
+    const checks = [
+      about.firstName,
+      about.lastName,
+      about.city,
+      about.birthDate,
+      about.bio,
+      listText(skills.skills),
+      listText(skills.helpDirections || interests.tasks),
+      interests.format
+    ];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 1000) / 1000;
+  };
+
+  const volunteerMlPayload = (patch) => {
+    const payload = {};
+    if (patch.about) {
+      payload.city_raw = patch.about.city || null;
+      payload.city_clean = cleanText(patch.about.city);
+      payload.age = ageFromBirthDate(patch.about.birthDate);
+    }
+    if (patch.skills) {
+      payload.skills_raw = listText(patch.skills.skills);
+      payload.skills_clean = listText(patch.skills.skills);
+      payload.directions_raw = listText(patch.skills.helpDirections);
+      payload.directions_clean = listText(patch.skills.helpDirections);
+      payload.experience_raw = patch.skills.experience || null;
+      payload.experience_level = cleanText(patch.skills.experience);
+    }
+    if (patch.interests) {
+      payload.format_raw = patch.interests.format || null;
+      payload.format_clean = cleanText(patch.interests.format);
+      if (patch.interests.availabilityHoursWeek) {
+        payload.availability_hours_week = Number(patch.interests.availabilityHoursWeek);
+      }
+    }
+    if (patch.about || patch.skills || patch.interests) {
+      payload.profile_completeness = profileCompleteness(patch.about || {}, patch.skills || {}, patch.interests || {});
+    }
+    return payload;
+  };
+
+  const ngoMlPayload = (patch) => {
+    if (!patch.about) return {};
+    return {
+      ngo_city_raw: patch.about.city || null,
+      ngo_city_clean: cleanText(patch.about.city),
+      org_type: patch.about.orgType || null
+    };
+  };
+
   const upsertLocal = (storageKey, profileId, patch) => {
     const profiles = getLocal(storageKey);
     const index = profiles.findIndex((item) => item.profileId === profileId);
@@ -139,6 +202,7 @@
       if ('skills' in patch) payload.skills = patch.skills;
       if ('interests' in patch) payload.interests = patch.interests;
       if ('notifications' in patch) payload.notifications = patch.notifications;
+      Object.assign(payload, volunteerMlPayload(patch));
 
       const { data, error } = await client
         .from('volunteer_profiles')
@@ -231,6 +295,7 @@
       if ('about' in patch) payload.about = patch.about;
       if ('contacts' in patch) payload.contacts = patch.contacts;
       if ('firstTask' in patch) payload.first_task = patch.firstTask;
+      Object.assign(payload, ngoMlPayload(patch));
 
       const { data, error } = await client
         .from('ngo_profiles')
@@ -279,6 +344,63 @@
       payload: task,
       ngo_profile: profile
     };
+  }
+
+  async function updateTask(taskId, task) {
+    if (!taskId) return null;
+    const payload = {
+      title: task.title,
+      description: task.description,
+      format: task.format,
+      skills: task.skills,
+      date_start: task.dateStart || null,
+      date_end: task.dateEnd || null,
+      payload: task,
+      status: task.status || 'published'
+    };
+
+    if (client) {
+      const { data, error } = await client
+        .from('tasks')
+        .update(payload)
+        .eq('id', taskId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+
+    const profiles = getLocal(localKeys.ngoProfiles);
+    const index = profiles.findIndex((profile) => profile.profileId === task.ngoProfileId || profile.firstTask?.id === taskId);
+    if (index === -1) return null;
+    profiles[index].firstTask = { ...(profiles[index].firstTask || {}), ...task };
+    setLocal(localKeys.ngoProfiles, profiles);
+    return { id: taskId, ngo_profile_id: profiles[index].profileId, ...payload };
+  }
+
+  async function deleteTask(taskId) {
+    if (!taskId) return null;
+    if (client) {
+      const current = await getTask(taskId);
+      const { data, error } = await client
+        .from('tasks')
+        .update({
+          status: 'closed',
+          payload: { ...(current?.payload || {}), deletedAt: new Date().toISOString(), deletedFrom: 'ngo-tasks.html' }
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+
+    const profiles = getLocal(localKeys.ngoProfiles);
+    const index = profiles.findIndex((profile) => profile.profileId === taskId || profile.firstTask?.id === taskId);
+    if (index === -1) return null;
+    profiles[index].firstTask = {};
+    setLocal(localKeys.ngoProfiles, profiles);
+    return { id: taskId, status: 'closed' };
   }
 
   async function listTasks() {
@@ -391,13 +513,21 @@
   }
 
   async function logEvent(event) {
+    const eventPayload = { ...(event.payload || {}) };
+    if (eventPayload.status && !eventPayload.status_to) eventPayload.status_to = eventPayload.status;
+    if (eventPayload.previousStatus && !eventPayload.status_from) eventPayload.status_from = eventPayload.previousStatus;
+    if (eventPayload.previous_status && !eventPayload.status_from) eventPayload.status_from = eventPayload.previous_status;
+    if (eventPayload.rank !== undefined && eventPayload.rank_position === undefined) {
+      eventPayload.rank_position = eventPayload.rank;
+    }
+
     const payload = {
       event_type: event.eventType || event.event_type,
       actor_role: event.actorRole || event.actor_role || null,
       actor_profile_id: event.actorProfileId || event.actor_profile_id || null,
       application_id: event.applicationId || event.application_id || null,
       task_id: event.taskId || event.task_id || null,
-      payload: { session_id: sessionId, ...(event.payload || {}) }
+      payload: { session_id: sessionId, ...eventPayload }
     };
 
     if (client) {
@@ -498,6 +628,8 @@
     getNgoProfileByUser,
     updateNgoProfile,
     createTask,
+    updateTask,
+    deleteTask,
     listTasks,
     getTask,
     createApplication,

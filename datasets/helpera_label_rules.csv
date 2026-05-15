@@ -1,0 +1,8 @@
+﻿label_relevance,label_signed,interaction_status,meaning
+5,5,completed_high_review,"Задача выполнена, закрыта, отзывы обеих сторон >= 8"
+4,4,completed_or_no_review,"Задача выполнена, но отзывов нет или они средние"
+3,3,accepted_in_work,"Отклик принят НКО, задача в работе"
+2,2,applied_not_confirmed_or_rejected,"Волонтёр откликнулся, но подтверждения выполнения нет"
+1,1,viewed_no_apply,"Волонтёр открыл карточку/детали, но не откликнулся"
+0,0,shown_only,"Задача была показана, но реакции не было"
+0,-1,hidden_by_volunteer / cancelled_after_acceptance / no_show_or_failure,"Негативный сигнал: скрытие, отмена после подтверждения или срыв"

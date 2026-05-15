@@ -222,7 +222,11 @@
       const description = task.description || task.payload?.description || '';
       const comment = task.payload?.comment || '';
       const skills = splitList(task.skills || task.payload?.skills);
-      const bullets = [
+      const actionItems = task.payload?.actionItems || task.payload?.workToDo || [];
+      const normalizedActions = Array.isArray(actionItems)
+        ? actionItems
+        : String(actionItems || '').split(/\n|;/).map((item) => item.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+      const bullets = normalizedActions.length ? normalizedActions : [
         description ? `Разобраться с задачей: ${description}` : '',
         skills.length ? `Использовать навыки: ${skills.join(', ')}` : '',
         comment,
@@ -273,8 +277,8 @@
       document.getElementById('side-org').textContent = orgName;
       document.getElementById('side-format').textContent = format;
       document.getElementById('side-dates').textContent = getTaskDates(task);
-      document.getElementById('side-city').textContent = about.city || 'Не указан';
-      document.getElementById('side-workload').textContent = task.payload?.comment || 'Уточняется у организации';
+      document.getElementById('side-city').textContent = task.payload?.city || about.city || 'Не указан';
+      document.getElementById('side-workload').textContent = task.payload?.workload || 'Уточняется у организации';
       document.getElementById('org-description').textContent = about.description || about.activity || 'Организация пока не добавила описание.';
       document.getElementById('org-type').textContent = about.orgType || 'Профиль НКО';
       document.getElementById('contact-role').textContent = contacts.position || 'Координатор проекта';
