@@ -32,13 +32,19 @@ def _volunteer_text(volunteer):
         filter(
             None,
             [
-                volunteer.get("skills_clean") or volunteer.get("skills") or volunteer.get("skills_raw") or "",
-                volunteer.get("directions_clean") or volunteer.get("help_directions") or "",
-                volunteer.get("about") or volunteer.get("bio") or "",
-                volunteer.get("city") or "",
+                _str(volunteer.get("skills_clean") or volunteer.get("skills") or volunteer.get("skills_raw")),
+                _str(volunteer.get("directions_clean") or volunteer.get("help_directions")),
+                _str(volunteer.get("about") or volunteer.get("bio")),
+                _str(volunteer.get("city")),
             ],
         )
     ).strip()
+
+
+def _str(value):
+    if isinstance(value, list):
+        return ", ".join(str(v) for v in value if v)
+    return str(value or "")
 
 
 def _task_text(task):
@@ -46,12 +52,12 @@ def _task_text(task):
         filter(
             None,
             [
-                task.get("title") or "",
-                task.get("about_task") or task.get("description") or "",
-                task.get("work_to_do") or "",
-                task.get("useful_skills") or task.get("skills") or "",
-                task.get("direction_work") or "",
-                task.get("region") or task.get("city_raw") or "",
+                _str(task.get("title")),
+                _str(task.get("about_task") or task.get("description")),
+                _str(task.get("work_to_do")),
+                _str(task.get("useful_skills") or task.get("skills")),
+                _str(task.get("direction_work")),
+                _str(task.get("region") or task.get("city_raw")),
             ],
         )
     ).strip()

@@ -628,6 +628,7 @@
         dwell_ms: shownAt[card.dataset.taskId] ? Date.now() - shownAt[card.dataset.taskId] : null
       }
     }).catch(() => {});
+    helperaDb.logRecommendationClick(card.dataset.taskId, profileId);
   });
 
   loadTasksFromDb();

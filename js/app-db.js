@@ -596,6 +596,15 @@
     return item;
   }
 
+  function logRecommendationClick(taskId, volunteerProfileId) {
+    if (!taskId || !volunteerProfileId) return;
+    fetch('/api/recommendations/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: 'click', task_id: taskId, volunteer_id: volunteerProfileId })
+    }).catch(() => {});
+  }
+
   async function signUpWithEmail({ email, password, role, metadata = {} }) {
     if (!client) throw new Error('Supabase Auth не настроен.');
     const { data, error } = await client.auth.signUp({
@@ -688,6 +697,7 @@
     updateApplication,
     listApplications,
     logEvent,
+    logRecommendationClick,
     signUpWithEmail,
     signInWithEmail,
     signOut,
