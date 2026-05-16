@@ -54,27 +54,6 @@ Helpera улучшает этот процесс за счёт персонал�
 
 На основе этих данных формируется датасет для обучения модели.
 
-### ML-слой данных
-
-`supabase-schema.sql` содержит таблицы и представления для данных модели:
-- `ml_source_*` — импорт приложенных синтетических CSV как baseline.
-- `ml_events` и `ml_event_log` — production-журнал событий в формате датасета.
-- `ml_volunteers`, `ml_ngos`, `ml_tasks` — нормализованные срезы профилей и задач.
-- `ml_ranking_examples` — обучающие пары volunteer-task из финального ranking dataset.
-- `ml_ranking_dataset_base` — базовая production-выгрузка пар по реальным событиям.
-
-Синтетические CSV лежат в `datasets/`. После применения схемы импорт заполняет и продуктовые таблицы Supabase (`volunteer_profiles`, `ngo_profiles`, `tasks`), и ML-таблицы:
-
-```bash
-python3 scripts/import_ml_datasets.py
-```
-
-Если в удалённой Supabase ещё не применён обновлённый `supabase-schema.sql`, можно сначала наполнить только продуктовые таблицы:
-
-```bash
-python3 scripts/import_ml_datasets.py --skip-ml
-```
-
 ## Ценность
 
 Для волонтёров:

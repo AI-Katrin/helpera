@@ -220,13 +220,23 @@
       const orgName = task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName || 'НКО';
       const skills = splitSkills(task.skills || task.payload?.skills).slice(0, 3);
       const score = scoreTask(task, profile);
+      const rawMatchPercent = Number(task.recommendation?.matchPercent);
+      const rawRank = Number(task.recommendation?.rank);
+      const matchPercent = Number.isFinite(rawMatchPercent) && rawMatchPercent > 0
+        ? Math.round(rawMatchPercent)
+        : Number.isFinite(rawRank) && rawRank > 0
+          ? Math.max(55, 99 - rawRank)
+          : score;
+      const recommendationChip = task.recommendation
+        ? `<span class="chip blue" title="${escapeHtml(task.recommendation.reason || '')}">Подходит вам на ${escapeHtml(matchPercent)}%</span>`
+        : `<span class="chip blue">Подходит на ${score}%</span>`;
       return `
         <article class="task-card" data-task-id="${task.id}">
           <div>
             <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
             <p class="task-sub">${escapeHtml(orgName)} • ${escapeHtml(task.ngo_profiles?.about?.city || 'Город не указан')} • ${escapeHtml(task.format || task.payload?.format || 'Формат не указан')}</p>
             <div class="chips">
-              <span class="chip blue">Подходит на ${score}%</span>
+              ${recommendationChip}
               ${skills.map((skill) => `<span class="chip green">${escapeHtml(skill)}</span>`).join('')}
             </div>
           </div>
@@ -253,12 +263,25 @@
       }
 
       renderProfile(profile);
-      const tasks = await helperaDb.listTasks();
-      const topTasks = tasks
-        .map((task) => ({ task, score: scoreTask(task, profile) }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5)
-        .map(({ task }) => task);
+      let topTasks = [];
+      let recommendationSessionId = '';
+      if (helperaDb.listRecommendedTasks) {
+        try {
+          const recommendations = await helperaDb.listRecommendedTasks(profileId, 5);
+          topTasks = recommendations.tasks || [];
+          recommendationSessionId = recommendations.recommendation_session_id || '';
+        } catch (error) {
+          console.warn('ML-рекомендации недоступны, используем локальную сортировку', error);
+        }
+      }
+      if (!topTasks.length) {
+        const tasks = await helperaDb.listTasks();
+        topTasks = tasks
+          .map((task) => ({ task, score: scoreTask(task, profile) }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5)
+          .map(({ task }) => task);
+      }
 
       document.getElementById('tasks-list').innerHTML = topTasks.length
         ? topTasks.map((task) => renderTask(task, profile)).join('')
@@ -270,7 +293,14 @@
           actorRole: 'volunteer',
           actorProfileId: profileId,
           taskId: task.id,
-          payload: { source: 'volunteer-lk.html', rank }
+          payload: {
+            source: 'volunteer-lk.html',
+            rank: task.recommendation?.rank || rank,
+            recommendation_session_id: recommendationSessionId || null,
+            ml_score: task.recommendation?.mlScore ?? null,
+            business_adjustment: task.recommendation?.businessAdjustment ?? null,
+            final_score: task.recommendation?.finalScore ?? null
+          }
         }).catch(() => {});
       });
     }

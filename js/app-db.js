@@ -447,6 +447,56 @@
     return (await listTasks()).find((task) => task.id === taskId) || null;
   }
 
+  function recommendationToTask(item) {
+    const matchPercent = Number(item.match_percent ?? item.matchPercent);
+    const payload = {
+      ...(item.payload || {}),
+      description: item.about_task || item.payload?.description || '',
+      actionItems: item.work_to_do || item.payload?.actionItems || '',
+      directions: item.direction_work || item.payload?.directions || '',
+      city: item.region || item.payload?.city || '',
+      dateStart: item.date_start || item.payload?.dateStart || '',
+      dateEnd: item.date_end || item.payload?.dateEnd || '',
+      format: item.participation_type || item.payload?.format || '',
+      skills: item.useful_skills || item.payload?.skills || ''
+    };
+    return {
+      id: item.task_id,
+      ngo_profile_id: item.ngo_id,
+      title: item.title,
+      description: item.about_task || '',
+      format: item.participation_type || '',
+      skills: item.useful_skills || '',
+      payload,
+      recommendation: {
+        rank: item.rank,
+        mlScore: item.ml_score,
+        businessAdjustment: item.business_adjustment,
+        finalScore: item.final_score,
+        matchPercent: Number.isFinite(matchPercent) ? matchPercent : null,
+        reason: item.reason
+      },
+      ngo_profiles: {
+        org_name: item.ngo_name || 'НКО',
+        about: { city: item.region || '' },
+        contacts: {}
+      }
+    };
+  }
+
+  async function listRecommendedTasks(volunteerProfileId, k = 10) {
+    if (!volunteerProfileId) return [];
+    const response = await fetch(`/api/recommendations/volunteers/${encodeURIComponent(volunteerProfileId)}?k=${encodeURIComponent(k)}`);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || 'Не удалось получить ML-рекомендации.');
+    }
+    return {
+      ...data,
+      tasks: (data.items || []).map(recommendationToTask)
+    };
+  }
+
   async function createApplication(application) {
     if (client) {
       const { data, error } = await client.from('applications').insert(application).select().single();
@@ -631,6 +681,7 @@
     updateTask,
     deleteTask,
     listTasks,
+    listRecommendedTasks,
     getTask,
     createApplication,
     getApplication,

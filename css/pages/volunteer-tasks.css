@@ -504,6 +504,7 @@
 
   .bottom-actions {
     display: flex;
+    align-items: center;
     gap: 12px;
   }
 
@@ -512,6 +513,12 @@
     width: auto;
     min-width: 170px;
     padding: 0 34px;
+  }
+
+  .tasks-page-info {
+    color: var(--slate-600);
+    font-size: 14px;
+    font-weight: 600;
   }
 
   @media (max-width: 1439px) {

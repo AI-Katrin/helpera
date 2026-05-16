@@ -2,8 +2,11 @@ import json
 import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+from backend.api.recommendations import recommendations_event_response, recommendations_for_path, recommendations_health_response
 
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -166,8 +169,34 @@ class HelperaHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT_DIR), **kwargs)
 
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/recommendations/health":
+            status_code, payload = recommendations_health_response()
+            json_response(self, status_code, payload)
+            return
+
+        if parsed.path.startswith("/api/recommendations/volunteers/"):
+            status_code, payload = recommendations_for_path(self.path)
+            json_response(self, status_code, payload)
+            return
+
+        super().do_GET()
+
     def do_POST(self):
-        if self.path != "/api/ai/task":
+        parsed = urlparse(self.path)
+
+        if parsed.path == "/api/recommendations/events":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                body = self.rfile.read(length) if length > 0 else b""
+            except ValueError:
+                body = b""
+            status_code, payload = recommendations_event_response(body)
+            json_response(self, status_code, payload)
+            return
+
+        if parsed.path != "/api/ai/task":
             json_response(self, 404, {"error": "Endpoint не найден"})
             return
 

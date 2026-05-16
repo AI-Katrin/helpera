@@ -235,8 +235,9 @@
         </div>
 
         <div class="bottom-actions">
-          <button class="btn-outline">Показать ещё</button>
-          <button class="btn-full">Открыть все задачи</button>
+          <button class="btn-outline" id="showMoreTasks" type="button">Показать ещё</button>
+          <button class="btn-full" id="nextTasksPage" type="button">Страница 2</button>
+          <span class="tasks-page-info" id="tasksPageInfo"></span>
         </div>
       </section>
     </div>
@@ -254,9 +255,18 @@
   const applyButton = document.getElementById('applyFilters');
   const resetButton = document.getElementById('resetFilters');
   const activeFiltersBox = document.getElementById('activeFilters');
-  let taskCards = Array.from(document.querySelectorAll('.task-item'));
+  const showMoreButton = document.getElementById('showMoreTasks');
+  const nextPageButton = document.getElementById('nextTasksPage');
+  const pageInfo = document.getElementById('tasksPageInfo');
   const emptyState = document.getElementById('emptyState');
   const urlParams = new URLSearchParams(window.location.search);
+  let taskCards = Array.from(document.querySelectorAll('.task-item'));
+  let rankedTasks = [];
+  let currentPage = Number(urlParams.get('page') || '1');
+  let visibleLimit = 10;
+  let recommendationSessionId = '';
+  const PAGE_SIZE = 20;
+  const STEP_SIZE = 10;
   const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
   const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -285,6 +295,16 @@
       .map((item) => item.trim())
       .filter(Boolean)
       .slice(0, 3);
+    const rawMatchPercent = Number(task.recommendation?.matchPercent);
+    const rawRank = Number(task.recommendation?.rank);
+    const matchPercent = Number.isFinite(rawMatchPercent) && rawMatchPercent > 0
+      ? Math.round(rawMatchPercent)
+      : Number.isFinite(rawRank) && rawRank > 0
+        ? Math.max(55, 99 - rawRank)
+        : null;
+    const matchChip = matchPercent
+      ? `<span class="chip active" title="${escapeHtml(task.recommendation?.reason || '')}" style="background: var(--blue-light); color: var(--blue-dark);">Подходит вам на ${escapeHtml(matchPercent)}%</span>`
+      : '';
     const searchableDirections = [
       payload.direction,
       payload.directions,
@@ -296,6 +316,7 @@
     const article = document.createElement('article');
     article.className = 'task-card task-item';
     article.dataset.taskId = task.id;
+    article.dataset.rank = task.recommendation?.rank || '';
     article.dataset.title = task.title || '';
     article.dataset.org = orgName;
     article.dataset.description = task.description || payload.description || '';
@@ -303,11 +324,13 @@
     article.dataset.duration = duration;
     article.dataset.directions = searchableDirections;
     article.dataset.skills = skills.join(',');
+    article.dataset.matchPercent = matchPercent || '';
     article.innerHTML = `
       <div>
         <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
         <p class="task-meta">${escapeHtml(orgName)} • ${escapeHtml(format || 'Формат не указан')} • ${escapeHtml(payload.dateStart || '')}${payload.dateEnd ? ` — ${escapeHtml(payload.dateEnd)}` : ''}</p>
         <div class="chip-row">
+          ${matchChip}
           ${skills.map((skill) => `<span class="chip active">${escapeHtml(skill)}</span>`).join('')}
         </div>
       </div>
@@ -320,16 +343,70 @@
     return article;
   }
 
+  function updatePageUrl() {
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('page', String(currentPage));
+    if (profileId) nextUrl.searchParams.set('profileId', profileId);
+    window.history.replaceState({}, '', nextUrl);
+  }
+
+  function updatePaginationControls() {
+    const totalPages = Math.max(1, Math.ceil(rankedTasks.length / PAGE_SIZE));
+    const pageStart = (currentPage - 1) * PAGE_SIZE;
+    const renderedCount = Math.min(visibleLimit, Math.max(rankedTasks.length - pageStart, 0));
+    showMoreButton.style.display = visibleLimit < PAGE_SIZE && pageStart + visibleLimit < rankedTasks.length ? 'inline-flex' : 'none';
+    nextPageButton.style.display = currentPage < totalPages ? 'inline-flex' : 'none';
+    nextPageButton.textContent = `Страница ${currentPage + 1}`;
+    pageInfo.textContent = rankedTasks.length
+      ? `Показано ${renderedCount} из ${Math.min(PAGE_SIZE, rankedTasks.length - pageStart)} на странице ${currentPage} из ${totalPages}`
+      : '';
+  }
+
+  function renderCurrentTaskPage() {
+    const parent = document.querySelector('.tasks-panel');
+    if (!parent) return;
+    const totalPages = Math.max(1, Math.ceil(rankedTasks.length / PAGE_SIZE));
+    currentPage = Math.max(1, Math.min(currentPage, totalPages));
+    const pageStart = (currentPage - 1) * PAGE_SIZE;
+    const pageTasks = rankedTasks.slice(pageStart, pageStart + visibleLimit);
+
+    document.querySelectorAll('.task-item').forEach((card) => card.remove());
+    pageTasks.forEach((task) => parent.insertBefore(renderTaskCard(task), emptyState));
+    if (recommendationSessionId) {
+      document.querySelectorAll('.task-item[data-task-id]').forEach((card) => {
+        card.dataset.recommendationSessionId = recommendationSessionId;
+      });
+    }
+    taskCards = Array.from(document.querySelectorAll('.task-item'));
+    applyFilters();
+    observeTasks(taskCards);
+    updatePaginationControls();
+    updatePageUrl();
+  }
+
   async function loadTasksFromDb() {
     try {
-      const tasks = await helperaDb.listTasks();
-      if (!tasks.length) return;
-      const parent = document.querySelector('.tasks-panel');
-      if (!parent) return;
-      document.querySelectorAll('.task-item').forEach((card) => card.remove());
-      tasks.forEach((task) => parent.insertBefore(renderTaskCard(task), emptyState));
-      taskCards = Array.from(document.querySelectorAll('.task-item'));
-      applyFilters();
+      if (profileId && helperaDb.listRecommendedTasks) {
+        try {
+          const recommendations = await helperaDb.listRecommendedTasks(profileId, 600);
+          rankedTasks = recommendations.tasks || [];
+          recommendationSessionId = recommendations.recommendation_session_id || '';
+        } catch (error) {
+          console.warn('ML-рекомендации недоступны, показываем задачи из базы', error);
+        }
+      }
+      if (!rankedTasks.length) {
+        rankedTasks = (await helperaDb.listTasks()).map((task, index) => ({
+          ...task,
+          recommendation: {
+            rank: index + 1,
+            matchPercent: Math.max(55, 98 - index),
+            reason: 'Локальная оценка соответствия, ML API временно недоступно.'
+          }
+        }));
+      }
+      if (!rankedTasks.length) return;
+      renderCurrentTaskPage();
     } catch (error) {
       console.error('Не удалось загрузить задачи из Supabase', error);
     }
@@ -481,6 +558,16 @@
 
   applyButton.addEventListener('click', applyFilters);
   resetButton.addEventListener('click', resetAllFilters);
+  showMoreButton.addEventListener('click', () => {
+    visibleLimit = Math.min(PAGE_SIZE, visibleLimit + STEP_SIZE);
+    renderCurrentTaskPage();
+  });
+  nextPageButton.addEventListener('click', () => {
+    currentPage += 1;
+    visibleLimit = STEP_SIZE;
+    renderCurrentTaskPage();
+    window.scrollTo({ top: document.querySelector('.tasks-panel').offsetTop - 24, behavior: 'smooth' });
+  });
   searchInput.addEventListener('input', applyFilters);
   document.querySelectorAll('.dropdown input[type="checkbox"]').forEach(input => {
     input.addEventListener('change', applyFilters);
@@ -493,9 +580,11 @@
   // --- Event tracking ---
   const shownAt = {};
   const shownTimers = {};
+  let taskObserver = null;
 
   function observeTasks(cards) {
-    const observer = new IntersectionObserver((entries) => {
+    if (taskObserver) taskObserver.disconnect();
+    taskObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         const taskId = entry.target.dataset.taskId;
         if (!taskId) return;
@@ -507,7 +596,11 @@
               actorRole: 'volunteer',
               actorProfileId: profileId,
               taskId,
-              payload: { source: 'volunteer-tasks.html', rank: Array.from(document.querySelectorAll('.task-item')).indexOf(entry.target) }
+              payload: {
+                source: 'volunteer-tasks.html',
+                rank: entry.target.dataset.rank || Array.from(document.querySelectorAll('.task-item')).indexOf(entry.target),
+                recommendation_session_id: entry.target.dataset.recommendationSessionId || null
+              }
             }).catch(() => {});
           }, 1000);
         } else {
@@ -516,7 +609,7 @@
         }
       });
     }, { threshold: 0.5 });
-    cards.forEach((card) => { if (card.dataset.taskId) observer.observe(card); });
+    cards.forEach((card) => { if (card.dataset.taskId) taskObserver.observe(card); });
   }
 
   document.querySelector('.tasks-panel').addEventListener('click', (event) => {
@@ -537,9 +630,7 @@
     }).catch(() => {});
   });
 
-  loadTasksFromDb().then(() => {
-    observeTasks(Array.from(document.querySelectorAll('.task-item[data-task-id]')));
-  });
+  loadTasksFromDb();
 </script>
 
 </body>

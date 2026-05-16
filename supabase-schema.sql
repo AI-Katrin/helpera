@@ -825,3 +825,32 @@ drop policy if exists "Prototype read ml source events" on public.ml_source_even
 create policy "Prototype read ml source events" on public.ml_source_events for select using (true);
 drop policy if exists "Prototype write ml source events" on public.ml_source_events;
 create policy "Prototype write ml source events" on public.ml_source_events for all using (true) with check (true);
+
+-- Recommendation events: impressions, clicks, and other feedback for the ML pipeline
+create table if not exists public.recommendation_events (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null,
+  volunteer_id text not null,
+  task_id text,
+  event_type text not null,
+  rank integer,
+  ml_score double precision,
+  business_adjustment double precision,
+  final_score double precision,
+  match_percent integer,
+  model_name text,
+  schema_version text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists recommendation_events_volunteer_id_idx on public.recommendation_events(volunteer_id);
+create index if not exists recommendation_events_task_id_idx on public.recommendation_events(task_id);
+create index if not exists recommendation_events_session_id_idx on public.recommendation_events(session_id);
+create index if not exists recommendation_events_created_at_idx on public.recommendation_events(created_at);
+
+alter table public.recommendation_events enable row level security;
+
+drop policy if exists "Prototype read recommendation events" on public.recommendation_events;
+create policy "Prototype read recommendation events" on public.recommendation_events for select using (true);
+drop policy if exists "Prototype write recommendation events" on public.recommendation_events;
+create policy "Prototype write recommendation events" on public.recommendation_events for all using (true) with check (true);
