@@ -1,11 +1,12 @@
 import json
 import os
+import re
 import threading
 import time
 from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -270,6 +271,111 @@ def _supabase_insert(url, key, table, row):
         return False
 
 
+def _supabase_get_one(url, key, table, row_id, select="*"):
+    """GET a single row by id from Supabase."""
+    endpoint = (
+        f"{url.rstrip('/')}/rest/v1/{table}"
+        f"?id=eq.{quote(str(row_id))}&select={quote(select)}&limit=1"
+    )
+    req = Request(endpoint, headers={"apikey": key, "Authorization": f"Bearer {key}"}, method="GET")
+    try:
+        with urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data[0] if isinstance(data, list) and data else None
+    except Exception:
+        return None
+
+
+def _supabase_list(url, key, table, filters=None, select="*", limit=200, order=None):
+    """GET list from Supabase using PostgREST filter format.
+
+    filters: list of strings in PostgREST notation, e.g. ["status=eq.published"].
+    """
+    parts = [f"select={quote(select)}", f"limit={limit}"]
+    if filters:
+        parts.extend(filters)
+    if order:
+        parts.append(f"order={quote(order)}")
+    endpoint = f"{url.rstrip('/')}/rest/v1/{table}?" + "&".join(parts)
+    req = Request(endpoint, headers={"apikey": key, "Authorization": f"Bearer {key}"}, method="GET")
+    try:
+        with urlopen(req, timeout=30) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return []
+
+
+def _supabase_insert_repr(url, key, table, row):
+    """INSERT row and return the created record."""
+    endpoint = f"{url.rstrip('/')}/rest/v1/{table}"
+    payload = json.dumps(row, ensure_ascii=False).encode("utf-8")
+    req = Request(
+        endpoint,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Prefer": "return=representation",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data[0] if isinstance(data, list) and data else data
+    except Exception:
+        return None
+
+
+def _supabase_patch_repr(url, key, table, row_id, patch):
+    """PATCH row by id and return the updated record."""
+    endpoint = f"{url.rstrip('/')}/rest/v1/{table}?id=eq.{quote(str(row_id))}"
+    payload = json.dumps(patch, ensure_ascii=False).encode("utf-8")
+    req = Request(
+        endpoint,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Prefer": "return=representation",
+        },
+        method="PATCH",
+    )
+    try:
+        with urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data[0] if isinstance(data, list) and data else data
+    except Exception:
+        return None
+
+
+def read_json_body(handler, max_size=64 * 1024):
+    """Read and parse JSON body from an HTTP request. Returns (data, None, None) or (None, status, error_body)."""
+    try:
+        length = int(handler.headers.get("Content-Length", "0"))
+        if length > max_size:
+            return None, 413, {"error": "Слишком большой запрос"}
+        body = handler.rfile.read(length).decode("utf-8") if length > 0 else ""
+        return json.loads(body or "{}"), None, None
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        return None, 400, {"error": "Некорректный JSON"}
+
+
+def _sb_guard(handler):
+    """Return (url, key) if Supabase is configured; otherwise send 503 and return (None, None)."""
+    url = _OAUTH_SUPABASE_URL
+    key = _OAUTH_SUPABASE_KEY
+    if not url or not key:
+        json_response(
+            handler, 503,
+            {"error": "Supabase не настроен. Задайте HELPERA_SUPABASE_URL и HELPERA_SUPABASE_ANON_KEY в .env.local"}
+        )
+        return None, None
+    return url, key
+
+
 def run_expire_tasks(supabase_url, supabase_key):
     """
     Автозакрытие задач: снимает с публикации задачи, у которых дедлайн прошёл.
@@ -417,6 +523,68 @@ class HelperaHandler(SimpleHTTPRequestHandler):
             json_response(self, status_code, payload)
             return
 
+        if parsed.path == "/api/health":
+            json_response(self, 200, {"status": "ok"})
+            return
+
+        # GET /api/volunteers/{id}
+        m = re.match(r"^/api/volunteers/([^/]+)$", parsed.path)
+        if m:
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            row = _supabase_get_one(sb_url, sb_key, "volunteer_profiles", m.group(1))
+            json_response(self, 200 if row else 404, row or {"error": "Волонтёр не найден"})
+            return
+
+        # GET /api/ngos/{id}
+        m = re.match(r"^/api/ngos/([^/]+)$", parsed.path)
+        if m:
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            row = _supabase_get_one(sb_url, sb_key, "ngo_profiles", m.group(1))
+            json_response(self, 200 if row else 404, row or {"error": "НКО не найдена"})
+            return
+
+        # GET /api/tasks  (list)
+        if parsed.path == "/api/tasks":
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            rows = _supabase_list(
+                sb_url, sb_key, "tasks",
+                filters=["status=eq.published"],
+                select="*,ngo_profiles(org_name,about,contacts)",
+                limit=200,
+                order="created_at.desc",
+            )
+            json_response(self, 200, rows)
+            return
+
+        # GET /api/tasks/{id}
+        m = re.match(r"^/api/tasks/([^/]+)$", parsed.path)
+        if m:
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            row = _supabase_get_one(
+                sb_url, sb_key, "tasks", m.group(1),
+                select="*,ngo_profiles(org_name,about,contacts)",
+            )
+            json_response(self, 200 if row else 404, row or {"error": "Задача не найдена"})
+            return
+
+        # GET /api/applications/{id}
+        m = re.match(r"^/api/applications/([^/]+)$", parsed.path)
+        if m:
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            row = _supabase_get_one(sb_url, sb_key, "applications", m.group(1))
+            json_response(self, 200 if row else 404, row or {"error": "Заявка не найдена"})
+            return
+
         super().do_GET()
 
     def do_POST(self):
@@ -440,6 +608,112 @@ class HelperaHandler(SimpleHTTPRequestHandler):
                 body = b""
             status_code, payload = task_duplicate_check_response(body)
             json_response(self, status_code, payload)
+            return
+
+        # POST /api/volunteers
+        if parsed.path == "/api/volunteers":
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_insert_repr(sb_url, sb_key, "volunteer_profiles", data)
+            json_response(self, 201 if row else 500, row or {"error": "Не удалось создать профиль волонтёра"})
+            return
+
+        # POST /api/ngos
+        if parsed.path == "/api/ngos":
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_insert_repr(sb_url, sb_key, "ngo_profiles", data)
+            json_response(self, 201 if row else 500, row or {"error": "Не удалось создать профиль НКО"})
+            return
+
+        # POST /api/tasks
+        if parsed.path == "/api/tasks":
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_insert_repr(sb_url, sb_key, "tasks", data)
+            json_response(self, 201 if row else 500, row or {"error": "Не удалось создать задачу"})
+            return
+
+        # POST /api/applications
+        if parsed.path == "/api/applications":
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_insert_repr(sb_url, sb_key, "applications", data)
+            json_response(self, 201 if row else 500, row or {"error": "Не удалось создать заявку"})
+            return
+
+        # POST /api/applications/{id}/(accept|reject|complete)
+        m = re.match(r"^/api/applications/([^/]+)/(accept|reject|complete)$", parsed.path)
+        if m:
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            aid, action = m.group(1), m.group(2)
+            status_map = {"accept": "invite", "reject": "rejected", "complete": "done"}
+            row = _supabase_patch_repr(sb_url, sb_key, "applications", aid, {"status": status_map[action]})
+            json_response(self, 200 if row else 404, row or {"error": "Заявка не найдена"})
+            return
+
+        # POST /api/reviews  — review stored in application payload
+        if parsed.path == "/api/reviews":
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            application_id = data.get("application_id")
+            if not application_id:
+                json_response(self, 422, {"error": "application_id обязателен"})
+                return
+            app_row = _supabase_get_one(sb_url, sb_key, "applications", application_id)
+            if app_row is None:
+                json_response(self, 404, {"error": "Заявка не найдена"})
+                return
+            app_payload = dict(app_row.get("payload") or {})
+            reviews = dict(app_payload.get("reviews") or {})
+            actor_role = data.get("actor_role", "volunteer")
+            reviews[actor_role] = data.get("review") or {}
+            app_payload["reviews"] = reviews
+            updated = _supabase_patch_repr(
+                sb_url, sb_key, "applications", application_id,
+                {"payload": app_payload, "status": "done"},
+            )
+            json_response(self, 201 if updated else 500, updated or {"error": "Не удалось сохранить отзыв"})
+            return
+
+        # POST /api/events
+        if parsed.path == "/api/events":
+            sb_url, sb_key = _sb_guard(self)
+            if not sb_url:
+                return
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_insert_repr(sb_url, sb_key, "app_events", data)
+            json_response(self, 201 if row else 500, row or {"error": "Не удалось записать событие"})
             return
 
         if parsed.path != "/api/ai/task":
@@ -467,6 +741,59 @@ class HelperaHandler(SimpleHTTPRequestHandler):
         json_response(self, status_code, payload)
 
 
+    def do_PATCH(self):
+        parsed = urlparse(self.path)
+        sb_url, sb_key = _sb_guard(self)
+        if not sb_url:
+            return
+
+        # PATCH /api/volunteers/{id}
+        m = re.match(r"^/api/volunteers/([^/]+)$", parsed.path)
+        if m:
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_patch_repr(sb_url, sb_key, "volunteer_profiles", m.group(1), data)
+            json_response(self, 200 if row else 404, row or {"error": "Волонтёр не найден"})
+            return
+
+        # PATCH /api/ngos/{id}
+        m = re.match(r"^/api/ngos/([^/]+)$", parsed.path)
+        if m:
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_patch_repr(sb_url, sb_key, "ngo_profiles", m.group(1), data)
+            json_response(self, 200 if row else 404, row or {"error": "НКО не найдена"})
+            return
+
+        # PATCH /api/tasks/{id}
+        m = re.match(r"^/api/tasks/([^/]+)$", parsed.path)
+        if m:
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_patch_repr(sb_url, sb_key, "tasks", m.group(1), data)
+            json_response(self, 200 if row else 404, row or {"error": "Задача не найдена"})
+            return
+
+        # PATCH /api/applications/{id}
+        m = re.match(r"^/api/applications/([^/]+)$", parsed.path)
+        if m:
+            data, err_code, err_body = read_json_body(self)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            row = _supabase_patch_repr(sb_url, sb_key, "applications", m.group(1), data)
+            json_response(self, 200 if row else 404, row or {"error": "Заявка не найдена"})
+            return
+
+        json_response(self, 404, {"error": "Endpoint не найден"})
+
+
 if __name__ == "__main__":
     _supabase_url = os.environ.get("HELPERA_SUPABASE_URL") or os.environ.get("SUPABASE_URL", "")
     _supabase_key = (
@@ -488,7 +815,8 @@ if __name__ == "__main__":
     )
     bg.start()
 
-    server = ThreadingHTTPServer(("localhost", PORT), HelperaHandler)
+    host = os.environ.get("HOST", "0.0.0.0")
+    server = ThreadingHTTPServer((host, PORT), HelperaHandler)
     print(f"Helpera is running at http://localhost:{PORT}")
     print(f"YANDEX_CLOUD_FOLDER: {'set' if YANDEX_FOLDER else 'missing'}")
     print(f"YANDEX_CLOUD_API_KEY: {'set' if YANDEX_API_KEY else 'missing'}")

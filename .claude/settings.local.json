@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(curl -s -X POST http://localhost:3000/api/recommendations/events -H 'Content-Type: application/json' -d '{\"event_type\":\"click\",\"task_id\":\"task-test-123\",\"volunteer_id\":\"vol-test-456\"}')",
-      "Bash(curl -s -X POST http://localhost:3000/api/recommendations/events -H 'Content-Type: application/json' -d '{\"event_type\":\"click\"}')"
+      "Bash(curl -s -X POST http://localhost:3000/api/recommendations/events -H 'Content-Type: application/json' -d '{\"event_type\":\"click\"}')",
+      "Bash(grep -E '\\\\.\\(py|js|ts|html|yaml|yml|json\\)$')",
+      "Bash(python3 -c \"import server\")",
+      "Bash(python3 server.py)",
+      "Bash(xargs kill -9)",
+      "Bash(python3 /Users/Admin/helpera_project/server.py)",
+      "Bash(curl -s http://localhost:3000/api/health)"
     ]
   }
 }

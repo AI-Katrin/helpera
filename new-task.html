@@ -365,18 +365,18 @@
     const title = document.getElementById('taskTitle').value.trim();
     const currentDesc = taskDesc.value.trim();
     const userHint = aiPrompt.value.trim();
-    const systemPrompt = style || 'Составь понятное и краткое описание задачи для волонтёра на платформе НКО. Опиши цель, ожидаемый результат и почему это важно. До 200 слов.';
-    const userContent = [
-      title ? `Название: ${title}` : '',
-      currentDesc ? `Текущее описание: ${currentDesc}` : '',
-      userHint ? `Пожелание: ${userHint}` : ''
-    ].filter(Boolean).join('\n') || 'Создай общее описание задачи для волонтёра НКО.';
+    const styleHint = style || 'ясный и дружелюбный';
 
     try {
-      const res = await fetch('/api/ai', {
+      const res = await fetch('/api/ai/task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt, userContent })
+        body: JSON.stringify({
+          action: 'draft',
+          task: { title, description: currentDesc },
+          prompt: userHint,
+          options: { style: styleHint }
+        })
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();

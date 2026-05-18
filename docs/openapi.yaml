@@ -1,0 +1,1179 @@
+openapi: 3.0.3
+info:
+  title: Helpera API
+  version: 1.1.0
+  description: HTTP API exposed by server.py. Supabase-backed endpoints require HELPERA_SUPABASE_URL and HELPERA_SUPABASE_ANON_KEY to be configured.
+  contact:
+    name: Helpera
+    url: https://github.com/helpera
+servers:
+  - url: http://localhost:3000
+    description: Local development
+tags:
+  - name: Health
+  - name: Volunteers
+  - name: NGOs
+  - name: Tasks
+  - name: Applications
+  - name: Reviews
+  - name: Events
+  - name: Recommendations
+  - name: AI
+  - name: OAuth
+
+paths:
+  # ── Health ─────────────────────────────────────────────────────────────────
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Overall server health
+      operationId: getHealth
+      responses:
+        "200":
+          description: Server is running.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/recommendations/health:
+    get:
+      tags: [Health, Recommendations]
+      summary: ML recommendation model health
+      operationId: getRecommendationHealth
+      responses:
+        "200":
+          description: Model health status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationHealth"
+
+  # ── Volunteers ─────────────────────────────────────────────────────────────
+  /api/volunteers:
+    post:
+      tags: [Volunteers]
+      summary: Create volunteer profile
+      operationId: createVolunteer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerInput"
+      responses:
+        "201":
+          description: Created volunteer profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/volunteers/{volunteer_id}:
+    get:
+      tags: [Volunteers]
+      summary: Get volunteer profile by id
+      operationId: getVolunteer
+      parameters:
+        - $ref: "#/components/parameters/VolunteerId"
+      responses:
+        "200":
+          description: Volunteer profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerProfile"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    patch:
+      tags: [Volunteers]
+      summary: Update volunteer profile
+      operationId: updateVolunteer
+      parameters:
+        - $ref: "#/components/parameters/VolunteerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerInput"
+      responses:
+        "200":
+          description: Updated volunteer profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ── NGOs ───────────────────────────────────────────────────────────────────
+  /api/ngos:
+    post:
+      tags: [NGOs]
+      summary: Create NGO profile
+      operationId: createNgo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NgoInput"
+      responses:
+        "201":
+          description: Created NGO profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NgoProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/ngos/{ngo_id}:
+    get:
+      tags: [NGOs]
+      summary: Get NGO profile by id
+      operationId: getNgo
+      parameters:
+        - $ref: "#/components/parameters/NgoId"
+      responses:
+        "200":
+          description: NGO profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NgoProfile"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    patch:
+      tags: [NGOs]
+      summary: Update NGO profile
+      operationId: updateNgo
+      parameters:
+        - $ref: "#/components/parameters/NgoId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NgoInput"
+      responses:
+        "200":
+          description: Updated NGO profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NgoProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ── Tasks ──────────────────────────────────────────────────────────────────
+  /api/tasks:
+    get:
+      tags: [Tasks]
+      summary: List published tasks
+      operationId: listTasks
+      responses:
+        "200":
+          description: Array of tasks with embedded NGO profile info.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    post:
+      tags: [Tasks]
+      summary: Create task
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Created task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/tasks/check-duplicate:
+    post:
+      tags: [Tasks]
+      summary: Check whether a task looks like a duplicate
+      operationId: checkTaskDuplicate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskDuplicateCheckRequest"
+      responses:
+        "200":
+          description: Duplicate check result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskDuplicateCheckResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/tasks/{task_id}:
+    get:
+      tags: [Tasks]
+      summary: Get task by id
+      operationId: getTask
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Task with embedded NGO profile info.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    patch:
+      tags: [Tasks]
+      summary: Update task
+      operationId: updateTask
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "200":
+          description: Updated task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ── Applications ───────────────────────────────────────────────────────────
+  /api/applications:
+    post:
+      tags: [Applications]
+      summary: Create application (volunteer applies to task)
+      operationId: createApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationInput"
+      responses:
+        "201":
+          description: Created application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}:
+    get:
+      tags: [Applications]
+      summary: Get application by id
+      operationId: getApplication
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Application record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    patch:
+      tags: [Applications]
+      summary: Update application fields
+      operationId: updateApplication
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationInput"
+      responses:
+        "200":
+          description: Updated application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}/accept:
+    post:
+      tags: [Applications]
+      summary: Accept application (status → invite)
+      operationId: acceptApplication
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Updated application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}/reject:
+    post:
+      tags: [Applications]
+      summary: Reject application (status → rejected)
+      operationId: rejectApplication
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Updated application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}/complete:
+    post:
+      tags: [Applications]
+      summary: Complete application (status → done)
+      operationId: completeApplication
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Updated application.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ── Reviews ────────────────────────────────────────────────────────────────
+  /api/reviews:
+    post:
+      tags: [Reviews]
+      summary: Submit a review for a completed application
+      description: |
+        Reviews are stored inside `applications.payload.reviews[actor_role]`.
+        Submitting a review also transitions the application status to `done`.
+      operationId: createReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Updated application with review saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ── Events ─────────────────────────────────────────────────────────────────
+  /api/events:
+    post:
+      tags: [Events]
+      summary: Log an application event
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: Created event record.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppEvent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ── Recommendations ────────────────────────────────────────────────────────
+  /api/recommendations/volunteers/{volunteer_id}:
+    get:
+      tags: [Recommendations]
+      summary: Get ML task recommendations for a volunteer
+      operationId: getVolunteerRecommendations
+      parameters:
+        - $ref: "#/components/parameters/VolunteerId"
+        - name: k
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+          description: Number of recommendations to return.
+        - name: hidden
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated task ids to exclude from the response.
+      responses:
+        "200":
+          description: Recommendation response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "503":
+          description: Recommendation model artifact is not available.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/recommendations/events:
+    post:
+      tags: [Recommendations]
+      summary: Record a recommendation interaction event
+      operationId: recordRecommendationEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecommendationEventRequest"
+      responses:
+        "200":
+          description: Event accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  # ── AI ─────────────────────────────────────────────────────────────────────
+  /api/ai/task:
+    post:
+      tags: [AI]
+      summary: Generate or improve task description with Yandex AI
+      operationId: generateTaskText
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AITaskRequest"
+      responses:
+        "200":
+          description: Generated text.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AITaskResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          description: Request body is too large.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Yandex AI credentials are not configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Yandex AI returned an empty response or could not be reached.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── OAuth ──────────────────────────────────────────────────────────────────
+  /auth/vk/start:
+    get:
+      tags: [OAuth]
+      summary: Start VK OAuth flow
+      operationId: startVkOAuth
+      parameters:
+        - $ref: "#/components/parameters/Role"
+      responses:
+        "302":
+          description: Redirect to VK OAuth authorization page.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /auth/yandex/start:
+    get:
+      tags: [OAuth]
+      summary: Start Yandex OAuth flow
+      operationId: startYandexOAuth
+      parameters:
+        - $ref: "#/components/parameters/Role"
+      responses:
+        "302":
+          description: Redirect to Yandex OAuth authorization page.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /auth/vk/callback:
+    get:
+      tags: [OAuth]
+      summary: Handle VK OAuth callback
+      operationId: handleVkOAuthCallback
+      parameters:
+        - $ref: "#/components/parameters/OAuthCode"
+        - $ref: "#/components/parameters/OAuthState"
+        - $ref: "#/components/parameters/OAuthError"
+      responses:
+        "302":
+          description: Redirect to auth-callback.html with tokens or error.
+          headers:
+            Location:
+              schema:
+                type: string
+
+  /auth/yandex/callback:
+    get:
+      tags: [OAuth]
+      summary: Handle Yandex OAuth callback
+      operationId: handleYandexOAuthCallback
+      parameters:
+        - $ref: "#/components/parameters/OAuthCode"
+        - $ref: "#/components/parameters/OAuthState"
+        - $ref: "#/components/parameters/OAuthError"
+      responses:
+        "302":
+          description: Redirect to auth-callback.html with tokens or error.
+          headers:
+            Location:
+              schema:
+                type: string
+
+components:
+  # ── Parameters ─────────────────────────────────────────────────────────────
+  parameters:
+    VolunteerId:
+      name: volunteer_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    NgoId:
+      name: ngo_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TaskId:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ApplicationId:
+      name: application_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Role:
+      name: role
+      in: query
+      required: false
+      schema:
+        type: string
+        default: volunteer
+        enum: [volunteer, ngo]
+      description: User role to preserve through the OAuth flow.
+    OAuthCode:
+      name: code
+      in: query
+      required: false
+      schema:
+        type: string
+    OAuthState:
+      name: state
+      in: query
+      required: false
+      schema:
+        type: string
+    OAuthError:
+      name: error
+      in: query
+      required: false
+      schema:
+        type: string
+
+  # ── Responses ──────────────────────────────────────────────────────────────
+  responses:
+    BadRequest:
+      description: Request body is not valid JSON.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    UnprocessableEntity:
+      description: Required fields are missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    SupabaseUnavailable:
+      description: Supabase is not configured or unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Schemas ────────────────────────────────────────────────────────────────
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          example: true
+
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+
+    # ── Volunteer ─────────────────────────────────────────────────────────────
+    VolunteerInput:
+      type: object
+      additionalProperties: true
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        contact:
+          type: string
+        registration_step:
+          type: string
+        account:
+          type: object
+          additionalProperties: true
+        about:
+          type: object
+          additionalProperties: true
+        skills:
+          type: object
+          additionalProperties: true
+        interests:
+          type: object
+          additionalProperties: true
+        notifications:
+          type: object
+          additionalProperties: true
+
+    VolunteerProfile:
+      allOf:
+        - $ref: "#/components/schemas/VolunteerInput"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+
+    # ── NGO ───────────────────────────────────────────────────────────────────
+    NgoInput:
+      type: object
+      additionalProperties: true
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        org_name:
+          type: string
+        contact:
+          type: string
+        registration_step:
+          type: string
+        account:
+          type: object
+          additionalProperties: true
+        about:
+          type: object
+          additionalProperties: true
+        contacts:
+          type: object
+          additionalProperties: true
+        first_task:
+          type: object
+          additionalProperties: true
+
+    NgoProfile:
+      allOf:
+        - $ref: "#/components/schemas/NgoInput"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+
+    # ── Task ──────────────────────────────────────────────────────────────────
+    TaskInput:
+      type: object
+      additionalProperties: true
+      properties:
+        ngo_profile_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        format:
+          type: string
+        skills:
+          type: string
+        date_start:
+          type: string
+          format: date
+          nullable: true
+        date_end:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum: [published, closed, draft]
+          default: published
+        payload:
+          type: object
+          additionalProperties: true
+
+    Task:
+      allOf:
+        - $ref: "#/components/schemas/TaskInput"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+            ngo_profiles:
+              type: object
+              nullable: true
+              description: Embedded NGO profile (org_name, about, contacts).
+              additionalProperties: true
+
+    # ── Application ───────────────────────────────────────────────────────────
+    ApplicationInput:
+      type: object
+      additionalProperties: true
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        volunteer_profile_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [draft, review, invite, rejected, done]
+          default: review
+        payload:
+          type: object
+          additionalProperties: true
+
+    Application:
+      allOf:
+        - $ref: "#/components/schemas/ApplicationInput"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+
+    # ── Review ────────────────────────────────────────────────────────────────
+    ReviewInput:
+      type: object
+      required: [application_id]
+      properties:
+        application_id:
+          type: string
+          format: uuid
+        actor_role:
+          type: string
+          enum: [volunteer, ngo]
+          default: volunteer
+        review:
+          type: object
+          additionalProperties: true
+          description: Arbitrary review data (ratings, comment, etc.).
+
+    # ── Event ─────────────────────────────────────────────────────────────────
+    EventInput:
+      type: object
+      required: [event_type]
+      properties:
+        event_type:
+          type: string
+        actor_role:
+          type: string
+          nullable: true
+        actor_profile_id:
+          type: string
+          format: uuid
+          nullable: true
+        application_id:
+          type: string
+          format: uuid
+          nullable: true
+        task_id:
+          type: string
+          format: uuid
+          nullable: true
+        payload:
+          type: object
+          additionalProperties: true
+
+    AppEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventInput"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+
+    # ── Recommendations ───────────────────────────────────────────────────────
+    RecommendationHealth:
+      type: object
+      required: [status, model_loaded, model_name, variant_name, schema_version, feature_count, artifact_path]
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
+        model_loaded:
+          type: boolean
+        model_name:
+          type: string
+        variant_name:
+          type: string
+        schema_version:
+          type: string
+        feature_count:
+          type: integer
+        artifact_path:
+          type: string
+        error:
+          type: string
+
+    RecommendationResponse:
+      type: object
+      required: [volunteer_id, k, model_name, variant_name, schema_version, recommendation_session_id, items]
+      properties:
+        volunteer_id:
+          type: string
+        k:
+          type: integer
+        model_name:
+          type: string
+        variant_name:
+          type: string
+        schema_version:
+          type: string
+        recommendation_session_id:
+          type: string
+          format: uuid
+        fallback_mode:
+          type: string
+          nullable: true
+          enum: [relaxed_diversity, no_tasks]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecommendedTask"
+
+    RecommendedTask:
+      type: object
+      required:
+        - rank
+        - task_id
+        - ngo_id
+        - title
+        - about_task
+        - work_to_do
+        - useful_skills
+        - direction_work
+        - region
+        - date_start
+        - date_end
+        - participation_type
+        - ngo_name
+        - ml_score
+        - linucb_bonus
+        - business_adjustment
+        - final_score
+        - match_percent
+        - reason
+        - payload
+      properties:
+        rank:
+          type: integer
+        task_id:
+          type: string
+        ngo_id:
+          type: string
+        title:
+          type: string
+        about_task:
+          type: string
+        work_to_do:
+          type: string
+        useful_skills:
+          type: string
+        direction_work:
+          type: string
+        region:
+          type: string
+        date_start:
+          type: string
+        date_end:
+          type: string
+        participation_type:
+          type: string
+        ngo_name:
+          type: string
+        ml_score:
+          type: number
+          format: float
+        linucb_bonus:
+          type: number
+          format: float
+        business_adjustment:
+          type: number
+          format: float
+        final_score:
+          type: number
+          format: float
+        match_percent:
+          type: integer
+          minimum: 1
+          maximum: 98
+        reason:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+
+    RecommendationEventRequest:
+      type: object
+      required: [event_type, task_id, volunteer_id]
+      properties:
+        event_type:
+          type: string
+          example: click
+        task_id:
+          type: string
+        volunteer_id:
+          type: string
+
+    # ── Task duplicate check ───────────────────────────────────────────────────
+    TaskDuplicateCheckRequest:
+      type: object
+      required: [task]
+      properties:
+        task:
+          $ref: "#/components/schemas/TaskInput"
+        ngo_id:
+          type: string
+          description: Optional NGO id. Existing tasks from this NGO are skipped.
+
+    TaskDuplicateCheckResponse:
+      type: object
+      required: [is_duplicate, similarity, most_similar_task_id, most_similar_score]
+      properties:
+        is_duplicate:
+          type: boolean
+        similarity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        most_similar_task_id:
+          type: string
+          nullable: true
+        most_similar_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    # ── AI ────────────────────────────────────────────────────────────────────
+    AITaskRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [draft, transform]
+          default: transform
+        task:
+          $ref: "#/components/schemas/TaskInput"
+        prompt:
+          type: string
+          maxLength: 500
+        options:
+          type: object
+          properties:
+            temperature:
+              type: number
+              minimum: 0
+              maximum: 1
+              default: 0.3
+            maxOutputTokens:
+              type: integer
+              minimum: 150
+              maximum: 900
+              default: 500
+            style:
+              type: string
+              maxLength: 300
+
+    AITaskResponse:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
