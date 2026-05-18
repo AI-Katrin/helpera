@@ -47,8 +47,10 @@ def recommendations_for_path(path):
         return 422, {"error": "Query parameter k must be an integer."}
     if not volunteer_id:
         return 422, {"error": "volunteer_id is required."}
+    hidden_raw = query.get("hidden", [""])[0] or ""
+    hidden_task_ids = {tid.strip() for tid in hidden_raw.split(",") if tid.strip()}
     try:
-        response = _get_service().recommend_for_volunteer(volunteer_id, k)
+        response = _get_service().recommend_for_volunteer(volunteer_id, k, hidden_task_ids=hidden_task_ids)
         return 200, response.to_dict()
     except VolunteerNotFound as error:
         return 404, {"error": str(error)}

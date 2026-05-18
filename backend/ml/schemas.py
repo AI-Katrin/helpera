@@ -17,6 +17,7 @@ class RecommendedTask:
     participation_type: str
     ngo_name: str
     ml_score: float
+    linucb_bonus: float
     business_adjustment: float
     final_score: float
     match_percent: int

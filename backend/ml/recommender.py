@@ -62,13 +62,15 @@ class RecommendationService:
     def __init__(self, repository=None):
         self.repository = repository or CsvRecommendationRepository()
 
-    def recommend_for_volunteer(self, volunteer_id, k=DEFAULT_TOP_K):
+    def recommend_for_volunteer(self, volunteer_id, k=DEFAULT_TOP_K, hidden_task_ids=None):
         k = max(1, min(int(k or DEFAULT_TOP_K), MAX_TOP_K))
         volunteer = self.repository.get_volunteer(volunteer_id)
         if not volunteer:
             raise VolunteerNotFound(f"Volunteer not found: {volunteer_id}")
 
         all_tasks = self.repository.get_candidate_tasks(volunteer_id)
+        if hidden_task_ids:
+            all_tasks = [t for t in all_tasks if t.get("task_id") not in hidden_task_ids]
         if not all_tasks:
             return self._response(volunteer_id, k, [], None)
 
@@ -116,11 +118,12 @@ class RecommendationService:
             row["cold_start_task"] = is_cold_task
             row["business_adjustment"] = business_adjustment(row)
             # Для cold-start волонтёра: score_cold_start уже включает UCB-бонус
-            row["final_score"] = (
-                ml_score + row["business_adjustment"]
-                if is_cold_volunteer
-                else ml_score + linucb_bonus + row["business_adjustment"]
-            )
+            if is_cold_volunteer:
+                row["linucb_bonus"] = 0.0
+                row["final_score"] = ml_score + row["business_adjustment"]
+            else:
+                row["linucb_bonus"] = linucb_bonus
+                row["final_score"] = ml_score + linucb_bonus + row["business_adjustment"]
             row["reason"] = make_recommendation_reason(row)
             ranked.append(row)
 
@@ -157,6 +160,7 @@ class RecommendationService:
                     participation_type=task.get("participation_type") or task.get("format") or "",
                     ngo_name=task.get("ngo_name") or "НКО",
                     ml_score=round(row["ml_score"], 6),
+                    linucb_bonus=round(row.get("linucb_bonus", 0.0), 6),
                     business_adjustment=round(row["business_adjustment"], 6),
                     final_score=round(row["final_score"], 6),
                     match_percent=row["match_percent"],

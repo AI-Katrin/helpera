@@ -128,6 +128,7 @@ def build_pair_features(volunteer, task, ngo, embedding_sim=0.0, cold_start_task
         "ngo_slow_response_flag": int(safe_int(ngo.get("avg_response_time_hours"), 24) > 72),
         "ngo_complaint_flag": int(safe_float(ngo.get("complaint_rate")) > 0.18),
         "ngo_low_reliability_flag": int(safe_float(ngo.get("ngo_reliability_score"), 0.5) < 0.55),
+        "vol_format_norm": vol_format,
         "cold_start_volunteer": int(safe_float(volunteer.get("profile_completeness"), 0.5) < COLD_START_THRESH),
         "cold_start_task": cold_start_task,
         "exploration_slot": int((safe_int(task.get("current_applications")) == 0) and (stable_bucket(task.get("task_id"), 10) == 0)),

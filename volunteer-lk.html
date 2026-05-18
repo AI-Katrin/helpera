@@ -250,6 +250,16 @@
 
     async function initProfilePage() {
       if (!profileId) {
+        if (helperaDb.client) {
+          const session = await helperaDb.getAuthSession();
+          if (!session) {
+            window.location.href = 'login.html';
+            return;
+          }
+        } else {
+          window.location.href = 'login.html';
+          return;
+        }
         document.getElementById('profile-name').textContent = 'Профиль не выбран';
         document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Сначала завершите регистрацию волонтёра.</p>';
         return;

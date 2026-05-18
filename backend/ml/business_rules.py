@@ -15,6 +15,10 @@ def is_eligible(row):
         return 0
     if safe_int(row.get("task_is_full"), 0):
         return 0
+    # Жёсткий фильтр: волонтёр с явным форматом + офлайн-задача в другом регионе
+    vol_fmt = str(row.get("vol_format_norm") or "").strip()
+    if vol_fmt and not safe_int(row.get("city_match"), 1) and not safe_int(row.get("format_match"), 1):
+        return 0
     return 1
 
 
