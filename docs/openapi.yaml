@@ -5,8 +5,12 @@ info:
   description: HTTP API exposed by server.py. Supabase-backed endpoints require HELPERA_SUPABASE_URL and HELPERA_SUPABASE_ANON_KEY to be configured.
   contact:
     name: Helpera
-    url: https://github.com/helpera
+    url: https://github.com/AI-Katrin/helpera
 servers:
+  - url: https://helpera.ru
+    description: Production
+  - url: https://web-production-24e49.up.railway.app
+    description: Railway (fallback)
   - url: http://localhost:3000
     description: Local development
 tags:
@@ -759,7 +763,6 @@ components:
     # ── Volunteer ─────────────────────────────────────────────────────────────
     VolunteerInput:
       type: object
-      additionalProperties: true
       properties:
         user_id:
           type: string
@@ -767,23 +770,41 @@ components:
           nullable: true
         contact:
           type: string
+          example: anna@example.ru
         registration_step:
           type: string
+          example: completed
         account:
           type: object
           additionalProperties: true
+          example:
+            firstName: Анна
+            lastName: Иванова
+            city: Москва
         about:
           type: object
           additionalProperties: true
+          example:
+            bio: Помогаю животным уже 3 года
+            motivation: Хочу делать мир лучше
         skills:
           type: object
           additionalProperties: true
+          example:
+            helpSkills: [Фотография, SMM]
+            languages: [Русский, Английский]
         interests:
           type: object
           additionalProperties: true
+          example:
+            tasks: [Животные, Экология]
+            formats: [Онлайн]
         notifications:
           type: object
           additionalProperties: true
+          example:
+            email: true
+            push: false
 
     VolunteerProfile:
       allOf:
@@ -801,7 +822,6 @@ components:
     # ── NGO ───────────────────────────────────────────────────────────────────
     NgoInput:
       type: object
-      additionalProperties: true
       properties:
         user_id:
           type: string
@@ -809,22 +829,37 @@ components:
           nullable: true
         org_name:
           type: string
+          example: Фонд помощи детям
         contact:
           type: string
+          example: info@fond.ru
         registration_step:
           type: string
+          example: completed
         account:
           type: object
           additionalProperties: true
+          example:
+            orgName: Фонд помощи детям
+            city: Санкт-Петербург
         about:
           type: object
           additionalProperties: true
+          example:
+            mission: Помогаем детям в трудной жизненной ситуации
+            founded: "2010"
         contacts:
           type: object
           additionalProperties: true
+          example:
+            website: https://fond.ru
+            vk: https://vk.com/fond
         first_task:
           type: object
           additionalProperties: true
+          example:
+            title: Помощь с мероприятием
+            format: Оффлайн
 
     NgoProfile:
       allOf:
@@ -842,7 +877,6 @@ components:
     # ── Task ──────────────────────────────────────────────────────────────────
     TaskInput:
       type: object
-      additionalProperties: true
       properties:
         ngo_profile_id:
           type: string
@@ -870,6 +904,10 @@ components:
         payload:
           type: object
           additionalProperties: true
+          example:
+            volunteers_needed: 3
+            location: Парк Горького, Москва
+            contact_person: Мария Смирнова
 
     Task:
       allOf:
@@ -888,11 +926,16 @@ components:
               nullable: true
               description: Embedded NGO profile (org_name, about, contacts).
               additionalProperties: true
+              example:
+                org_name: Фонд помощи детям
+                about:
+                  mission: Помогаем детям в трудной жизненной ситуации
+                contacts:
+                  website: https://fond.ru
 
     # ── Application ───────────────────────────────────────────────────────────
     ApplicationInput:
       type: object
-      additionalProperties: true
       properties:
         task_id:
           type: string
@@ -907,6 +950,9 @@ components:
         payload:
           type: object
           additionalProperties: true
+          example:
+            cover_letter: Хочу помочь, у меня есть опыт в фотографии
+            available_dates: [2026-06-01, 2026-06-02]
 
     Application:
       allOf:
@@ -937,6 +983,10 @@ components:
           type: object
           additionalProperties: true
           description: Arbitrary review data (ratings, comment, etc.).
+          example:
+            rating: 5
+            comment: Отличный волонтёр, всё сделал вовремя
+            would_invite_again: true
 
     # ── Event ─────────────────────────────────────────────────────────────────
     EventInput:
@@ -963,6 +1013,9 @@ components:
         payload:
           type: object
           additionalProperties: true
+          example:
+            source: recommendation_feed
+            previous_status: invite
 
     AppEvent:
       allOf:
@@ -1097,6 +1150,9 @@ components:
         payload:
           type: object
           additionalProperties: true
+          example:
+            image_url: https://helpera.ru/img/task42.jpg
+            tags: [экология, парк]
 
     RecommendationEventRequest:
       type: object
