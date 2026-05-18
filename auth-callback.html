@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Helpera — Вход</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #F9FAFB;
+      font-family: 'Inter', sans-serif;
+      color: #111827;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #E5E7EB;
+      border-radius: 28px;
+      padding: 48px 40px;
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 36px;
+      text-decoration: none;
+      color: #111827;
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      background: #2E7D32;
+      border-radius: 10px;
+      display: inline-block;
+    }
+    .spinner-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid #E5E7EB;
+      border-top-color: #2E7D32;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status-text {
+      font-size: 16px;
+      color: #374151;
+      font-weight: 500;
+    }
+    .error-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .error-icon {
+      width: 48px;
+      height: 48px;
+      background: #FEF2F2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .error-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #991B1B;
+    }
+    .error-msg {
+      font-size: 14px;
+      color: #6B7280;
+      line-height: 1.5;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 12px 24px;
+      background: #2E7D32;
+      color: #fff;
+      border-radius: 14px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .back-link:hover { background: #256B2A; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <a class="brand" href="index.html">
+      <span class="brand-mark"></span>
+      <span>Helpera</span>
+    </a>
+
+    <div class="spinner-wrap" id="spinnerWrap">
+      <div class="spinner"></div>
+      <p class="status-text" id="statusText">Завершаем вход…</p>
+    </div>
+
+    <div class="error-wrap" id="errorWrap">
+      <div class="error-icon">✕</div>
+      <p class="error-title">Ошибка авторизации</p>
+      <p class="error-msg" id="errorMsg"></p>
+      <a class="back-link" href="login.html">Вернуться ко входу</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
+  <script>
+    (async function () {
+      const query = Object.fromEntries(new URLSearchParams(window.location.search));
+      const hash = Object.fromEntries(new URLSearchParams(window.location.hash.slice(1)));
+
+      function showError(msg) {
+        document.getElementById('spinnerWrap').style.display = 'none';
+        document.getElementById('errorMsg').textContent = msg;
+        document.getElementById('errorWrap').style.display = 'flex';
+      }
+
+      function setStatus(text) {
+        document.getElementById('statusText').textContent = text;
+      }
+
+      function redirectAfterAuth(role, isNew, profileId) {
+        const param = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
+        if (isNew) {
+          window.location.href = role === 'ngo' ? `ngo-about.html${param}` : `volunteer-about.html${param}`;
+        } else {
+          window.location.href = role === 'ngo' ? `ngo-lk.html${param}` : `volunteer-lk.html${param}`;
+        }
+      }
+
+      // Error from OAuth provider
+      if (query.error) {
+        showError(decodeURIComponent(query.error));
+        return;
+      }
+
+      const role = query.role || 'volunteer';
+      const isNew = query.is_new === '1';
+
+      // Local dev mode: Supabase not configured
+      if (query.no_supabase === '1') {
+        try {
+          setStatus('Создаём профиль…');
+          if (isNew) {
+            const contact = query.email || `${query.provider_id}@${query.provider}.local`;
+            const displayName = query.display_name || '';
+            let profile;
+            if (role === 'ngo') {
+              profile = await helperaDb.createNgoProfile({
+                userId: null,
+                contact,
+                orgName: displayName || 'Моя организация',
+              });
+            } else {
+              profile = await helperaDb.createVolunteerProfile({
+                userId: null,
+                contact,
+                fullName: displayName,
+              });
+            }
+            redirectAfterAuth(role, true, profile.profileId);
+          } else {
+            redirectAfterAuth(role, false, null);
+          }
+        } catch (err) {
+          showError(err.message || 'Не удалось создать профиль.');
+        }
+        return;
+      }
+
+      // Normal flow: tokens in URL hash
+      const accessToken = hash.access_token;
+      const refreshToken = hash.refresh_token;
+
+      if (!accessToken) {
+        showError('Токен авторизации не получен. Попробуйте ещё раз.');
+        return;
+      }
+
+      try {
+        if (!helperaDb.client) {
+          throw new Error('Supabase не настроен. Проверьте конфигурацию.');
+        }
+
+        setStatus('Проверяем сессию…');
+        const { data: sessionData, error: sessionError } = await helperaDb.client.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (sessionError) throw sessionError;
+
+        const user = sessionData?.session?.user || sessionData?.user;
+        const userId = user?.id || query.user_id || null;
+        const email = user?.email || '';
+        const displayName = (user?.user_metadata?.full_name || '').trim();
+
+        let profileId;
+
+        if (isNew) {
+          setStatus('Создаём профиль…');
+          let profile;
+          if (role === 'ngo') {
+            profile = await helperaDb.createNgoProfile({
+              userId,
+              contact: email,
+              orgName: displayName || 'Моя организация',
+            });
+          } else {
+            profile = await helperaDb.createVolunteerProfile({
+              userId,
+              contact: email,
+              fullName: displayName,
+            });
+          }
+          profileId = profile.profileId;
+        } else {
+          setStatus('Ищем профиль…');
+          const profile = await helperaDb.getCurrentUserProfile(role);
+          if (!profile) {
+            throw new Error(
+              role === 'volunteer'
+                ? 'Профиль волонтёра для этого аккаунта не найден.'
+                : 'Профиль организации для этого аккаунта не найден.'
+            );
+          }
+          profileId = profile.profileId;
+        }
+
+        setStatus('Перенаправляем…');
+        redirectAfterAuth(role, isNew, profileId);
+
+      } catch (err) {
+        showError(err.message || 'Ошибка при входе. Попробуйте ещё раз.');
+      }
+    })();
+  </script>
+</body>
+</html>

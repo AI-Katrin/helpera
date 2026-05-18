@@ -20,18 +20,26 @@ def is_eligible(row):
 
 def business_adjustment(row):
     adj = 0.0
+    # Повышающие корректировки
     adj += 0.20 * safe_float(get_value(row, ["task_urgency_score"], 0))
-    adj += 0.12 * safe_float(get_value(row, ["exploration_slot"], 0))
     adj += 0.20 * safe_float(get_value(row, ["ngo_reliability_score"], 0))
     adj += 0.15 * safe_float(get_value(row, ["volunteer_reliability_score"], 0))
     adj += 0.10 * safe_float(get_value(row, ["task_quality_final", "task_quality_score"], 0))
-
+    adj += 0.12 * safe_float(get_value(row, ["exploration_slot"], 0))
+    adj += 0.08 * safe_float(get_value(row, ["cold_start_task"], 0))
+    # Понижающие корректировки
     adj -= 0.15 * safe_float(get_value(row, ["volunteer_cancel_rate"], 0))
     adj -= 0.12 * safe_float(get_value(row, ["application_pressure"], 0))
     adj -= 0.20 * safe_float(get_value(row, ["complaint_rate", "ngo_complaint_rate"], 0))
+    adj -= 0.15 * safe_float(get_value(row, ["ngo_response_penalty", "ngo_slow_response_flag"], 0))
     adj -= 0.15 * safe_float(get_value(row, ["duplicate_final_flag", "task_is_duplicate_candidate"], 0))
-    adj -= 0.20 * safe_float(get_value(row, ["task_needs_ai_help"], 0))
     adj -= 0.10 * safe_float(get_value(row, ["is_overloaded"], 0))
+    # Составное правило: сложная задача для ненадёжного волонтёра
+    reliability = safe_float(get_value(row, ["volunteer_reliability_score"], 0))
+    quality = safe_float(get_value(row, ["task_quality_final", "task_quality_score"], 0))
+    if reliability < 0.4 and quality > 0.7:
+        adj -= 0.15
+    # Жёсткий фильтр
     adj -= 5.0 * (1 - safe_int(get_value(row, ["eligible_for_recommendations"], 1), 1))
     return round(adj, 6)
 

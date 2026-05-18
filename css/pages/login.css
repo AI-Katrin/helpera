@@ -256,6 +256,87 @@ input[type="password"]:focus {
   font-weight: 700;
 }
 
+.social-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.social-btn {
+  height: 52px;
+  border: 1px solid #D1D5DB;
+  border-radius: 16px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.social-btn:hover {
+  border-color: #B6C2CF;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.social-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.social-dot.yandex { background: #FCE7D6; }
+.social-dot.vk { background: #EAF2FF; }
+
+.social-dot.yandex::before {
+  content: "Я";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #FC3F1D;
+}
+
+.social-dot.vk::before {
+  content: "VK";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #0077FF;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #9CA3AF;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid #E5E7EB;
+}
+
 @media (max-width: 600px) {
   .login-card {
     padding: 28px 22px;

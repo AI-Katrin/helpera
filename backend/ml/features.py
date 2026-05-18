@@ -3,7 +3,7 @@ import hashlib
 import math
 
 from .business_rules import is_eligible
-from .config import LEAKAGE_FEATURES
+from .config import COLD_START_THRESH, LEAKAGE_FEATURES
 from .normalization import normalize_city, normalize_format, normalize_skills, normalize_text, safe_float, safe_int
 
 
@@ -28,7 +28,7 @@ def stable_bucket(value, modulo):
     return int(digest[:8], 16) % modulo
 
 
-def build_pair_features(volunteer, task, ngo, embedding_sim=0.0):
+def build_pair_features(volunteer, task, ngo, embedding_sim=0.0, cold_start_task=0):
     vol_skills, vol_unknown = normalize_skills(volunteer.get("skills_clean") or volunteer.get("skills") or volunteer.get("skills_raw"))
     task_skills, task_unknown = normalize_skills(task.get("skills_clean") or task.get("useful_skills") or task.get("skills"))
     vol_dirs = set(normalize_text(x) for x in (volunteer.get("directions_clean") or volunteer.get("help_directions") or "").split(",") if x.strip())
@@ -128,8 +128,8 @@ def build_pair_features(volunteer, task, ngo, embedding_sim=0.0):
         "ngo_slow_response_flag": int(safe_int(ngo.get("avg_response_time_hours"), 24) > 72),
         "ngo_complaint_flag": int(safe_float(ngo.get("complaint_rate")) > 0.18),
         "ngo_low_reliability_flag": int(safe_float(ngo.get("ngo_reliability_score"), 0.5) < 0.55),
-        "cold_start_volunteer": 0,
-        "cold_start_task": 0,
+        "cold_start_volunteer": int(safe_float(volunteer.get("profile_completeness"), 0.5) < COLD_START_THRESH),
+        "cold_start_task": cold_start_task,
         "exploration_slot": int((safe_int(task.get("current_applications")) == 0) and (stable_bucket(task.get("task_id"), 10) == 0)),
         "task_popularity_score": application_pressure,
         "publication_status": task.get("publication_status") or "published",
@@ -143,10 +143,17 @@ def build_pair_features(volunteer, task, ngo, embedding_sim=0.0):
     return row
 
 
-def build_pairs(volunteer, tasks, ngos, embedding_sims=None):
+def build_pairs(volunteer, tasks, ngos, embedding_sims=None, cold_task_flags=None):
     sims = embedding_sims or {}
+    flags = cold_task_flags or {}
     return [
-        build_pair_features(volunteer, task, ngos.get(task.get("ngo_id"), {}), sims.get(task.get("task_id"), 0.0))
+        build_pair_features(
+            volunteer,
+            task,
+            ngos.get(task.get("ngo_id"), {}),
+            sims.get(task.get("task_id"), 0.0),
+            cold_start_task=flags.get(task.get("task_id"), 0),
+        )
         for task in tasks
     ]
 

@@ -13,6 +13,9 @@ MODEL_ARTIFACT_PATH = Path(
 
 DEFAULT_TOP_K = int(os.environ.get("HELPERA_RECOMMENDATIONS_TOP_K", "10"))
 MAX_TOP_K = int(os.environ.get("HELPERA_RECOMMENDATIONS_MAX_TOP_K", "600"))
+COLD_START_THRESH = float(os.environ.get("HELPERA_COLD_START_THRESH", "0.40"))
+COLD_TASK_THRESHOLD = int(os.environ.get("HELPERA_COLD_TASK_THRESHOLD", "10"))
+MAX_TASKS_PER_NGO = int(os.environ.get("HELPERA_MAX_TASKS_PER_NGO", "3"))
 MODEL_NAME = "CatBoost YetiRank"
 VARIANT_NAME = "CatBoost YetiRank + Business Rules"
 SCHEMA_VERSION = "helpera_recommendations_catboost_production_v1"

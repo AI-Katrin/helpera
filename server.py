@@ -1,15 +1,25 @@
 import json
 import os
+import threading
+import time
+from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from backend.api.oauth import oauth_callback, oauth_start
 from backend.api.recommendations import recommendations_event_response, recommendations_for_path, recommendations_health_response
+from backend.api.tasks import task_duplicate_check_response
 
 
 ROOT_DIR = Path(__file__).resolve().parent
+
+# Интервал фоновых задач (секунды). По умолчанию — раз в час.
+_BACKGROUND_INTERVAL = int(os.environ.get("HELPERA_BACKGROUND_INTERVAL", "3600"))
+# Таймаут ответа НКО на отклик (часы). Если НКО не ответила за это время — фиксируем событие.
+_NGO_RESPONSE_TIMEOUT_HOURS = int(os.environ.get("HELPERA_NGO_RESPONSE_TIMEOUT_HOURS", "72"))
 
 
 def load_env_file(file_name):
@@ -110,6 +120,11 @@ def resolve_yandex_model(folder):
 
 YANDEX_MODEL = resolve_yandex_model(YANDEX_FOLDER)
 
+# OAuth Supabase connection (populated at startup)
+_OAUTH_SUPABASE_URL = ""
+_OAUTH_SUPABASE_KEY = ""
+_OAUTH_BASE_URL = ""
+
 
 def clamp_number(value, default, min_value, max_value):
     try:
@@ -165,12 +180,233 @@ def call_yandex_ai(action, task, user_prompt="", options=None):
     return 200, {"text": text}
 
 
+def _supabase_rpc(url, key, function_name, params=None):
+    """Вызов Supabase RPC функции через REST API."""
+    endpoint = f"{url.rstrip('/')}/rest/v1/rpc/{function_name}"
+    payload = json.dumps(params or {}, ensure_ascii=False).encode("utf-8")
+    req = Request(
+        endpoint,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=30) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def _supabase_query(url, key, table, filters=None, select="*", limit=200):
+    """Простой SELECT из Supabase через REST API."""
+    params = f"select={select}&limit={limit}"
+    if filters:
+        for key_f, value in filters.items():
+            params += f"&{key_f}={value}"
+    endpoint = f"{url.rstrip('/')}/rest/v1/{table}?{params}"
+    req = Request(
+        endpoint,
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+        },
+        method="GET",
+    )
+    try:
+        with urlopen(req, timeout=30) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return []
+
+
+def _supabase_patch(url, key, table, row_filter, patch):
+    """PATCH одной или нескольких строк Supabase через REST API."""
+    params = "&".join(f"{k}=eq.{v}" for k, v in row_filter.items())
+    endpoint = f"{url.rstrip('/')}/rest/v1/{table}?{params}"
+    payload = json.dumps(patch, ensure_ascii=False).encode("utf-8")
+    req = Request(
+        endpoint,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Prefer": "return=minimal",
+        },
+        method="PATCH",
+    )
+    try:
+        with urlopen(req, timeout=30) as response:
+            response.read()
+            return True
+    except Exception:
+        return False
+
+
+def _supabase_insert(url, key, table, row):
+    """INSERT строки в Supabase через REST API."""
+    endpoint = f"{url.rstrip('/')}/rest/v1/{table}"
+    payload = json.dumps(row, ensure_ascii=False).encode("utf-8")
+    req = Request(
+        endpoint,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Prefer": "return=minimal",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=30) as response:
+            response.read()
+            return True
+    except Exception:
+        return False
+
+
+def run_expire_tasks(supabase_url, supabase_key):
+    """
+    Автозакрытие задач: снимает с публикации задачи, у которых дедлайн прошёл.
+    Вызывает Supabase RPC helpera_expire_tasks() если Supabase доступен,
+    иначе ничего не делает (CSV-режим не поддерживает мутации).
+    """
+    if not supabase_url or not supabase_key:
+        return 0
+    result = _supabase_rpc(supabase_url, supabase_key, "helpera_expire_tasks")
+    if isinstance(result, dict) and "error" in result:
+        return -1
+    count = result if isinstance(result, int) else 0
+    return count
+
+
+def run_ngo_response_timeout_check(supabase_url, supabase_key, timeout_hours):
+    """
+    Таймаут отклика НКО: находит заявки в статусе 'review', созданные более
+    timeout_hours назад, и логирует событие ngo_response_timeout.
+    Только для Supabase-режима.
+    """
+    if not supabase_url or not supabase_key:
+        return 0
+
+    from datetime import timedelta
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=timeout_hours)).isoformat()
+
+    # Фильтруем заявки: status=review AND created_at < cutoff
+    # Supabase REST поддерживает операторы через имя_колонки=lt.значение
+    endpoint = (
+        f"{supabase_url.rstrip('/')}/rest/v1/applications"
+        f"?select=id,task_id,volunteer_profile_id,created_at"
+        f"&status=eq.review"
+        f"&created_at=lt.{cutoff}"
+        f"&limit=100"
+    )
+    req = Request(
+        endpoint,
+        headers={
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+        },
+        method="GET",
+    )
+    try:
+        with urlopen(req, timeout=30) as response:
+            stale = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return 0
+
+    if not isinstance(stale, list):
+        return 0
+
+    count = 0
+    for app in stale:
+        # Проверяем, нет ли уже события таймаута для этой заявки
+        existing_endpoint = (
+            f"{supabase_url.rstrip('/')}/rest/v1/app_events"
+            f"?application_id=eq.{app['id']}"
+            f"&event_type=eq.ngo_response_timeout"
+            f"&limit=1&select=id"
+        )
+        req_check = Request(
+            existing_endpoint,
+            headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+            method="GET",
+        )
+        try:
+            with urlopen(req_check, timeout=10) as r:
+                existing = json.loads(r.read().decode("utf-8"))
+        except Exception:
+            continue
+        if existing:
+            continue
+
+        ok = _supabase_insert(supabase_url, supabase_key, "app_events", {
+            "event_type": "ngo_response_timeout",
+            "actor_role": "system",
+            "application_id": app["id"],
+            "task_id": app.get("task_id"),
+            "payload": {
+                "reason": f"НКО не ответила на отклик в течение {timeout_hours} ч.",
+                "created_at_application": app.get("created_at"),
+            },
+        })
+        if ok:
+            count += 1
+
+    return count
+
+
+def _background_loop(supabase_url, supabase_key, interval, timeout_hours):
+    """Фоновый поток: периодически закрывает просроченные задачи и проверяет таймаут НКО."""
+    while True:
+        try:
+            expired = run_expire_tasks(supabase_url, supabase_key)
+            timeouts = run_ngo_response_timeout_check(supabase_url, supabase_key, timeout_hours)
+            if expired or timeouts:
+                now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+                print(f"[{now}] Background: expired={expired} tasks, ngo_timeouts={timeouts}")
+        except Exception as exc:
+            print(f"[background] error: {exc}")
+        time.sleep(interval)
+
+
 class HelperaHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT_DIR), **kwargs)
 
     def do_GET(self):
         parsed = urlparse(self.path)
+
+        # OAuth: /auth/{provider}/start?role=volunteer|ngo
+        if parsed.path in ("/auth/vk/start", "/auth/yandex/start"):
+            provider = parsed.path.split("/")[2]
+            from urllib.parse import parse_qs
+            role = parse_qs(parsed.query).get("role", ["volunteer"])[0]
+            redirect_url = oauth_start(provider, role, _OAUTH_BASE_URL)
+            if redirect_url:
+                self.send_response(302)
+                self.send_header("Location", redirect_url)
+                self.end_headers()
+            else:
+                json_response(self, 503, {"error": f"OAuth провайдер '{provider}' не настроен. Задайте VK_CLIENT_ID / YANDEX_OAUTH_CLIENT_ID в .env.local"})
+            return
+
+        # OAuth: /auth/{provider}/callback
+        if parsed.path in ("/auth/vk/callback", "/auth/yandex/callback"):
+            provider = parsed.path.split("/")[2]
+            from urllib.parse import parse_qs
+            query = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+            redirect_url = oauth_callback(provider, query, _OAUTH_BASE_URL, _OAUTH_SUPABASE_URL, _OAUTH_SUPABASE_KEY)
+            self.send_response(302)
+            self.send_header("Location", redirect_url)
+            self.end_headers()
+            return
+
         if parsed.path == "/api/recommendations/health":
             status_code, payload = recommendations_health_response()
             json_response(self, status_code, payload)
@@ -193,6 +429,16 @@ class HelperaHandler(SimpleHTTPRequestHandler):
             except ValueError:
                 body = b""
             status_code, payload = recommendations_event_response(body)
+            json_response(self, status_code, payload)
+            return
+
+        if parsed.path == "/api/tasks/check-duplicate":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                body = self.rfile.read(length) if length > 0 else b""
+            except ValueError:
+                body = b""
+            status_code, payload = task_duplicate_check_response(body)
             json_response(self, status_code, payload)
             return
 
@@ -222,9 +468,30 @@ class HelperaHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    _supabase_url = os.environ.get("HELPERA_SUPABASE_URL") or os.environ.get("SUPABASE_URL", "")
+    _supabase_key = (
+        os.environ.get("HELPERA_SUPABASE_ANON_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY")
+        or os.environ.get("SUPABASE_KEY", "")
+    )
+    _BASE_URL = os.environ.get("HELPERA_BASE_URL", f"http://localhost:{PORT}")
+
+    # Пробрасываем в глобальные переменные для OAuth-обработчика
+    _OAUTH_SUPABASE_URL = _supabase_url
+    _OAUTH_SUPABASE_KEY = _supabase_key
+    _OAUTH_BASE_URL = _BASE_URL
+
+    bg = threading.Thread(
+        target=_background_loop,
+        args=(_supabase_url, _supabase_key, _BACKGROUND_INTERVAL, _NGO_RESPONSE_TIMEOUT_HOURS),
+        daemon=True,
+    )
+    bg.start()
+
     server = ThreadingHTTPServer(("localhost", PORT), HelperaHandler)
     print(f"Helpera is running at http://localhost:{PORT}")
     print(f"YANDEX_CLOUD_FOLDER: {'set' if YANDEX_FOLDER else 'missing'}")
     print(f"YANDEX_CLOUD_API_KEY: {'set' if YANDEX_API_KEY else 'missing'}")
     print(f"YANDEX_CLOUD_MODEL: {YANDEX_MODEL}")
+    print(f"Background: task expiration every {_BACKGROUND_INTERVAL}s, NGO timeout={_NGO_RESPONSE_TIMEOUT_HOURS}h")
     server.serve_forever()

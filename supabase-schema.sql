@@ -854,3 +854,245 @@ drop policy if exists "Prototype read recommendation events" on public.recommend
 create policy "Prototype read recommendation events" on public.recommendation_events for select using (true);
 drop policy if exists "Prototype write recommendation events" on public.recommendation_events;
 create policy "Prototype write recommendation events" on public.recommendation_events for all using (true) with check (true);
+
+-- =============================================================================
+-- БЛОК 2: Ограничение НКО на активные задачи
+-- =============================================================================
+
+-- Максимальное число активных задач от одной НКО
+create or replace function public.helpera_check_ngo_task_limit()
+returns trigger as $$
+declare
+  active_count integer;
+  max_tasks integer := coalesce(nullif(current_setting('helpera.max_ngo_active_tasks', true), ''), '20')::integer;
+begin
+  if new.status = 'published' then
+    select count(*)::integer
+    into active_count
+    from public.tasks
+    where ngo_profile_id = new.ngo_profile_id
+      and status = 'published'
+      and id <> coalesce(new.id, gen_random_uuid());
+
+    if active_count >= max_tasks then
+      raise exception
+        'НКО уже имеет % активных задач. Максимально допустимо: %. Снимите завершённые задачи перед публикацией новой.',
+        active_count, max_tasks
+        using errcode = 'P0001';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists check_ngo_task_limit on public.tasks;
+create trigger check_ngo_task_limit
+before insert or update of status on public.tasks
+for each row execute function public.helpera_check_ngo_task_limit();
+
+-- =============================================================================
+-- БЛОК 3: Автозакрытие задач по дедлайну
+-- =============================================================================
+
+-- Функция для автоматического снятия задач с истёкшим дедлайном.
+-- Вызывается фоновым потоком сервера через RPC или напрямую из cron.
+create or replace function public.helpera_expire_tasks()
+returns integer as $$
+declare
+  expired_count integer;
+begin
+  update public.tasks
+  set
+    status = 'closed',
+    publication_status = 'expired',
+    payload = payload || jsonb_build_object('expiredAt', now()::text, 'expiredReason', 'deadline_passed')
+  where status = 'published'
+    and (
+      deadline < current_date
+      or (date_end is not null and date_end < current_date)
+    );
+  get diagnostics expired_count = row_count;
+  return expired_count;
+end;
+$$ language plpgsql;
+
+-- =============================================================================
+-- БЛОК 4: Рейтинг надёжности волонтёра
+-- =============================================================================
+
+-- Пересчитывает volunteer_reliability_score на основе отзывов НКО и истории выполнения.
+-- Формула: 0.4 * avg(ngo_rating/10) + 0.4 * (1 - cancel_rate) + 0.2 * completion_bonus
+create or replace function public.helpera_update_volunteer_reliability(p_volunteer_id uuid)
+returns void as $$
+declare
+  avg_ngo_rating    numeric := 0;
+  cancel_rate_val   numeric := 0;
+  completion_bonus  numeric := 0;
+  new_reliability   numeric;
+  review_count      integer;
+  completed_count   integer;
+  total_count       integer;
+begin
+  -- Средняя оценка НКО из payload.reviews.ngo.ratings
+  select
+    count(*),
+    coalesce(avg(
+      (
+        coalesce((payload->'reviews'->'ngo'->'ratings'->>'quality')::numeric, 0) +
+        coalesce((payload->'reviews'->'ngo'->'ratings'->>'communication')::numeric, 0) +
+        coalesce((payload->'reviews'->'ngo'->'ratings'->>'responsibility')::numeric, 0)
+      ) / 3.0
+    ), 0)
+  into review_count, avg_ngo_rating
+  from public.applications
+  where volunteer_profile_id = p_volunteer_id
+    and payload->'reviews'->'ngo' is not null;
+
+  -- cancel_rate из профиля
+  select coalesce(volunteer_cancel_rate, 0)
+  into cancel_rate_val
+  from public.volunteer_profiles
+  where id = p_volunteer_id;
+
+  -- Бонус завершения: доля задач со статусом done
+  select
+    count(*) filter (where status = 'done'),
+    count(*)
+  into completed_count, total_count
+  from public.applications
+  where volunteer_profile_id = p_volunteer_id;
+
+  if total_count > 0 then
+    completion_bonus := completed_count::numeric / total_count;
+  end if;
+
+  -- Если отзывов нет — используем только cancel_rate и completion
+  if review_count = 0 then
+    new_reliability := 0.6 * (1 - cancel_rate_val) + 0.4 * completion_bonus;
+  else
+    new_reliability := 0.4 * (avg_ngo_rating / 10.0)
+                     + 0.4 * (1 - cancel_rate_val)
+                     + 0.2 * completion_bonus;
+  end if;
+
+  new_reliability := greatest(0, least(1, round(new_reliability, 3)));
+
+  update public.volunteer_profiles
+  set volunteer_reliability_score = new_reliability
+  where id = p_volunteer_id;
+end;
+$$ language plpgsql;
+
+-- Триггер: обновляет reliability при изменении статуса заявки или добавлении отзыва
+create or replace function public.sync_reliability_on_application_change()
+returns trigger as $$
+begin
+  if new.volunteer_profile_id is not null then
+    perform public.helpera_update_volunteer_reliability(new.volunteer_profile_id);
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists sync_reliability_on_application on public.applications;
+create trigger sync_reliability_on_application
+after update of status, payload on public.applications
+for each row execute function public.sync_reliability_on_application_change();
+
+-- =============================================================================
+-- БЛОК 5: Обязательные двусторонние отзывы перед закрытием задачи
+-- =============================================================================
+
+-- Проверяет, что обе стороны оставили отзыв, прежде чем статус станет 'done'.
+-- Статус 'done' допускается только если payload.reviews.volunteer и payload.reviews.ngo заполнены.
+create or replace function public.helpera_check_bilateral_review()
+returns trigger as $$
+begin
+  if new.status = 'done' and old.status <> 'done' then
+    if new.payload->'reviews'->'volunteer' is null
+       or new.payload->'reviews'->'ngo' is null then
+      raise exception
+        'Задача не может быть закрыта без двустороннего отзыва. Оба участника должны оставить отзыв.'
+        using errcode = 'P0002';
+    end if;
+
+    -- Фиксируем событие закрытия задачи
+    insert into public.app_events (
+      event_type, actor_role, application_id, task_id, payload
+    ) values (
+      'task_completed',
+      'system',
+      new.id,
+      new.task_id,
+      jsonb_build_object(
+        'volunteer_review_at', new.payload->'reviews'->'volunteer'->>'createdAt',
+        'ngo_review_at',       new.payload->'reviews'->'ngo'->>'createdAt',
+        'volunteer_completion', new.payload->'reviews'->'volunteer'->>'completion',
+        'ngo_completion',       new.payload->'reviews'->'ngo'->>'completion'
+      )
+    );
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists check_bilateral_review on public.applications;
+create trigger check_bilateral_review
+before update of status on public.applications
+for each row execute function public.helpera_check_bilateral_review();
+
+-- =============================================================================
+-- БЛОК 6: Статусы выполнения — градуированная шкала
+-- =============================================================================
+
+-- Таблица расшифровки статусов выполнения для ML-разметки
+create table if not exists public.task_completion_statuses (
+  code text primary key,
+  label_ru text not null,
+  label_relevance_delta integer not null default 0,
+  description text
+);
+
+insert into public.task_completion_statuses (code, label_ru, label_relevance_delta, description)
+values
+  ('completed',         'Задача выполнена',    2, 'Волонтёр выполнил задачу полностью'),
+  ('partially',         'Выполнена частично',  1, 'Задача выполнена частично по объективным причинам'),
+  ('failed_volunteer',  'Срыв: волонтёр',     -2, 'Волонтёр не выполнил задачу без уважительной причины'),
+  ('failed_ngo',        'Срыв: НКО',          -1, 'НКО отменила задачу или не обеспечила условия'),
+  ('cancelled_mutual',  'Отменено по согласию',0, 'Обе стороны согласились на отмену')
+on conflict (code) do update set
+  label_ru = excluded.label_ru,
+  label_relevance_delta = excluded.label_relevance_delta,
+  description = excluded.description;
+
+alter table public.task_completion_statuses enable row level security;
+drop policy if exists "Prototype read task completion statuses" on public.task_completion_statuses;
+create policy "Prototype read task completion statuses" on public.task_completion_statuses for select using (true);
+
+-- =============================================================================
+-- БЛОК 7: Валидация данных задачи при публикации
+-- =============================================================================
+
+-- Проверяет обязательные поля задачи при установке статуса published.
+create or replace function public.helpera_validate_task_on_publish()
+returns trigger as $$
+begin
+  if new.status = 'published' and coalesce(old.status, '') <> 'published' then
+    if coalesce(trim(new.title), '') = '' then
+      raise exception 'Задача должна иметь название.' using errcode = 'P0003';
+    end if;
+    if length(coalesce(new.description, '')) < 30 then
+      raise exception 'Описание задачи слишком короткое (менее 30 символов). Добавьте подробности.' using errcode = 'P0003';
+    end if;
+    if coalesce(trim(new.format_clean), trim(new.format), '') = '' then
+      raise exception 'Укажите формат участия (онлайн / оффлайн / смешанный).' using errcode = 'P0003';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists validate_task_on_publish on public.tasks;
+create trigger validate_task_on_publish
+before insert or update of status on public.tasks
+for each row execute function public.helpera_validate_task_on_publish();

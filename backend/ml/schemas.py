@@ -36,8 +36,11 @@ class RecommendationResponse:
     schema_version: str
     recommendation_session_id: str
     items: list
+    fallback_mode: str = None
 
     def to_dict(self):
         data = asdict(self)
         data["items"] = [item.to_dict() if hasattr(item, "to_dict") else item for item in self.items]
+        if data["fallback_mode"] is None:
+            del data["fallback_mode"]
         return data
