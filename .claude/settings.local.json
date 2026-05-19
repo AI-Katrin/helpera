@@ -8,7 +8,11 @@
       "Bash(python3 server.py)",
       "Bash(xargs kill -9)",
       "Bash(python3 /Users/Admin/helpera_project/server.py)",
-      "Bash(curl -s http://localhost:3000/api/health)"
+      "Bash(curl -s http://localhost:3000/api/health)",
+      "Bash(sed -i '' '/^[[:space:]]*# ── /d' /Users/Admin/helpera_project/docs/openapi.yaml)"
+    ],
+    "additionalDirectories": [
+      "/Users/Admin/helpera_project/docs"
     ]
   }
 }

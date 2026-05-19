@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Helpera API
   version: 1.1.0
-  description: HTTP API exposed by server.py. Supabase-backed endpoints require HELPERA_SUPABASE_URL and HELPERA_SUPABASE_ANON_KEY to be configured.
+  description: REST API for the Helpera platform — a volunteer resource distribution system for NGO tasks.
   contact:
     name: Helpera
     url: https://github.com/AI-Katrin/helpera
@@ -26,7 +26,6 @@ tags:
   - name: OAuth
 
 paths:
-  # ── Health ─────────────────────────────────────────────────────────────────
   /api/health:
     get:
       tags: [Health]
@@ -53,7 +52,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/RecommendationHealth"
 
-  # ── Volunteers ─────────────────────────────────────────────────────────────
   /api/volunteers:
     post:
       tags: [Volunteers]
@@ -121,7 +119,6 @@ paths:
         "503":
           $ref: "#/components/responses/SupabaseUnavailable"
 
-  # ── NGOs ───────────────────────────────────────────────────────────────────
   /api/ngos:
     post:
       tags: [NGOs]
@@ -189,7 +186,6 @@ paths:
         "503":
           $ref: "#/components/responses/SupabaseUnavailable"
 
-  # ── Tasks ──────────────────────────────────────────────────────────────────
   /api/tasks:
     get:
       tags: [Tasks]
@@ -295,7 +291,6 @@ paths:
         "503":
           $ref: "#/components/responses/SupabaseUnavailable"
 
-  # ── Applications ───────────────────────────────────────────────────────────
   /api/applications:
     post:
       tags: [Applications]
@@ -420,7 +415,6 @@ paths:
         "503":
           $ref: "#/components/responses/SupabaseUnavailable"
 
-  # ── Reviews ────────────────────────────────────────────────────────────────
   /api/reviews:
     post:
       tags: [Reviews]
@@ -451,7 +445,6 @@ paths:
         "503":
           $ref: "#/components/responses/SupabaseUnavailable"
 
-  # ── Events ─────────────────────────────────────────────────────────────────
   /api/events:
     post:
       tags: [Events]
@@ -475,7 +468,6 @@ paths:
         "503":
           $ref: "#/components/responses/SupabaseUnavailable"
 
-  # ── Recommendations ────────────────────────────────────────────────────────
   /api/recommendations/volunteers/{volunteer_id}:
     get:
       tags: [Recommendations]
@@ -538,7 +530,6 @@ paths:
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
 
-  # ── AI ─────────────────────────────────────────────────────────────────────
   /api/ai/task:
     post:
       tags: [AI]
@@ -578,7 +569,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  # ── OAuth ──────────────────────────────────────────────────────────────────
   /auth/vk/start:
     get:
       tags: [OAuth]
@@ -650,7 +640,6 @@ paths:
                 type: string
 
 components:
-  # ── Parameters ─────────────────────────────────────────────────────────────
   parameters:
     VolunteerId:
       name: volunteer_id
@@ -708,7 +697,6 @@ components:
       schema:
         type: string
 
-  # ── Responses ──────────────────────────────────────────────────────────────
   responses:
     BadRequest:
       description: Request body is not valid JSON.
@@ -735,7 +723,6 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
 
-  # ── Schemas ────────────────────────────────────────────────────────────────
   schemas:
     ErrorResponse:
       type: object
@@ -760,7 +747,6 @@ components:
           type: string
           enum: [ok]
 
-    # ── Volunteer ─────────────────────────────────────────────────────────────
     VolunteerInput:
       type: object
       properties:
@@ -819,7 +805,6 @@ components:
               type: string
               format: date-time
 
-    # ── NGO ───────────────────────────────────────────────────────────────────
     NgoInput:
       type: object
       properties:
@@ -874,7 +859,6 @@ components:
               type: string
               format: date-time
 
-    # ── Task ──────────────────────────────────────────────────────────────────
     TaskInput:
       type: object
       properties:
@@ -933,7 +917,6 @@ components:
                 contacts:
                   website: https://fond.ru
 
-    # ── Application ───────────────────────────────────────────────────────────
     ApplicationInput:
       type: object
       properties:
@@ -967,7 +950,6 @@ components:
               type: string
               format: date-time
 
-    # ── Review ────────────────────────────────────────────────────────────────
     ReviewInput:
       type: object
       required: [application_id]
@@ -988,7 +970,6 @@ components:
             comment: Отличный волонтёр, всё сделал вовремя
             would_invite_again: true
 
-    # ── Event ─────────────────────────────────────────────────────────────────
     EventInput:
       type: object
       required: [event_type]
@@ -1030,7 +1011,6 @@ components:
               type: string
               format: date-time
 
-    # ── Recommendations ───────────────────────────────────────────────────────
     RecommendationHealth:
       type: object
       required: [status, model_loaded, model_name, variant_name, schema_version, feature_count, artifact_path]
@@ -1166,7 +1146,6 @@ components:
         volunteer_id:
           type: string
 
-    # ── Task duplicate check ───────────────────────────────────────────────────
     TaskDuplicateCheckRequest:
       type: object
       required: [task]
@@ -1197,7 +1176,6 @@ components:
           minimum: 0
           maximum: 1
 
-    # ── AI ────────────────────────────────────────────────────────────────────
     AITaskRequest:
       type: object
       properties:
