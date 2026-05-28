@@ -70,12 +70,15 @@
         <h2 class="panel-title">Подтверждение отклика</h2>
         <p class="panel-subtitle">Проверьте информацию о задаче и отправьте отклик</p>
 
+        <div id="eligibility-block" style="display:none"></div>
+
         <section class="task-box">
           <div class="task-fit">Подходит вам на 93%</div>
           <h3 id="taskTitle">Загружаем задачу...</h3>
           <p class="task-meta" id="taskMeta"></p>
         </section>
 
+        <div id="apply-form-body">
         <div class="field">
           <label class="label">Сообщение для организации <span class="optional">(обязательно)</span></label>
           <textarea class="textarea" id="applicationMessage" placeholder="Коротко расскажите, почему хотите помочь и какой опыт пригодится"></textarea>
@@ -122,6 +125,7 @@
           <h3>После отправки отклик появится в разделе «Мои отклики»</h3>
           <p>Там вы сможете отслеживать статус рассмотрения и получать обновления по задаче</p>
         </section>
+        </div>
 
         <div class="bottom-actions">
           <button class="btn-primary" id="sendApplicationBtn" disabled>Отправить отклик</button>
@@ -317,6 +321,30 @@
     element.addEventListener('change', validateApplication);
   });
 
+  function getEligibilityError(task, myApplications) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    if (!['published','active'].includes((task.status||'').toLowerCase()))
+      return 'Задача закрыта и больше не принимает новых участников.';
+    const dl = task.date_end || task.payload?.dateEnd || task.payload?.deadline;
+    if (dl) { const d = new Date(dl); d.setHours(0,0,0,0); if (d < today) return 'Срок подачи заявок на эту задачу истёк.'; }
+    const cap = Number(task.payload?.capacity || task.capacity || 0);
+    const cur = Number(task.payload?.currentApplications || task.current_applications || 0);
+    if (cap > 0 && cur >= cap) return 'Набор волонтёров завершён — все места уже заняты.';
+    const activeStatuses = ['review','invite','active','draft'];
+    if (myApplications.some(a => a.task_id === taskId && activeStatuses.includes((a.status||'').toLowerCase())))
+      return 'Вы уже подали заявку на эту задачу. Найдите её в разделе «Мои отклики».';
+    return null;
+  }
+
+  function blockApplication(message) {
+    const block = document.getElementById('eligibility-block');
+    block.innerHTML = `<div class="apply-blocked"><p class="apply-blocked-title">Отклик недоступен</p><p class="apply-blocked-text">${escapeHtml(message)}</p><a href="${withProfileId('volunteer-tasks.html')}" class="btn-outline" style="margin-top:12px;display:inline-block;padding:0 20px;">Найти другие задачи</a></div>`;
+    block.style.display = '';
+    document.getElementById('apply-form-body').style.display = 'none';
+    document.getElementById('sendApplicationBtn').style.display = 'none';
+    document.getElementById('saveDraftLink').style.display = 'none';
+  }
+
   async function hydratePage() {
     document.getElementById('navTasks').href = withProfileId('volunteer-tasks.html');
     document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
@@ -328,6 +356,11 @@
     }
     if (taskId) {
       activeTask = await helperaDb.getTask(taskId);
+      const myApps = volunteerProfileId
+        ? await helperaDb.listApplications({ volunteerProfileId }).catch(() => [])
+        : [];
+      const eligibilityError = activeTask ? getEligibilityError(activeTask, myApps) : null;
+      if (eligibilityError) { blockApplication(eligibilityError); }
       if (activeTask) {
         const orgName = activeTask.tasks?.ngo_profiles?.org_name || activeTask.ngo_profiles?.org_name || activeTask.ngo_profiles?.about?.shortName || 'НКО';
         document.getElementById('taskTitle').textContent = activeTask.title || 'Задача без названия';

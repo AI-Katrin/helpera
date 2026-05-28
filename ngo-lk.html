@@ -84,6 +84,11 @@
           </div>
         </div>
 
+        <div class="section" id="reliability-section" style="display:none">
+          <h3 class="section-title">Надёжность НКО</h3>
+          <div id="reliability-info"></div>
+        </div>
+
         <a class="btn-outline" href="ngo-profile-edit.html" id="edit-profile-link">Редактировать профиль</a>
         <button class="btn-outline logout-profile-btn" type="button" id="logout-profile-btn">Выйти из профиля</button>
       </aside>
@@ -191,6 +196,33 @@
       renderChips('activity-list', [about.activity, about.city].filter(Boolean), 'Направления не указаны');
       renderChips('contacts-list', [contacts.email || profile?.account?.contact, contacts.phone].filter(Boolean), 'Контакты не указаны');
       renderSummary(tasks, applications);
+      // Правило 15: блок надёжности НКО
+      renderReliability(profile);
+    }
+
+    function renderReliability(profile) {
+      const hours = Number(profile.avg_response_time_hours);
+      const score = Number(profile.ngo_reliability_score);
+      if (!hours && !score) return;
+      const section = document.getElementById('reliability-section');
+      const info = document.getElementById('reliability-info');
+      section.style.display = '';
+      const scoreText = score ? `${Math.round(score * 100)} / 100` : '';
+      const hoursText = hours ? (hours >= 24 ? `${Math.round(hours / 24)} дн.` : `${hours} ч.`) : '';
+      let hint = '';
+      // Правило 15: предупреждение зависит от времени ответа
+      if (hours > 120) {
+        hint = `<div class="desc-hint warn" style="margin-top:8px">Среднее время ответа на отклики превышает 5 дней — это снижает видимость ваших задач в рекомендациях. Постарайтесь отвечать быстрее.</div>`;
+      } else if (hours > 72) {
+        hint = `<div class="desc-hint info" style="margin-top:8px">Ответ в течение 24 часов повышает доверие волонтёров и позицию ваших задач в выдаче.</div>`;
+      }
+      info.innerHTML = `
+        <div class="summary-grid" style="margin-bottom:0">
+          ${hoursText ? `<div class="summary-box"><div class="label">Ср. ответ</div><div class="value">${escapeHtml(hoursText)}</div></div>` : ''}
+          ${scoreText ? `<div class="summary-box"><div class="label">Рейтинг</div><div class="value">${escapeHtml(scoreText)}</div></div>` : ''}
+        </div>
+        ${hint}
+      `;
     }
 
     function renderTask(task, applications) {

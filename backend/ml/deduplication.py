@@ -1,11 +1,12 @@
 """
 Проверка текстового сходства задач при публикации.
-Использует TF-IDF косинусное сходство для обнаружения дублей.
-Порог DEDUP_THRESHOLD: задачи с similarity >= порога считаются дублями.
+Использует TF-IDF косинусное сходство + временные параметры для обнаружения дублей.
+Порог DEDUP_THRESHOLD: задачи с combined_score >= порога считаются дублями.
 """
 import math
 import re
 from collections import Counter
+from datetime import date
 
 DEDUP_THRESHOLD = float(0.75)
 _MAX_COMPARE = 500
@@ -49,9 +50,37 @@ def _task_text(task):
     return " ".join(str(task.get(f) or "") for f in ("title", "description", "about_task", "work_to_do", "useful_skills"))
 
 
+def _parse_task_date(task, keys):
+    for k in keys:
+        v = str(task.get(k) or "").strip()
+        if v:
+            try:
+                return date.fromisoformat(v[:10])
+            except ValueError:
+                continue
+    return None
+
+
+def _temporal_factor(new_task, existing_task):
+    """Boost combined score if date ranges overlap, reduce if clearly disjoint."""
+    new_start = _parse_task_date(new_task, ("dateStart", "date_start"))
+    new_end = _parse_task_date(new_task, ("dateEnd", "date_end"))
+    ex_start = _parse_task_date(existing_task, ("date_start", "dateStart"))
+    ex_end = _parse_task_date(existing_task, ("date_end", "dateEnd"))
+
+    if not any((new_start, new_end, ex_start, ex_end)):
+        return 1.0
+    if new_start and ex_end and new_start > ex_end:
+        return 0.75
+    if new_end and ex_start and new_end < ex_start:
+        return 0.75
+    return 1.15
+
+
 def check_duplicate(new_task, existing_tasks, threshold=DEDUP_THRESHOLD):
     """
-    Сравнивает new_task с existing_tasks по TF-IDF cosine similarity.
+    Сравнивает new_task с existing_tasks по TF-IDF cosine similarity,
+    скорректированной на степень перекрытия временных диапазонов.
 
     Returns:
         dict с полями:
@@ -75,9 +104,10 @@ def check_duplicate(new_task, existing_tasks, threshold=DEDUP_THRESHOLD):
     for task, token_set in zip(candidates, all_token_sets):
         tokens = list(token_set)
         vec = _tfidf_vector(tokens, all_token_sets)
-        score = _cosine(new_vec, vec)
-        if score > best_score:
-            best_score = score
+        text_sim = _cosine(new_vec, vec)
+        combined = min(text_sim * _temporal_factor(new_task, task), 1.0)
+        if combined > best_score:
+            best_score = combined
             best_id = task.get("task_id") or task.get("id")
 
     is_dup = best_score >= threshold

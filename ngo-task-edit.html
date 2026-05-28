@@ -49,6 +49,7 @@
             <div class="field">
               <label for="taskDesc">О задаче</label>
               <textarea class="textarea" id="taskDesc"></textarea>
+              <p id="descHint" class="desc-hint" style="display:none"></p>
             </div>
 
             <div class="field">
@@ -70,8 +71,8 @@
               </select>
             </div>
 
-            <div class="field">
-              <label for="taskCity">Город</label>
+            <div class="field" id="cityField">
+              <label for="taskCity">Город <span id="cityReq" style="display:none" class="req">*</span></label>
               <input class="input" id="taskCity" type="text" placeholder="Для оффлайн или смешанного формата">
             </div>
 
@@ -120,6 +121,9 @@
         <button class="btn-primary" type="submit" id="save-btn">Сохранить</button>
         <a class="btn-outline-green" href="ngo-tasks.html" id="back-bottom">Отмена</a>
         <span class="save-status" id="save-status"></span>
+      </div>
+      <div class="dup-warn" id="dupWarn" style="display:none; margin: 0 72px 24px;">
+        Похожая задача уже существует на платформе. Изменения будут сохранены, но задача получит пониженный приоритет в рекомендациях.
       </div>
     </form>
   </div>
@@ -182,6 +186,23 @@
       document.getElementById('back-bottom').href = withProfileId('ngo-tasks.html');
     }
 
+    const descHint = document.getElementById('descHint');
+
+    function updateDescHint() {
+      const len = document.getElementById('taskDesc').value.trim().length;
+      if (len > 0 && len < 80) {
+        descHint.textContent = 'Описание слишком короткое — задача получит низкий приоритет в рекомендациях. Дополните текст или воспользуйтесь AI-помощником на странице создания задачи.';
+        descHint.className = 'desc-hint warn';
+        descHint.style.display = '';
+      } else if (len >= 80 && len < 150) {
+        descHint.textContent = 'Хорошее начало! Добавьте детали: ожидаемый результат, конкретные шаги или контекст проекта.';
+        descHint.className = 'desc-hint info';
+        descHint.style.display = '';
+      } else {
+        descHint.style.display = 'none';
+      }
+    }
+
     function validate() {
       const title = document.getElementById('taskTitle').value.trim();
       const desc = document.getElementById('taskDesc').value.trim();
@@ -189,7 +210,12 @@
       const directions = document.getElementById('directions').value.trim();
       const start = document.getElementById('dateStart').value;
       const end = document.getElementById('dateEnd').value;
-      saveBtn.disabled = !(title && desc.length >= 30 && skills && directions && start && end);
+      const fmt = document.getElementById('format').value;
+      const isOffline = fmt === 'Оффлайн' || fmt === 'Смешанный';
+      const city = document.getElementById('taskCity').value.trim();
+      const cityOk = !isOffline || city.length > 0;
+      document.getElementById('cityReq').style.display = isOffline ? '' : 'none';
+      saveBtn.disabled = !(title && desc.length >= 30 && skills && directions && start && end && fmt && cityOk);
     }
 
     function collectTask() {
@@ -206,7 +232,8 @@
         comment: document.getElementById('taskComment').value.trim(),
         city: document.getElementById('taskCity').value.trim(),
         ngoProfileId: profileId,
-        updatedFrom: 'ngo-task-edit.html'
+        updatedFrom: 'ngo-task-edit.html',
+        updatedAt: new Date().toISOString()
       };
     }
 
@@ -241,11 +268,13 @@
       skillsSelect.setValue(task.skills || payload.skills || '');
       directionsSelect.setValue(payload.directions || '');
       validate();
+      updateDescHint();
     }
 
     ['taskTitle', 'taskDesc', 'taskCity', 'taskComment'].forEach((id) => {
       document.getElementById(id).addEventListener('input', validate);
     });
+    document.getElementById('taskDesc').addEventListener('input', updateDescHint);
     ['format', 'dateStart', 'dateEnd', 'skills', 'directions'].forEach((id) => {
       document.getElementById(id).addEventListener('change', validate);
     });
@@ -259,6 +288,21 @@
 
       try {
         const task = collectTask();
+        // Правило 3: проверка дублирования перед сохранением
+        try {
+          const dupRes = await fetch('/api/tasks/check-duplicate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task, ngo_id: profileId })
+          });
+          if (dupRes.ok) {
+            const dupData = await dupRes.json();
+            task.is_duplicate_candidate = dupData.is_duplicate;
+            if (dupData.is_duplicate) {
+              document.getElementById('dupWarn').style.display = '';
+            }
+          }
+        } catch (_) {}
         const saved = await helperaDb.updateTask(taskId, task);
         await helperaDb.logEvent({
           eventType: 'task_updated',

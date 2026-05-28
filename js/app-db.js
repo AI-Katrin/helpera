@@ -35,7 +35,9 @@
     about: row.about || {},
     skills: row.skills || {},
     interests: row.interests || {},
-    notifications: row.notifications || {}
+    notifications: row.notifications || {},
+    // Правило 16: текущая нагрузка волонтёра (число активных задач)
+    activeTasksCount: typeof row.active_tasks_count === 'number' ? row.active_tasks_count : (row.activeTasksCount || 0)
   });
 
   const normalizeNgo = (row) => row && ({
@@ -447,6 +449,21 @@
     return (await listTasks()).find((task) => task.id === taskId) || null;
   }
 
+  async function getNgoActiveTaskCount(ngoProfileId) {
+    if (!ngoProfileId) return 0;
+    if (client) {
+      const { count, error } = await client
+        .from('tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('ngo_profile_id', ngoProfileId)
+        .eq('status', 'published');
+      if (error) return 0;
+      return count || 0;
+    }
+    const tasks = await listTasks();
+    return tasks.filter((t) => t.ngo_profile_id === ngoProfileId).length;
+  }
+
   function recommendationToTask(item) {
     const matchPercent = Number(item.match_percent ?? item.matchPercent);
     const payload = {
@@ -474,7 +491,8 @@
         businessAdjustment: item.business_adjustment,
         finalScore: item.final_score,
         matchPercent: Number.isFinite(matchPercent) ? matchPercent : null,
-        reason: item.reason
+        reason: item.reason,
+        isUrgent: Boolean(item.is_urgent)
       },
       ngo_profiles: {
         org_name: item.ngo_name || 'НКО',
@@ -596,6 +614,39 @@
     return item;
   }
 
+  async function submitReview(applicationId, actorRole, review) {
+    const response = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ application_id: applicationId, actor_role: actorRole, review })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Не удалось сохранить отзыв');
+    return data;
+  }
+
+  async function cancelApplication(applicationId, reason) {
+    const body = reason ? JSON.stringify({ reason }) : '{}';
+    const response = await fetch(`/api/applications/${encodeURIComponent(applicationId)}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Не удалось отменить отклик');
+    return data;
+  }
+
+  async function processApplicationTimeouts() {
+    try {
+      const response = await fetch('/api/applications/process-timeouts', { method: 'POST' });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (_) {
+      return null;
+    }
+  }
+
   function logRecommendationClick(taskId, volunteerProfileId) {
     if (!taskId || !volunteerProfileId) return;
     fetch('/api/recommendations/events', {
@@ -690,6 +741,7 @@
     updateTask,
     deleteTask,
     listTasks,
+    getNgoActiveTaskCount,
     listRecommendedTasks,
     getTask,
     createApplication,
@@ -698,6 +750,9 @@
     listApplications,
     logEvent,
     logRecommendationClick,
+    submitReview,
+    cancelApplication,
+    processApplicationTimeouts,
     signUpWithEmail,
     signInWithEmail,
     signOut,

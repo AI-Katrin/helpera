@@ -88,7 +88,7 @@
 
         <div class="social-row">
           <a class="social-btn" href="/auth/yandex/start?role=volunteer"><span class="social-dot yandex"></span>Продолжить через Яндекс</a>
-          <a class="social-btn" href="/auth/vk/start?role=volunteer"><span class="social-dot vk"></span>Продолжить через VK ID</a>
+          <div id="vk-id-btn"></div>
         </div>
 
         <p style="margin: -4px 0 20px; font-size: 13px; line-height: 17px; color: var(--gray-500);">Быстрый вход через российские сервисы авторизации</p>
@@ -125,6 +125,38 @@
     </main>
   </div>
 
+  <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      if (!('VKIDSDK' in window)) return;
+      const VKID = window.VKIDSDK;
+      VKID.Config.init({
+        app: 54612071,
+        redirectUrl: 'https://helpera.ru/',
+        responseMode: VKID.ConfigResponseMode.Callback,
+        source: VKID.ConfigSource.LOWCODE,
+        scope: '',
+      });
+      new VKID.OneTap()
+        .render({ container: document.getElementById('vk-id-btn'), showAlternativeLogin: true, oauthList: ['ok_ru', 'mail_ru'] })
+        .on(VKID.WidgetEvents.ERROR, function (err) { console.error('VK ID error', err); })
+        .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
+          VKID.Auth.exchangeCode(payload.code, payload.device_id)
+            .then(function (data) {
+              return fetch('/api/auth/vk-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ access_token: data.access_token, role: 'volunteer' }),
+              });
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (result) {
+              if (result.redirect) window.location.href = result.redirect;
+            })
+            .catch(function (err) { console.error('VK auth error', err); });
+        });
+    });
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/supabase-config.js"></script>
   <script src="./js/app-db.js"></script>

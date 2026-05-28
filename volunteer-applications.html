@@ -64,6 +64,7 @@
           <button class="tab" data-filter="rejected">Отклонённые</button>
           <button class="tab" data-filter="done">Завершённые</button>
           <button class="tab" data-filter="draft">Черновики</button>
+          <button class="tab" data-filter="timeout">Нет ответа</button>
         </div>
       </section>
 
@@ -170,8 +171,13 @@
     invite: ['Подтверждён', 'status-invite'],
     active: ['Выполняется', 'status-active'],
     rejected: ['Отклонён', 'status-rejected'],
-    done: ['Завершён', 'status-feedback']
+    done: ['Завершён', 'status-feedback'],
+    timeout: ['Нет ответа', 'status-timeout'],
+    cancelled_by_volunteer: ['Отменён вами', 'status-cancelled'],
+    partial_done: ['Частично выполнен', 'status-partial']
   };
+
+  const APPLICATION_TIMEOUT_DAYS = 7;
 
   function renderApplicationCard(application) {
     const task = application.tasks || {};
@@ -182,19 +188,32 @@
     const draftUrl = withProfileId(`task-apply.html?taskId=${encodeURIComponent(application.task_id || '')}`);
     const chatUrl = withProfileId(`chat-placeholder.html?applicationId=${encodeURIComponent(application.id)}&role=volunteer`);
     const reviewUrl = withProfileId(`volunteer-review.html?applicationId=${encodeURIComponent(application.id)}`);
+    const sentDate = new Date(application.created_at || Date.now());
+    const daysSinceSent = Math.floor((Date.now() - sentDate.getTime()) / 86400000);
+    const isStaleReview = status === 'review' && daysSinceSent >= APPLICATION_TIMEOUT_DAYS;
+    const timeoutNotice = status === 'timeout'
+      ? `<p class="timeout-notice">НКО не ответила в течение ${APPLICATION_TIMEOUT_DAYS} дней. Вы можете отозвать отклик или продолжить ждать.</p>`
+      : isStaleReview
+      ? `<p class="timeout-notice">Отклик ожидает ответа уже ${daysSinceSent} ${daysSinceSent === 1 ? 'день' : daysSinceSent < 5 ? 'дня' : 'дней'}. Если ответа нет — можно отозвать.</p>`
+      : '';
+    const cancellable = status === 'review' || status === 'timeout' || status === 'invite' || status === 'active';
+    const lateWarning = (status === 'invite' || status === 'active')
+      ? ' Поздняя отмена повлияет на ваш рейтинг надёжности.' : '';
     const card = document.createElement('article');
     card.className = 'application-card';
     card.dataset.status = status;
+    card.dataset.appId = application.id || '';
     card.innerHTML = `
       <div>
         <h3 class="application-title"><a href="${taskUrl}" class="application-title-link">${escapeHtml(task.title || 'Отклик на задачу')}</a></h3>
-        <p class="application-meta">${escapeHtml(orgName)} • ${escapeHtml(task.format || application.format || 'Формат не указан')} • ${status === 'draft' ? 'Черновик сохранён' : 'Отклик отправлен'} ${new Date(application.created_at || Date.now()).toLocaleDateString('ru-RU')}</p>
+        <p class="application-meta">${escapeHtml(orgName)} • ${escapeHtml(task.format || application.format || 'Формат не указан')} • ${status === 'draft' ? 'Черновик сохранён' : 'Отклик отправлен'} ${sentDate.toLocaleDateString('ru-RU')}</p>
         <span class="status-pill ${className}">${label}</span>
+        ${timeoutNotice}
       </div>
       <div class="card-actions">
         <a href="${taskUrl}" class="card-link">Посмотреть задачу</a>
         ${status === 'draft' ? `<a href="${draftUrl}" class="card-link">Продолжить отклик</a>` : ''}
-        ${status === 'review' ? '<a href="#" class="card-link">Отменить отклик</a>' : ''}
+        ${cancellable ? `<a href="#" class="card-link cancel-link" data-late="${lateWarning ? '1' : ''}">Отменить отклик</a>` : ''}
         ${status === 'invite' || status === 'active' || status === 'done' ? `<a href="${chatUrl}" class="card-link">Чат с организацией</a>` : ''}
         ${status === 'invite' || status === 'active' || status === 'done' ? `<a href="${reviewUrl}" class="card-link">Оставить отзыв</a>` : ''}
       </div>
@@ -205,7 +224,7 @@
   function updateStats(applications) {
     const values = document.querySelectorAll('.stat-card .stat-value');
     values[0].textContent = String(applications.length);
-    values[1].textContent = String(applications.filter((item) => item.status === 'review').length);
+    values[1].textContent = String(applications.filter((item) => item.status === 'review' || item.status === 'timeout').length);
     values[2].textContent = String(applications.filter((item) => item.status === 'invite').length);
     values[3].textContent = String(applications.filter((item) => item.status === 'done').length);
   }
@@ -230,6 +249,30 @@
       console.error('Не удалось загрузить отклики из Supabase', error);
     }
   }
+
+  document.querySelector('.list-panel').addEventListener('click', async (event) => {
+    const link = event.target.closest('.cancel-link');
+    if (!link) return;
+    event.preventDefault();
+    const card = link.closest('.application-card');
+    const appId = card?.dataset.appId;
+    if (!appId) return;
+    const isLate = link.dataset.late === '1';
+    const confirmMsg = isLate
+      ? 'Отменить подтверждённый отклик? Поздняя отмена учитывается в рейтинге надёжности.'
+      : 'Отменить отклик на эту задачу?';
+    if (!confirm(confirmMsg)) return;
+    link.textContent = 'Отмена...';
+    link.style.pointerEvents = 'none';
+    try {
+      await helperaDb.cancelApplication(appId);
+      await loadApplicationsFromDb();
+    } catch (err) {
+      alert(`Не удалось отменить отклик: ${err.message}`);
+      link.textContent = 'Отменить отклик';
+      link.style.pointerEvents = '';
+    }
+  });
 
   function applyApplicationFilter(filter) {
     let visibleCount = 0;
@@ -279,7 +322,7 @@
   const activeTab = Array.from(filterTabs).find((tab) => tab.dataset.filter === initialFilter) || filterTabs[0];
   filterTabs.forEach(item => item.classList.remove('active'));
   activeTab.classList.add('active');
-  loadApplicationsFromDb();
+  helperaDb.processApplicationTimeouts().then(() => loadApplicationsFromDb());
 </script>
 
 </body>

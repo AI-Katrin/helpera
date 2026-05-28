@@ -223,6 +223,47 @@ def get_or_create_supabase_user(supabase_url, supabase_key, email, provider, pro
 # Публичные обработчики
 # ---------------------------------------------------------------------------
 
+def vk_token_auth(access_token, role, supabase_url, supabase_key):
+    """Аутентификация через VK ID SDK (клиентский Callback-flow).
+    access_token уже получен браузером через VKID.Auth.exchangeCode.
+    """
+    info = _http_get(
+        f"https://api.vk.com/method/users.get?access_token={urllib.parse.quote(access_token)}&v=5.131&fields=first_name,last_name"
+    )
+    error = info.get("error")
+    if error:
+        raise ValueError(f"VK API: {error.get('error_msg', 'ошибка')}")
+    users = info.get("response", [])
+    if not users:
+        raise ValueError("VK API не вернул данные пользователя")
+    user = users[0]
+    vk_id = str(user.get("id", ""))
+    first_name = user.get("first_name", "")
+    last_name = user.get("last_name", "")
+    email = f"{vk_id}@vk-oauth.helpera"
+
+    if not supabase_url or not supabase_key:
+        params = urllib.parse.urlencode({
+            "role": role, "is_new": "1", "email": email,
+            "provider": "vk", "provider_id": vk_id,
+            "display_name": f"{first_name} {last_name}".strip(),
+            "no_supabase": "1",
+        })
+        return f"/auth-callback.html?{params}"
+
+    sb_access, refresh, user_id, is_new = get_or_create_supabase_user(
+        supabase_url, supabase_key, email, "vk", vk_id, role, first_name, last_name
+    )
+    params = urllib.parse.urlencode({
+        "role": role, "is_new": "1" if is_new else "0", "user_id": user_id,
+    })
+    fragment = urllib.parse.urlencode({
+        "access_token": sb_access, "refresh_token": refresh,
+        "token_type": "bearer", "type": "signup" if is_new else "signin",
+    })
+    return f"/auth-callback.html?{params}#{fragment}"
+
+
 def oauth_start(provider, role, base_url):
     """
     Возвращает URL для редиректа к OAuth-провайдеру.

@@ -82,6 +82,7 @@
             <textarea id="taskDesc" class="form-textarea" style="min-height:110px;padding-bottom:36px" placeholder="Опишите, что именно нужно сделать, какой ожидается результат и чем будет полезен волонтёр"></textarea>
             <a href="#" class="ai-link" id="aiToggleLink">✧ Улучшить с AI</a>
           </div>
+          <p id="descHint" class="desc-hint" style="display:none"></p>
           <div class="ai-box" id="aiBox" style="display:none">
             <div class="ai-header" id="aiHeader">
               <div class="ai-icon">AI</div>
@@ -173,6 +174,12 @@
         <div class="actions">
           <button class="btn-primary" id="publishBtn" type="button" disabled>Опубликовать задачу</button>
           <button class="btn-secondary" id="cancelBtn" type="button">Отмена</button>
+        </div>
+        <div class="dup-warn" id="dupWarn" style="display:none">
+          Похожая задача уже существует на платформе. Задача будет опубликована, но получит пониженный приоритет в рекомендациях. Уточните описание, чтобы отразить уникальность вашей задачи.
+        </div>
+        <div class="dup-warn" id="taskLimitMsg" style="display:none">
+          Достигнут лимит: не более 10 активных задач. Закройте или удалите неактуальные задачи, чтобы создать новую.
         </div>
       </section>
     </div>
@@ -272,6 +279,26 @@
 
   // Validation
   const publishBtn = document.getElementById('publishBtn');
+  const descHint = document.getElementById('descHint');
+
+  function updateDescHint() {
+    const len = document.getElementById('taskDesc').value.trim().length;
+    if (len > 0 && len < 80) {
+      descHint.textContent = 'Описание слишком короткое — задача получит низкий приоритет в рекомендациях. Нажмите «Улучшить с AI», чтобы дополнить текст.';
+      descHint.className = 'desc-hint warn';
+      descHint.style.display = '';
+      if (document.getElementById('aiBox').style.display === 'none') {
+        document.getElementById('aiToggleLink').click();
+      }
+    } else if (len >= 80 && len < 150) {
+      descHint.textContent = 'Хорошее начало! Добавьте детали: ожидаемый результат, конкретные шаги или контекст проекта.';
+      descHint.className = 'desc-hint info';
+      descHint.style.display = '';
+    } else {
+      descHint.style.display = 'none';
+    }
+  }
+
   function validate() {
     const title = document.getElementById('taskTitle').value.trim();
     const desc  = document.getElementById('taskDesc').value.trim();
@@ -289,6 +316,7 @@
   ['taskTitle', 'taskDesc', 'taskCity'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', validate);
   });
+  document.getElementById('taskDesc').addEventListener('input', updateDescHint);
   ['dateStart', 'dateEnd'].forEach((id) => {
     document.getElementById(id).addEventListener('change', validate);
   });
@@ -400,11 +428,26 @@
   aiGenerate.addEventListener('click', () => callAi('Составь понятное и краткое описание задачи для волонтёра. Опиши цель и ожидаемый результат. До 200 слов.'));
   aiRegen.addEventListener('click', () => callAi('Предложи другой вариант описания той же задачи — более живой и конкретный. До 200 слов.'));
 
+  const NGO_TASK_LIMIT = 10;
+
   // Publish
   publishBtn.addEventListener('click', async () => {
     if (publishBtn.disabled || !ngoProfileId) return;
     publishBtn.disabled = true;
     publishBtn.textContent = 'Публикуем...';
+
+    // Правило 5: лимит активных задач НКО (только при создании, не при редактировании)
+    if (!isEditMode) {
+      try {
+        const activeCount = await helperaDb.getNgoActiveTaskCount(ngoProfileId);
+        if (activeCount >= NGO_TASK_LIMIT) {
+          document.getElementById('taskLimitMsg').style.display = '';
+          publishBtn.disabled = false;
+          publishBtn.textContent = 'Опубликовать задачу';
+          return;
+        }
+      } catch (_) {}
+    }
 
     const format = formatInput.value;
     const isOffline = format === 'Оффлайн' || format === 'Смешанный';
@@ -420,10 +463,27 @@
       city:        isOffline ? document.getElementById('taskCity').value.trim() : '',
       filesDraft:  uploadedFiles,
       createdFrom: 'new-task.html',
-      ngoProfileId
+      ngoProfileId,
+      ...(isEditMode ? { updatedAt: new Date().toISOString() } : {})
     };
 
     try {
+      // Правило 3: проверка дублирования перед публикацией
+      try {
+        const dupRes = await fetch('/api/tasks/check-duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task, ngo_id: ngoProfileId })
+        });
+        if (dupRes.ok) {
+          const dupData = await dupRes.json();
+          task.is_duplicate_candidate = dupData.is_duplicate;
+          if (dupData.is_duplicate) {
+            document.getElementById('dupWarn').style.display = '';
+          }
+        }
+      } catch (_) {}
+
       const saved = isEditMode
         ? await helperaDb.updateTask(editingTaskId, task)
         : await helperaDb.createTask(ngoProfileId, task);
@@ -488,6 +548,7 @@
       agreementChk.checked = true;
       agreementRow.classList.add('checked');
       validate();
+      updateDescHint();
     } catch (error) {
       console.error(error);
       alert('Не удалось загрузить задачу для редактирования.');

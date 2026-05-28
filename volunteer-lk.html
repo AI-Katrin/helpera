@@ -72,6 +72,15 @@
           <div class="chips" id="files-list"></div>
         </div>
 
+        <div class="section" id="workload-section" style="display:none">
+          <h3 class="section-title">Нагрузка</h3>
+          <div class="workload-bar">
+            <div class="workload-dots" id="workload-dots"></div>
+            <span class="workload-label" id="workload-count">0 из 5</span>
+          </div>
+          <div id="workload-hint"></div>
+        </div>
+
         <a class="btn-outline" href="volunteer-profile-edit.html" id="edit-profile-link">Редактировать профиль</a>
         <button class="btn-outline logout-profile-btn" type="button" id="logout-profile-btn">Выйти из профиля</button>
       </aside>
@@ -83,6 +92,15 @@
             <p class="tasks-subtitle">Персональная подборка на основе вашего профиля и указанных предпочтений.</p>
           </div>
           <a class="btn-outline-green" href="volunteer-tasks.html" id="all-tasks-small-link">Поиск задач</a>
+        </div>
+
+        <div class="desc-hint info" id="cold-start-hint" style="display:none">
+          Подборка пока основана на общей популярности задач — заполните профиль (навыки, формат, город), чтобы рекомендации стали персональными.
+          <a href="volunteer-account.html" style="color:inherit;font-weight:700;"> Дополнить профиль →</a>
+        </div>
+
+        <div class="relaxed-notice" id="relaxed-notice" style="display:none">
+          Строгие фильтры не нашли полных совпадений — показываем задачи с ослабленными ограничениями по разнообразию.
         </div>
 
         <div id="tasks-list">
@@ -103,6 +121,21 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+
+    const _recCacheKey = `helpera_rec_${profileId}`;
+    const _recCacheTtl = 5 * 60 * 1000;
+    function readRecCache() {
+      try {
+        const raw = sessionStorage.getItem(_recCacheKey);
+        if (!raw) return null;
+        const { data, ts } = JSON.parse(raw);
+        if (Date.now() - ts > _recCacheTtl) { sessionStorage.removeItem(_recCacheKey); return null; }
+        return data;
+      } catch { return null; }
+    }
+    function writeRecCache(data) {
+      try { sessionStorage.setItem(_recCacheKey, JSON.stringify({ data, ts: Date.now() })); } catch {}
+    }
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
       '&': '&amp;',
@@ -177,6 +210,9 @@
         'Нет файлов'
       );
 
+      // Правило 16: индикатор нагрузки
+      renderWorkload(profile.activeTasksCount || 0);
+
       document.getElementById('edit-profile-link').href = withProfileId('volunteer-profile-edit.html');
       document.getElementById('nav-tasks').href = withProfileId('volunteer-tasks.html');
       document.getElementById('nav-profile').href = withProfileId('volunteer-lk.html');
@@ -216,6 +252,37 @@
       return Math.min(score, 98);
     }
 
+    function renderWorkload(count) {
+      const MAX = 5;
+      const section = document.getElementById('workload-section');
+      section.style.display = '';
+      document.getElementById('workload-count').textContent = `${count} из ${MAX}`;
+      document.getElementById('workload-dots').innerHTML = Array.from({ length: MAX }, (_, i) =>
+        `<span class="workload-dot${i < count ? ' active' : (count >= MAX ? ' full' : '')}"></span>`
+      ).join('');
+      let hint = '';
+      if (count >= MAX) {
+        hint = `<div class="desc-hint warn" style="margin-top:8px">Вы ведёте ${MAX} задач — это максимум. Завершите часть из них, чтобы снова получать рекомендации.</div>`;
+      } else if (count >= MAX - 1) {
+        hint = `<div class="desc-hint info" style="margin-top:8px">Осталось место для одной задачи — рекомендуем завершить текущие перед началом новых.</div>`;
+      }
+      document.getElementById('workload-hint').innerHTML = hint;
+    }
+
+    function renderNoResults(hints, profileLink) {
+      const hintsHtml = hints.length
+        ? `<ul class="no-results-hints">${hints.map((h) => `<li>${escapeHtml(h)}</li>`).join('')}</ul>`
+        : '';
+      return `
+        <div class="no-results-block">
+          <p class="no-results-title">Подходящих задач пока не нашлось</p>
+          <p class="no-results-text">Жёсткие фильтры профиля сузили подборку. Вот что можно исправить:</p>
+          ${hintsHtml}
+          <a href="${profileLink}" class="btn-primary" style="display:inline-block;margin-top:4px;">Обновить профиль</a>
+        </div>
+      `;
+    }
+
     function renderTask(task, profile) {
       const orgName = task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName || 'НКО';
       const skills = splitSkills(task.skills || task.payload?.skills).slice(0, 3);
@@ -227,6 +294,9 @@
         : Number.isFinite(rawRank) && rawRank > 0
           ? Math.max(55, 99 - rawRank)
           : score;
+      const urgentChip = task.recommendation?.isUrgent
+        ? `<span class="chip urgent">Срочно</span>`
+        : '';
       const recommendationChip = task.recommendation
         ? `<span class="chip blue" title="${escapeHtml(task.recommendation.reason || '')}">Подходит вам на ${escapeHtml(matchPercent)}%</span>`
         : `<span class="chip blue">Подходит на ${score}%</span>`;
@@ -236,6 +306,7 @@
             <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
             <p class="task-sub">${escapeHtml(orgName)} • ${escapeHtml(task.ngo_profiles?.about?.city || 'Город не указан')} • ${escapeHtml(task.format || task.payload?.format || 'Формат не указан')}</p>
             <div class="chips">
+              ${urgentChip}
               ${recommendationChip}
               ${skills.map((skill) => `<span class="chip green">${escapeHtml(skill)}</span>`).join('')}
             </div>
@@ -275,16 +346,31 @@
       renderProfile(profile);
       let topTasks = [];
       let recommendationSessionId = '';
+      let recommendations = null;
       if (helperaDb.listRecommendedTasks) {
         try {
-          const recommendations = await helperaDb.listRecommendedTasks(profileId, 5);
-          topTasks = recommendations.tasks || [];
+          const cached = readRecCache();
+          recommendations = cached || await helperaDb.listRecommendedTasks(profileId, 600);
+          if (!cached) writeRecCache(recommendations);
+          topTasks = (recommendations.tasks || []).slice(0, 5);
           recommendationSessionId = recommendations.recommendation_session_id || '';
+          // Правило 7: показываем подсказку волонтёру в cold-start режиме
+          if (recommendations.is_cold_start) {
+            document.getElementById('cold-start-hint').style.display = '';
+          }
+          // Правило 10: ослабленная диверсификация
+          if (recommendations.fallback_mode === 'relaxed_diversity' && topTasks.length) {
+            document.getElementById('relaxed-notice').style.display = '';
+          }
         } catch (error) {
           console.warn('ML-рекомендации недоступны, используем локальную сортировку', error);
         }
       }
-      if (!topTasks.length) {
+
+      // Правило 10: если ML явно вернул no_tasks — не скрываем это локальной выдачей
+      const isTrueNoResults = recommendations && recommendations.fallback_mode === 'no_tasks';
+
+      if (!topTasks.length && !isTrueNoResults) {
         const tasks = await helperaDb.listTasks();
         topTasks = tasks
           .map((task) => ({ task, score: scoreTask(task, profile) }))
@@ -293,9 +379,14 @@
           .map(({ task }) => task);
       }
 
-      document.getElementById('tasks-list').innerHTML = topTasks.length
-        ? topTasks.map((task) => renderTask(task, profile)).join('')
-        : '<p class="empty-state">В базе пока нет опубликованных задач.</p>';
+      if (isTrueNoResults && !topTasks.length) {
+        const hints = (recommendations && recommendations.fallback_hints) || [];
+        document.getElementById('tasks-list').innerHTML = renderNoResults(hints, withProfileId('volunteer-account.html'));
+      } else {
+        document.getElementById('tasks-list').innerHTML = topTasks.length
+          ? topTasks.map((task) => renderTask(task, profile)).join('')
+          : '<p class="empty-state">В базе пока нет опубликованных задач.</p>';
+      }
 
       topTasks.forEach((task, rank) => {
         helperaDb.logEvent({

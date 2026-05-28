@@ -153,27 +153,75 @@
   document.getElementById('navDashboard').href = withProfileId('ngo-dashboard.html');
   document.getElementById('backBtn').addEventListener('click', () => window.location.href = withProfileId('ngo-applications.html'));
 
+  function countWords(text) {
+    return text.trim().split(/\s+/).filter((w) => w.length >= 2).length;
+  }
+
+  function isSpamLike(text) {
+    const body = text.replace(/\s/g, '');
+    if (!body.length) return false;
+    return (new Set(body.toLowerCase()).size / body.length) < 0.08;
+  }
+
   function validateShort() {
-    const length = shortReview.value.trim().length;
-    shortCounter.textContent = `${length} / минимум 50 символов`;
-    const valid = length >= 50;
-    shortWrap.classList.toggle('invalid', !valid && length > 0);
-    shortError.style.display = !valid && length > 0 ? 'block' : 'none';
+    const text = shortReview.value.trim();
+    const length = text.length;
+    const words = countWords(text);
+    shortCounter.textContent = `${length} симв. · ${words} сл. (мин. 50 симв. и 5 слов)`;
+    const spam = isSpamLike(text);
+    const valid = length >= 50 && words >= 5 && !spam;
+    const touched = length > 0;
+    shortWrap.classList.toggle('invalid', !valid && touched);
+    if (!touched) {
+      shortError.style.display = 'none';
+    } else if (spam) {
+      shortError.textContent = 'Текст выглядит автоматическим — постарайтесь написать содержательно.';
+      shortError.style.display = 'block';
+    } else if (words < 5) {
+      shortError.textContent = `Напишите не менее 5 слов (сейчас: ${words}).`;
+      shortError.style.display = 'block';
+    } else if (length < 50) {
+      shortError.textContent = 'Нужно ввести не менее 50 символов.';
+      shortError.style.display = 'block';
+    } else {
+      shortError.style.display = 'none';
+    }
     return valid;
   }
 
   function validateExtended() {
-    const length = extendedReview.value.trim().length;
-    extendedCounter.textContent = `${length} / минимум 200 символов`;
-    const valid = length === 0 || length >= 200;
+    const text = extendedReview.value.trim();
+    const length = text.length;
+    const empty = length === 0;
+    const words = countWords(text);
+    const spam = isSpamLike(text);
+    extendedCounter.textContent = empty ? `0 / минимум 200 символов` : `${length} симв. · ${words} сл. (мин. 200 симв. и 15 слов)`;
+    const valid = empty || (length >= 200 && words >= 15 && !spam);
     extendedWrap.classList.toggle('invalid', !valid);
-    extendedError.style.display = !valid ? 'block' : 'none';
+    if (!empty && spam) {
+      extendedError.textContent = 'Текст выглядит автоматическим — постарайтесь написать содержательно.';
+      extendedError.style.display = 'block';
+    } else if (!empty && words < 15) {
+      extendedError.textContent = `Напишите не менее 15 слов (сейчас: ${words}).`;
+      extendedError.style.display = 'block';
+    } else if (!empty && length < 200) {
+      extendedError.textContent = 'Если вы заполняете расширенный отзыв, нужно написать не менее 200 символов.';
+      extendedError.style.display = 'block';
+    } else {
+      extendedError.style.display = 'none';
+    }
     return valid;
+  }
+
+  function validateRatings() {
+    return ['rating1', 'rating2', 'rating3'].every(
+      (group) => document.querySelector(`.rating-btn[data-group="${group}"].active`) !== null
+    );
   }
 
   function validateForm() {
     confirmRow.classList.toggle('checked', confirmCheckbox.checked);
-    submitButton.disabled = !(validateShort() && validateExtended() && confirmCheckbox.checked);
+    submitButton.disabled = !(validateShort() && validateExtended() && confirmCheckbox.checked && validateRatings());
   }
 
   function getActiveValue(selector) {
@@ -202,42 +250,30 @@
     submitButton.disabled = true;
     submitButton.textContent = 'Отправляем...';
     try {
-      const application = await helperaDb.getApplication(applicationId);
-      const payload = {
-        ...(application?.payload || {}),
-        reviews: {
-          ...((application?.payload || {}).reviews || {}),
-          ngo: {
-            ratings: {
-              quality: Number(getActiveValue('.rating-btn[data-group="rating1"]')),
-              communication: Number(getActiveValue('.rating-btn[data-group="rating2"]')),
-              responsibility: Number(getActiveValue('.rating-btn[data-group="rating3"]'))
-            },
-            shortReview: shortReview.value.trim(),
-            extendedReview: extendedReview.value.trim(),
-            completion: document.querySelector('.result-btn.active')?.dataset.value || '',
-            createdAt: new Date().toISOString()
-          }
-        },
-        statusHistory: [
-          ...((application?.payload || {}).statusHistory || []),
-          { status: 'done', actorRole: 'ngo', createdAt: new Date().toISOString(), reason: 'ngo_review_submitted' }
-        ]
+      const ratings = {
+        quality: Number(getActiveValue('.rating-btn[data-group="rating1"]')),
+        communication: Number(getActiveValue('.rating-btn[data-group="rating2"]')),
+        responsibility: Number(getActiveValue('.rating-btn[data-group="rating3"]'))
       };
-      await helperaDb.updateApplication(applicationId, { status: 'done', payload });
-      const ratings = payload.reviews.ngo.ratings;
-      const avgRating = Math.round((ratings.quality + ratings.communication + ratings.responsibility) / 3 * 10) / 10;
+      const review = {
+        ratings,
+        shortReview: shortReview.value.trim(),
+        extendedReview: extendedReview.value.trim(),
+        completion: document.querySelector('.result-btn.active')?.dataset.value || 'completed'
+      };
+      const result = await helperaDb.submitReview(applicationId, 'ngo', review);
+      const avgRating = Math.round(Object.values(ratings).reduce((a, b) => a + b, 0) / 3 * 10) / 10;
       await helperaDb.logEvent({
         eventType: 'review_left_by_ngo',
         actorRole: 'ngo',
         actorProfileId: ngoProfileId,
         applicationId,
-        taskId: application?.task_id,
-        payload: { ...payload.reviews.ngo, avg_rating: avgRating, previousStatus: application?.status || null, status: 'done' }
+        payload: { ...review, avg_rating: avgRating, both_reviewed: result.both_reviewed }
       });
       window.location.href = withProfileId(`ngo-review-success.html?applicationId=${encodeURIComponent(applicationId)}`);
     } catch (error) {
       console.error(error);
+      alert(`Не удалось отправить отзыв: ${error.message}`);
       submitButton.disabled = false;
       submitButton.textContent = 'Отправить отзыв';
     }

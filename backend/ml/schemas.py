@@ -22,6 +22,7 @@ class RecommendedTask:
     final_score: float
     match_percent: int
     reason: str
+    is_urgent: bool = False
     payload: dict = field(default_factory=dict)
 
     def to_dict(self):
@@ -38,10 +39,15 @@ class RecommendationResponse:
     recommendation_session_id: str
     items: list
     fallback_mode: str = None
+    is_cold_start: bool = False
+    cold_tasks_in_batch: int = 0
+    fallback_hints: list = field(default_factory=list)
 
     def to_dict(self):
         data = asdict(self)
         data["items"] = [item.to_dict() if hasattr(item, "to_dict") else item for item in self.items]
         if data["fallback_mode"] is None:
             del data["fallback_mode"]
+        if not data["fallback_hints"]:
+            del data["fallback_hints"]
         return data

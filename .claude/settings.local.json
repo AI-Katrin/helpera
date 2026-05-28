@@ -9,7 +9,15 @@
       "Bash(xargs kill -9)",
       "Bash(python3 /Users/Admin/helpera_project/server.py)",
       "Bash(curl -s http://localhost:3000/api/health)",
-      "Bash(sed -i '' '/^[[:space:]]*# ── /d' /Users/Admin/helpera_project/docs/openapi.yaml)"
+      "Bash(sed -i '' '/^[[:space:]]*# ── /d' /Users/Admin/helpera_project/docs/openapi.yaml)",
+      "Bash(dig www.helpera.ru CNAME +short)",
+      "Bash(dig v04wrq23.up.railway.app +short)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/Admin/helpera_project/server.py'\\).read\\(\\)\\); print\\('server.py OK'\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/Admin/helpera_project/server.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import backend.ml.linucb; import backend.ml.business_rules; import backend.ml.features; import backend.api.recommendations; print\\('OK'\\)\")",
+      "Bash(python3 -c \"import backend.ml.linucb; import backend.ml.business_rules; import backend.ml.features; import backend.api.recommendations; print\\('OK'\\)\")",
+      "Bash(python3 -c \"import server; print\\('OK'\\)\")"
     ],
     "additionalDirectories": [
       "/Users/Admin/helpera_project/docs"

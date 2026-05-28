@@ -335,6 +335,173 @@ input:focus {
   color: var(--ui-muted);
 }
 
+/* Правило 2: подсказка качества описания задачи */
+.desc-hint {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.desc-hint.warn {
+  background: #FFF8E1;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+.desc-hint.info {
+  background: var(--ui-blue-soft);
+  color: var(--ui-blue-dark);
+  border: 1px solid #BFDBFE;
+}
+
+/* Правило 3: предупреждение о дублировании задачи */
+.dup-warn {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #FFF3E0;
+  color: #7C2D00;
+  border: 1px solid #FFCC80;
+}
+
+/* Правило 17: блокировка формы отклика */
+.apply-blocked {
+  padding: 24px 20px;
+  border-radius: 14px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  margin-bottom: 20px;
+}
+.apply-blocked-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #991B1B;
+  margin: 0 0 6px;
+}
+.apply-blocked-text {
+  font-size: 14px;
+  color: #7F1D1D;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+/* Правило 16: индикатор нагрузки волонтёра */
+.workload-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.workload-dots {
+  display: flex;
+  gap: 4px;
+}
+.workload-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ui-line);
+  border: 1px solid var(--ui-line-strong);
+}
+.workload-dot.active {
+  background: var(--ui-green);
+  border-color: var(--ui-green-dark);
+}
+.workload-dot.full {
+  background: #DC2626;
+  border-color: #991B1B;
+}
+.workload-label {
+  font-size: 13px;
+  color: var(--ui-muted);
+}
+
+/* Правило 20: градуированные статусы выполнения */
+.status-partial {
+  background: #FEF9C3;
+  color: #713F12;
+  border: 1px solid #FDE047;
+}
+
+/* Правило 19: отмена отклика */
+.status-cancelled {
+  background: #F3F4F6;
+  color: #6B7280;
+  border: 1px solid #D1D5DB;
+}
+
+/* Правило 18: таймаут отклика */
+.status-timeout {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+.timeout-notice {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #FFFBEB;
+  color: #78350F;
+  border: 1px solid #FDE68A;
+}
+
+/* Правило 10: нулевая выдача */
+.no-results-block {
+  padding: 28px 24px;
+  border-radius: 16px;
+  background: #F8FAFC;
+  border: 1px solid var(--ui-line);
+  text-align: center;
+}
+.no-results-block .no-results-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ui-text);
+  margin: 0 0 8px;
+}
+.no-results-block .no-results-text {
+  font-size: 14px;
+  color: var(--ui-muted);
+  margin: 0 0 14px;
+}
+.no-results-hints {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  text-align: left;
+  display: inline-block;
+}
+.no-results-hints li {
+  font-size: 13px;
+  color: var(--ui-text);
+  padding: 6px 0 6px 20px;
+  position: relative;
+}
+.no-results-hints li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ui-green);
+}
+.relaxed-notice {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #F0FDF4;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+}
+
 .card-link,
 .task-link,
 .reset-link,

@@ -76,9 +76,16 @@
       helperaDb.listApplications({ ngoProfileId: profileId, includeDrafts: false })
     ]);
     currentApplications = applications;
+    const NGO_TASK_LIMIT = 10;
     const ownTasks = tasks.filter((task) => task.ngo_profile_id === profileId);
+    const atLimit = ownTasks.length >= NGO_TASK_LIMIT;
     document.getElementById('avatarMini').textContent = (profile?.account?.orgName || profile?.about?.shortName || 'Н').slice(0, 1).toUpperCase();
-    document.getElementById('tasksSubtitle').textContent = `${ownTasks.length} задач • ${applications.length} откликов`;
+    document.getElementById('tasksSubtitle').textContent = `${ownTasks.length} из ${NGO_TASK_LIMIT} активных задач • ${applications.length} откликов`;
+    const createBtn = document.getElementById('createTaskBtn');
+    if (atLimit) {
+      createBtn.disabled = true;
+      createBtn.title = `Достигнут лимит: не более ${NGO_TASK_LIMIT} активных задач. Закройте неактуальные, чтобы создать новую.`;
+    }
     document.getElementById('tasksList').innerHTML = ownTasks.length ? ownTasks.map((task) => {
       const count = applications.filter((item) => item.task_id === task.id).length;
       return `

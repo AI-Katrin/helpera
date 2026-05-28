@@ -105,6 +105,7 @@
             <textarea id="taskDesc" class="textarea desc-textarea" placeholder="Опишите, что именно нужно сделать, какой ожидается результат&#10;и чем будет полезен волонтёр" required></textarea>
             <a href="#" id="transformAi" class="ai-link">✧ Преобразовать задачу вместе с AI</a>
           </div>
+          <p id="descHint" class="desc-hint" style="display:none"></p>
         </div>
 
         <div class="field">
@@ -115,6 +116,11 @@
             <button type="button" class="chip" data-format="Смешанный">Смешанный</button>
           </div>
           <input type="hidden" id="taskFormat" value="Онлайн" required>
+        </div>
+
+        <div class="field" id="cityField" style="display:none">
+          <label class="label" for="taskCity">Город <span class="req">*</span></label>
+          <input id="taskCity" class="input title-input" type="text" placeholder="Москва" autocomplete="off">
         </div>
 
         <div class="field">
@@ -176,6 +182,12 @@
           <button id="finishBtn" class="btn btn-primary" type="submit" disabled>Завершить регистрацию</button>
           <button id="backBtn" class="btn btn-secondary" type="button">Назад</button>
         </div>
+        <div class="dup-warn" id="dupWarn" style="display:none">
+          Похожая задача уже существует на платформе. Задача будет создана, но получит пониженный приоритет в рекомендациях. Уточните описание, чтобы отразить уникальность вашей задачи.
+        </div>
+        <div class="dup-warn" id="taskLimitMsg" style="display:none">
+          Достигнут лимит: не более 10 активных задач. Закройте неактуальные задачи, чтобы создать новую.
+        </div>
       </form>
     </section>
   </main>
@@ -205,6 +217,8 @@
   const dateEnd = document.getElementById('dateEnd');
   const formatInput = document.getElementById('taskFormat');
   const taskAgreement = document.getElementById('taskAgreement');
+  const cityField = document.getElementById('cityField');
+  const cityInput = document.getElementById('taskCity');
   const chips = document.querySelectorAll('.chip');
   const taskFileInput = document.getElementById('taskFileInput');
   const taskDropzone = document.getElementById('taskDropzone');
@@ -407,6 +421,9 @@
     chips.forEach(chip => {
       chip.classList.toggle('active', chip.dataset.format === value);
     });
+    const isOffline = value === 'Оффлайн' || value === 'Смешанный';
+    cityField.style.display = isOffline ? '' : 'none';
+    if (!isOffline) cityInput.value = '';
     validate();
   }
 
@@ -416,17 +433,37 @@
 
   function fieldsValid(){
     const titleOk = titleInput.value.trim().length >= 5;
-    const descOk = descInput.value.trim().length >= 20;
+    const descOk = descInput.value.trim().length >= 30;
     const skillsOk = skillsHiddenInput.value.trim().length >= 3;
     const directionsOk = document.getElementById('directions').value.trim().length >= 3;
-    const formatOk = formatInput.value.trim().length > 0;
+    const fmt = formatInput.value.trim();
+    const formatOk = fmt.length > 0;
+    const isOffline = fmt === 'Оффлайн' || fmt === 'Смешанный';
+    const cityOk = !isOffline || cityInput.value.trim().length > 0;
     const startOk = dateStart.value !== '';
     const endOk = dateEnd.value !== '';
     let periodOk = false;
     if (startOk && endOk){
       periodOk = new Date(dateEnd.value) >= new Date(dateStart.value);
     }
-    return titleOk && descOk && skillsOk && directionsOk && formatOk && periodOk && taskAgreement.checked;
+    return titleOk && descOk && skillsOk && directionsOk && formatOk && cityOk && periodOk && taskAgreement.checked;
+  }
+
+  const descHint = document.getElementById('descHint');
+
+  function updateDescHint() {
+    const len = descInput.value.trim().length;
+    if (len > 0 && len < 80) {
+      descHint.textContent = 'Описание слишком короткое — задача получит низкий приоритет в рекомендациях. Нажмите «Преобразовать задачу вместе с AI», чтобы дополнить текст.';
+      descHint.className = 'desc-hint warn';
+      descHint.style.display = '';
+    } else if (len >= 80 && len < 150) {
+      descHint.textContent = 'Хорошее начало! Добавьте детали: ожидаемый результат, конкретные шаги или контекст проекта.';
+      descHint.className = 'desc-hint info';
+      descHint.style.display = '';
+    } else {
+      descHint.style.display = 'none';
+    }
   }
 
   function validate(){
@@ -484,6 +521,7 @@
       directions: document.getElementById('directions').value.trim(),
       dateStart: dateStart.value,
       dateEnd: dateEnd.value,
+      city: cityInput.value.trim(),
       comment: document.getElementById('comment').value.trim(),
       taskAgreement: taskAgreement.checked,
       filesDraft: uploadedFiles.map((file) => ({
@@ -520,6 +558,8 @@
     document.getElementById('comment').value = firstTask.comment || '';
     taskAgreement.checked = !!firstTask.taskAgreement;
     if (firstTask.format) setActiveFormat(firstTask.format);
+    cityInput.value = firstTask.city || '';
+    updateDescHint();
   }
 
   [titleInput, descInput, dateStart, dateEnd, taskAgreement, document.getElementById('comment')].forEach(el => {
@@ -528,6 +568,9 @@
     el.addEventListener('input', saveDraft);
     el.addEventListener('change', saveDraft);
   });
+  cityInput.addEventListener('input', validate);
+  cityInput.addEventListener('input', saveDraft);
+  descInput.addEventListener('input', updateDescHint);
 
   taskDropzone.addEventListener('click', () => taskFileInput.click());
   taskDropzone.addEventListener('keydown', (event) => {
@@ -603,6 +646,29 @@
         }
         const task = collectData();
         await saveDraft();
+        // Правило 5: лимит активных задач НКО
+        try {
+          const activeCount = await helperaDb.getNgoActiveTaskCount(actualProfileId);
+          if (activeCount >= 10) {
+            document.getElementById('taskLimitMsg').style.display = '';
+            return;
+          }
+        } catch (_) {}
+        // Правило 3: проверка дублирования перед созданием задачи
+        try {
+          const dupRes = await fetch('/api/tasks/check-duplicate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task, ngo_id: actualProfileId })
+          });
+          if (dupRes.ok) {
+            const dupData = await dupRes.json();
+            task.is_duplicate_candidate = dupData.is_duplicate;
+            if (dupData.is_duplicate) {
+              document.getElementById('dupWarn').style.display = '';
+            }
+          }
+        } catch (_) {}
         await helperaDb.createTask(actualProfileId, task);
         await helperaDb.updateNgoProfile(actualProfileId, { registrationStep: 'completed', firstTask: task });
         window.location.href = withProfileId('ngo-dashboard.html');

@@ -4,7 +4,8 @@ from urllib.parse import parse_qs, urlparse
 
 from backend.ml.config import DEFAULT_TOP_K
 from backend.ml.data_repository import CsvRecommendationRepository
-from backend.ml.linucb import record_click
+from backend.ml.event_logger import log_event
+from backend.ml.linucb import record_apply, record_click, record_hide, record_outcome
 from backend.ml.model_loader import ModelArtifactError, health
 from backend.ml.recommender import RecommendationService, VolunteerNotFound
 from backend.ml.supabase_repository import SupabaseRecommendationRepository
@@ -77,7 +78,37 @@ def recommendations_event_response(body_bytes):
     if not event_type or not task_id or not volunteer_id:
         return 422, {"error": "Fields event_type, task_id, volunteer_id are required."}
 
+    # Правило 27: двойная запись — агрегаты в linucb_stats.json (UCB-скоринг)
+    # и полное событие в events.jsonl (дообучение CatBoost).
+    session_id = body.get("session_id")       # фронт передаёт session_id из ответа рекомендаций
+    ngo_id     = body.get("ngo_id")
+    position   = body.get("position")
+
     if event_type == "click":
         record_click(task_id, volunteer_id)
+        log_event("click", volunteer_id, task_id,
+                  session_id=session_id, ngo_id=ngo_id, position=position)
 
-    return 200, {"ok": True}
+    elif event_type == "apply":
+        record_apply(task_id, volunteer_id)
+        log_event("apply", volunteer_id, task_id,
+                  session_id=session_id, ngo_id=ngo_id, position=position)
+
+    elif event_type == "hide":
+        record_hide(task_id, volunteer_id)
+        log_event("hide", volunteer_id, task_id,
+                  session_id=session_id, ngo_id=ngo_id, position=position)
+
+    elif event_type == "outcome":
+        outcome_status = body.get("outcome_status")
+        if not outcome_status:
+            return 422, {"error": "Field outcome_status is required for outcome events."}
+        record_outcome(task_id, volunteer_id, outcome_status)
+        log_event("outcome", volunteer_id, task_id,
+                  session_id=session_id, ngo_id=ngo_id,
+                  outcome_status=outcome_status)
+
+    else:
+        return 422, {"error": f"Unknown event_type '{event_type}'. Allowed: click, apply, hide, outcome."}
+
+    return 200, {"ok": True, "event_type": event_type}
