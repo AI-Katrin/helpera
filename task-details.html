@@ -15,7 +15,7 @@
     <header class="topbar">
       <a class="brand" href="index.html">
         <span class="brand-mark"></span>
-        <span>Helpera</span>
+        
       </a>
 
       <nav class="nav">
@@ -31,7 +31,7 @@
 
     <div class="layout">
       <main class="main-panel" id="main-panel">
-        <div class="fit-badge" id="fit-badge">Задача из базы Supabase</div>
+        <div class="fit-badge" id="fit-badge">Загрузка…</div>
         <h1 id="task-title">Загружаем задачу...</h1>
         <p class="task-meta" id="task-meta"></p>
 
@@ -366,7 +366,7 @@
 
       const task = await helperaDb.getTask(taskId);
       if (!task) {
-        document.getElementById('main-panel').innerHTML = '<p class="empty-state">Задача не найдена в базе.</p>';
+        document.getElementById('main-panel').innerHTML = '<p class="empty-state">Задача не найдена или была удалена.</p>';
         return;
       }
 
@@ -377,7 +377,7 @@
 
     init().catch((error) => {
       console.error(error);
-      document.getElementById('main-panel').innerHTML = '<p class="empty-state">Не удалось загрузить задачу из Supabase.</p>';
+      document.getElementById('main-panel').innerHTML = '<p class="empty-state">Не удалось загрузить задачу. Попробуйте обновить страницу.</p>';
     });
   </script>
 </body>

@@ -15,7 +15,7 @@
     <header class="topbar">
       <a class="brand" href="index.html">
         <span class="brand-mark"></span>
-        <span>Helpera</span>
+        
       </a>
 
       <nav class="nav">
@@ -258,9 +258,10 @@
   const urlParams = new URLSearchParams(window.location.search);
   let taskCards = Array.from(document.querySelectorAll('.task-item'));
   let rankedTasks = [];
-  let visibleCount = 10;
+  let filteredTasks = [];
+  let displayedCount = 0;
   let recommendationSessionId = '';
-  const STEP_SIZE = 10;
+  const PAGE_SIZE = 10;
   const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
 
   const _recCacheKey = `helpera_rec_${profileId}`;
@@ -353,20 +354,63 @@
     return article;
   }
 
-  function renderVisibleTasks() {
+  function isExpiredTask(task) {
+    const end = task.date_end || task.payload?.dateEnd;
+    if (!end) return false;
+    const endDate = new Date(end);
+    if (isNaN(endDate.getTime())) return false;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return endDate < today;
+  }
+
+  function normalizeVal(v) { return String(v || '').trim().toLowerCase(); }
+
+  function matchesFilters(task, filters) {
+    const payload = task.payload || {};
+    const title = normalizeVal(task.title);
+    const org = normalizeVal(task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName);
+    const desc = normalizeVal(task.description || payload.description);
+    const taskSkills = normalizeVal(task.skills || payload.skills);
+    const taskFormat = normalizeVal(task.format || payload.format);
+    const taskDuration = normalizeVal(payload.duration || payload.taskDuration || payload.participationType);
+    const taskDirections = [payload.direction, payload.directions, payload.category, payload.comment].filter(Boolean).map(normalizeVal).join(' ');
+
+    if (filters.search) {
+      const q = filters.search;
+      if (!title.includes(q) && !org.includes(q) && !desc.includes(q) && !taskSkills.includes(q) && !taskDirections.includes(q)) return false;
+    }
+    if (filters.formats.length && !filters.formats.some((f) => taskFormat.includes(normalizeVal(f)))) return false;
+    if (filters.durations.length && !filters.durations.some((d) => taskDuration.includes(normalizeVal(d)))) return false;
+    if (filters.directions.length && !filters.directions.some((d) => taskDirections.includes(normalizeVal(d)))) return false;
+    if (filters.skills.length && !filters.skills.some((s) => taskSkills.includes(normalizeVal(s)))) return false;
+    return true;
+  }
+
+  function renderPage(append = false) {
     const parent = document.querySelector('.tasks-panel');
     if (!parent) return;
-    document.querySelectorAll('.task-item').forEach((card) => card.remove());
-    rankedTasks.slice(0, visibleCount).forEach((task) => parent.insertBefore(renderTaskCard(task), emptyState));
+    if (!append) {
+      document.querySelectorAll('.task-item').forEach((card) => card.remove());
+      displayedCount = 0;
+    }
+    const nextBatch = filteredTasks.slice(displayedCount, displayedCount + PAGE_SIZE);
+    nextBatch.forEach((task) => parent.insertBefore(renderTaskCard(task), emptyState));
+    displayedCount += nextBatch.length;
     if (recommendationSessionId) {
       document.querySelectorAll('.task-item[data-task-id]').forEach((card) => {
         card.dataset.recommendationSessionId = recommendationSessionId;
       });
     }
     taskCards = Array.from(document.querySelectorAll('.task-item'));
-    applyFilters();
     observeTasks(taskCards);
-    showMoreButton.style.display = visibleCount < rankedTasks.length ? 'inline-flex' : 'none';
+    emptyState.style.display = filteredTasks.length === 0 ? 'block' : 'none';
+    showMoreButton.style.display = displayedCount < filteredTasks.length ? 'inline-flex' : 'none';
+  }
+
+  function renderVisibleTasks() {
+    const filters = getFilters();
+    filteredTasks = rankedTasks.filter((task) => !isExpiredTask(task) && matchesFilters(task, filters));
+    renderPage(false);
   }
 
   async function loadTasksFromDb() {
@@ -494,42 +538,23 @@
     applyFilters();
   }
 
-  function applyFilters() {
-    const filters = {
+  function getFilters() {
+    return {
       search: searchInput.value.trim().toLowerCase(),
       formats: getActiveTexts(formatButtons),
       durations: getActiveTexts(durationButtons),
       directions: getCheckedValues(directionDropdown),
       skills: getCheckedValues(skillDropdown)
     };
+  }
 
+  function applyFilters() {
+    const filters = getFilters();
     updateDropdownLabel(directionDropdown, 'Выбрать направления');
     updateDropdownLabel(skillDropdown, 'Выбрать навыки');
     renderActiveFilters(filters);
-
-    let visibleCount = 0;
-
-    taskCards.forEach(card => {
-      const title = (card.dataset.title || '').toLowerCase();
-      const org = (card.dataset.org || '').toLowerCase();
-      const description = (card.dataset.description || '').toLowerCase();
-      const skills = (card.dataset.skills || '').toLowerCase();
-      const directions = (card.dataset.directions || '').toLowerCase();
-      const searchMatch = !filters.search || title.includes(filters.search) || org.includes(filters.search) || description.includes(filters.search) || skills.includes(filters.search) || directions.includes(filters.search);
-
-      const formatMatch = !filters.formats.length || filters.formats.includes(card.dataset.format);
-      const durationValue = card.dataset.duration;
-      const durationMatch = !filters.durations.length || filters.durations.includes(durationValue);
-
-      const directionMatch = !filters.directions.length || filters.directions.some(v => directions.includes(v.toLowerCase()));
-      const skillMatch = !filters.skills.length || filters.skills.some(v => skills.includes(v.toLowerCase()));
-
-      const show = searchMatch && formatMatch && durationMatch && directionMatch && skillMatch;
-      card.style.display = show ? 'flex' : 'none';
-      if (show) visibleCount += 1;
-    });
-
-    emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+    filteredTasks = rankedTasks.filter((task) => !isExpiredTask(task) && matchesFilters(task, filters));
+    renderPage(false);
   }
 
   function resetAllFilters() {
@@ -546,8 +571,7 @@
   applyButton.addEventListener('click', applyFilters);
   resetButton.addEventListener('click', resetAllFilters);
   showMoreButton.addEventListener('click', () => {
-    visibleCount += STEP_SIZE;
-    renderVisibleTasks();
+    renderPage(true);
   });
   searchInput.addEventListener('input', applyFilters);
   document.querySelectorAll('.dropdown input[type="checkbox"]').forEach(input => {
@@ -556,7 +580,6 @@
 
   updateDropdownLabel(directionDropdown, 'Выбрать направления');
   updateDropdownLabel(skillDropdown, 'Выбрать навыки');
-  applyFilters();
 
   // --- Event tracking ---
   const shownAt = {};
@@ -598,18 +621,41 @@
     if (!link) return;
     const card = link.closest('[data-task-id]');
     if (!card?.dataset.taskId) return;
+    const taskId = card.dataset.taskId;
+
+    if (link.textContent.trim() === 'Не показывать') {
+      event.preventDefault();
+      card.remove();
+      rankedTasks = rankedTasks.filter((t) => t.id !== taskId);
+      filteredTasks = filteredTasks.filter((t) => t.id !== taskId);
+      showMoreButton.style.display = displayedCount < filteredTasks.length ? 'inline-flex' : 'none';
+      emptyState.style.display = filteredTasks.length === 0 ? 'block' : 'none';
+      helperaDb.logEvent({
+        eventType: 'task_hidden',
+        actorRole: 'volunteer',
+        actorProfileId: profileId,
+        taskId,
+        payload: {
+          source: 'volunteer-tasks.html',
+          reason: 'user_hidden',
+          recommendation_session_id: card.dataset.recommendationSessionId || null
+        }
+      }).catch(() => {});
+      return;
+    }
+
     helperaDb.logEvent({
       eventType: 'task_card_clicked',
       actorRole: 'volunteer',
       actorProfileId: profileId,
-      taskId: card.dataset.taskId,
+      taskId,
       payload: {
         source: 'volunteer-tasks.html',
         action: link.classList.contains('green') ? 'apply' : 'details',
-        dwell_ms: shownAt[card.dataset.taskId] ? Date.now() - shownAt[card.dataset.taskId] : null
+        dwell_ms: shownAt[taskId] ? Date.now() - shownAt[taskId] : null
       }
     }).catch(() => {});
-    helperaDb.logRecommendationClick(card.dataset.taskId, profileId);
+    helperaDb.logRecommendationClick(taskId, profileId);
   });
 
   loadTasksFromDb();

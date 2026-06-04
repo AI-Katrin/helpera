@@ -15,7 +15,7 @@
     <header class="topbar">
       <a class="brand" href="index.html">
         <span class="brand-mark"></span>
-        <span>Helpera</span>
+        
       </a>
 
       <nav class="nav">
@@ -27,7 +27,7 @@
       </nav>
     </header>
 
-    <div class="breadcrumbs">Поиск задач / Подробности задачи / Отклик</div>
+    <div class="breadcrumbs"><a href="#" id="breadcrumb-tasks">Поиск задач</a> / <a href="#" id="breadcrumb-details">Подробности задачи</a> / Отклик</div>
 
     <div class="layout">
       <aside class="panel left-panel">
@@ -73,7 +73,7 @@
         <div id="eligibility-block" style="display:none"></div>
 
         <section class="task-box">
-          <div class="task-fit">Подходит вам на 93%</div>
+          <div class="task-fit" id="taskFit">Загрузка...</div>
           <h3 id="taskTitle">Загружаем задачу...</h3>
           <p class="task-meta" id="taskMeta"></p>
         </section>
@@ -162,6 +162,39 @@
       '"': '&quot;',
       "'": '&#039;'
     })[char]);
+  }
+
+  function calcLocalScore(task, profile) {
+    const volunteerSkills = (profile.skills?.skills || []).map((s) => s.trim().toLowerCase());
+    const volunteerDirections = (profile.skills?.helpDirections || []).map((s) => s.trim().toLowerCase());
+    const preferredFormat = (profile.interests?.format || '').trim().toLowerCase();
+    const taskSkills = String(task.skills || task.payload?.skills || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+    const taskText = `${task.title || ''} ${task.description || ''} ${task.payload?.comment || ''}`.toLowerCase();
+    let score = 50;
+    volunteerSkills.forEach((skill) => {
+      if (taskSkills.some((ts) => ts === skill || ts.includes(skill) || skill.includes(ts))) score += 12;
+    });
+    volunteerDirections.forEach((dir) => {
+      if (taskText.includes(dir)) score += 8;
+    });
+    if (preferredFormat && (task.format || task.payload?.format || '').toLowerCase() === preferredFormat) score += 18;
+    if (profile.about?.city && (task.ngo_profiles?.about?.city || '').toLowerCase() === profile.about.city.toLowerCase()) score += 6;
+    return Math.min(score, 98);
+  }
+
+  function getMatchPercent(task) {
+    try {
+      const cacheKey = `helpera_rec_${volunteerProfileId}`;
+      const raw = sessionStorage.getItem(cacheKey);
+      if (raw) {
+        const { data } = JSON.parse(raw);
+        const rec = (data?.tasks || []).find((t) => t.id === task.id);
+        if (rec?.recommendation?.matchPercent) return Math.round(Number(rec.recommendation.matchPercent));
+        if (rec?.recommendation?.rank) return Math.max(55, 99 - Number(rec.recommendation.rank));
+      }
+    } catch {}
+    if (activeProfile) return calcLocalScore(task, activeProfile);
+    return null;
   }
 
   function formatDate(value) {
@@ -283,8 +316,8 @@
       const application = await saveApplication('review');
       window.location.href = withProfileId(`application-success.html?applicationId=${encodeURIComponent(application.id)}`);
     } catch (error) {
-      const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
-      alert(`Не удалось отправить отклик: ${message}`);
+      const message = error?.message || 'Проверьте подключение к интернету и попробуйте ещё раз.';
+      alert(`Не удалось отправить отклик. ${message}`);
       console.error(error);
     }
   });
@@ -299,8 +332,8 @@
       await saveApplication('draft');
       window.location.href = withProfileId('volunteer-applications.html?filter=draft');
     } catch (error) {
-      const message = error?.message || 'проверьте подключение к Supabase и попробуйте ещё раз.';
-      alert(`Не удалось сохранить черновик: ${message}`);
+      const message = error?.message || 'Проверьте подключение к интернету и попробуйте ещё раз.';
+      alert(`Не удалось сохранить черновик. ${message}`);
       console.error(error);
     }
   });
@@ -350,6 +383,11 @@
     document.getElementById('navApplications').href = withProfileId('volunteer-applications.html');
     document.getElementById('navProfile').href = withProfileId('volunteer-lk.html');
     document.getElementById('navDashboard').href = withProfileId('volunteer-dashboard.html');
+    document.getElementById('breadcrumb-tasks').href = withProfileId('volunteer-tasks.html');
+    document.getElementById('breadcrumb-details').href = taskId
+      ? withProfileId(`task-details.html?taskId=${encodeURIComponent(taskId)}`)
+      : withProfileId('volunteer-tasks.html');
+
     if (volunteerProfileId) {
       activeProfile = await helperaDb.getVolunteerProfile(volunteerProfileId);
       document.getElementById('avatarMini').textContent = (activeProfile?.about?.firstName || 'В').slice(0, 1).toUpperCase();
@@ -365,13 +403,16 @@
         const orgName = activeTask.tasks?.ngo_profiles?.org_name || activeTask.ngo_profiles?.org_name || activeTask.ngo_profiles?.about?.shortName || 'НКО';
         document.getElementById('taskTitle').textContent = activeTask.title || 'Задача без названия';
         document.getElementById('taskMeta').textContent = `${orgName} • ${activeTask.format || activeTask.payload?.format || 'Формат не указан'} • ${taskDates(activeTask)}`;
+        const matchPct = getMatchPercent(activeTask);
+        document.getElementById('taskFit').textContent = matchPct ? `Подходит вам на ${matchPct}%` : 'Задача для вас';
         const format = activeTask.format || activeTask.payload?.format;
         document.querySelectorAll('.chips[data-select="single"] .chip').forEach((chip) => {
           chip.classList.toggle('active', chip.textContent.trim() === format);
         });
       } else {
         document.getElementById('taskTitle').textContent = 'Задача не найдена';
-        document.getElementById('taskMeta').textContent = 'Проверьте ссылку или подключение к Supabase';
+        document.getElementById('taskMeta').textContent = 'Задача не существует или была удалена';
+        document.getElementById('taskFit').textContent = '';
       }
     }
     validateApplication();

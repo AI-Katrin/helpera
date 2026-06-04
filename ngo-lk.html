@@ -15,7 +15,7 @@
     <header class="topbar">
       <a class="brand" href="index.html">
         <span class="brand-mark"></span>
-        <span>Helpera</span>
+        
       </a>
 
       <nav class="nav">
@@ -62,27 +62,6 @@
           <div class="chips" id="contacts-list"></div>
         </div>
 
-        <div class="section">
-          <h3 class="section-title">Сводка</h3>
-          <div class="summary-grid" id="summary-list">
-            <div class="summary-box">
-              <div class="label">Активных задач</div>
-              <div class="value">0</div>
-            </div>
-            <div class="summary-box">
-              <div class="label">Всего откликов</div>
-              <div class="value">0</div>
-            </div>
-            <div class="summary-box">
-              <div class="label">На рассмотрении</div>
-              <div class="value">0</div>
-            </div>
-            <div class="summary-box">
-              <div class="label">Приглашено</div>
-              <div class="value">0</div>
-            </div>
-          </div>
-        </div>
 
         <div class="section" id="reliability-section" style="display:none">
           <h3 class="section-title">Надёжность НКО</h3>
@@ -97,13 +76,13 @@
         <div class="tasks-header">
           <div>
             <h2 class="tasks-title">Мои задачи и отклики</h2>
-            <p class="tasks-subtitle">Последние опубликованные задачи и отклики волонтёров по профилю НКО.</p>
+            <p class="tasks-subtitle">Список опубликованных задач, которые видят волонтёры.</p>
           </div>
           <a class="btn-outline-green" href="ngo-tasks.html" id="all-tasks-small-link">Мои задачи</a>
         </div>
 
         <div id="tasks-list">
-          <p class="empty-state">Загружаем задачи из базы...</p>
+          <p class="empty-state">Загружаем задачи...</p>
         </div>
       </section>
     </div>
@@ -195,8 +174,6 @@
       renderChips('type-list', [about.orgType, about.legalForm].filter(Boolean), 'Тип не указан');
       renderChips('activity-list', [about.activity, about.city].filter(Boolean), 'Направления не указаны');
       renderChips('contacts-list', [contacts.email || profile?.account?.contact, contacts.phone].filter(Boolean), 'Контакты не указаны');
-      renderSummary(tasks, applications);
-      // Правило 15: блок надёжности НКО
       renderReliability(profile);
     }
 
@@ -225,18 +202,39 @@
       `;
     }
 
+    function pluralRu(n, one, few, many) {
+      const mod100 = Math.abs(n) % 100;
+      const mod10 = Math.abs(n) % 10;
+      if (mod100 >= 11 && mod100 <= 19) return `${n} ${many}`;
+      if (mod10 === 1) return `${n} ${one}`;
+      if (mod10 >= 2 && mod10 <= 4) return `${n} ${few}`;
+      return `${n} ${many}`;
+    }
+
     function renderTask(task, applications) {
       const skills = splitList(task.skills || task.payload?.skills).slice(0, 3);
       const taskApplications = applications.filter((item) => item.task_id === task.id);
       const reviewCount = taskApplications.filter((item) => item.status === 'review').length;
+      const payload = task.payload || {};
+      const format = task.format || payload.format || 'Формат не указан';
+      const dateStr = (() => {
+        const start = task.date_start || payload.dateStart;
+        const end = task.date_end || payload.dateEnd;
+        if (start && end && start !== end) return `${start} — ${end}`;
+        if (end) return `до ${end}`;
+        if (start) return `с ${start}`;
+        return '';
+      })();
+      const applicationsLabel = pluralRu(taskApplications.length, 'отклик', 'отклика', 'откликов');
+      const newLabel = pluralRu(reviewCount, 'новый', 'новых', 'новых');
       return `
         <article class="task-card">
           <div>
             <h3 class="task-title"><a href="${withProfileId(`ngo-task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
-            <p class="task-sub">${escapeHtml(task.format || task.payload?.format || 'Формат не указан')} • ${escapeHtml(task.payload?.dateStart || 'Сроки уточняются')}</p>
+            <p class="task-sub">${escapeHtml(format)}${dateStr ? ` • ${escapeHtml(dateStr)}` : ''}</p>
             <div class="chips">
-              <span class="chip blue">${taskApplications.length} откликов</span>
-              <span class="chip green">${reviewCount} новых</span>
+              <span class="chip blue">${escapeHtml(applicationsLabel)}</span>
+              ${reviewCount > 0 ? `<span class="chip green">${escapeHtml(newLabel)}</span>` : ''}
               ${skills.map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`).join('')}
             </div>
           </div>
@@ -285,7 +283,7 @@
 
       if (!profile) {
         document.getElementById('profile-name').textContent = 'Профиль НКО не найден';
-        document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Проверьте ссылку на профиль или подключение к Supabase.</p>';
+        document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Профиль не найден. Попробуйте войти заново.</p>';
         return;
       }
 
@@ -298,7 +296,7 @@
 
     initProfilePage().catch((error) => {
       console.error(error);
-      document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Не удалось загрузить профиль НКО или задачи из Supabase.</p>';
+      document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Не удалось загрузить данные. Попробуйте обновить страницу.</p>';
     });
 
     document.getElementById('logout-profile-btn').addEventListener('click', logoutProfile);

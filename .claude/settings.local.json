@@ -17,10 +17,17 @@
       "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/Admin/helpera_project/server.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
       "Bash(python -c \"import backend.ml.linucb; import backend.ml.business_rules; import backend.ml.features; import backend.api.recommendations; print\\('OK'\\)\")",
       "Bash(python3 -c \"import backend.ml.linucb; import backend.ml.business_rules; import backend.ml.features; import backend.api.recommendations; print\\('OK'\\)\")",
-      "Bash(python3 -c \"import server; print\\('OK'\\)\")"
+      "Bash(python3 -c \"import server; print\\('OK'\\)\")",
+      "Bash(find /var/folders /tmp ~/Downloads ~/Desktop -name \"*.png\" -newer /Users/Admin/helpera_project/assets/helpera-logo.png 2>/dev/null | head -10)",
+      "Read(//private/var/folders/**)",
+      "Bash(cp \"/Users/Admin/Downloads/helpera logo new.png\" \"/Users/Admin/helpera_project/assets/helpera-logo.png\")",
+      "Bash(xargs ls -lt)",
+      "Bash(perl -i -pe 's|<span>Helpera</span>||g' *.html)",
+      "Bash(chmod +x /Users/Admin/helpera_project/deploy/setup.sh /Users/Admin/helpera_project/deploy/deploy.sh)"
     ],
     "additionalDirectories": [
-      "/Users/Admin/helpera_project/docs"
+      "/Users/Admin/helpera_project/docs",
+      "/Users/Admin/Downloads"
     ]
   }
 }

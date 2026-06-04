@@ -1,0 +1,18 @@
+[Unit]
+Description=Helpera Platform
+After=network.target
+
+[Service]
+Type=simple
+User=helpera
+WorkingDirectory=/var/www/helpera
+EnvironmentFile=/var/www/helpera/.env
+ExecStart=/var/www/helpera/venv/bin/python server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=helpera
+
+[Install]
+WantedBy=multi-user.target

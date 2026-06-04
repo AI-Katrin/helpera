@@ -15,7 +15,7 @@
   <header>
     <a href="index.html" class="logo">
       <div class="logo-icon">H</div>
-      <span>Helpera</span>
+      
     </a>
   </header>
 
@@ -43,8 +43,11 @@
           <a class="social-btn" id="btnYandex" href="/auth/yandex/start?role=volunteer">
             <span class="social-dot yandex"></span>Войти через Яндекс
           </a>
-          <div id="vk-id-btn"></div>
+          <a class="social-btn" id="btnVK" href="#">
+            <span class="social-dot vk"></span>Войти через ВКонтакте
+          </a>
         </div>
+        <div id="vk-id-btn" style="display:none;"></div>
         <div class="divider"><span>или</span></div>
 
         <div class="form-group">
@@ -109,9 +112,10 @@
         source: VKID.ConfigSource.LOWCODE,
         scope: '',
       });
-      new VKID.OneTap()
-        .render({ container: document.getElementById('vk-id-btn'), showAlternativeLogin: true, oauthList: ['ok_ru', 'mail_ru'] })
-        .on(VKID.WidgetEvents.ERROR, function (err) { console.error('VK ID error', err); })
+      const oneTap = new VKID.OneTap();
+      oneTap
+        .render({ container: document.getElementById('vk-id-btn'), showAlternativeLogin: false })
+        .on(VKID.WidgetEvents.ERROR, function () {})
         .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
           VKID.Auth.exchangeCode(payload.code, payload.device_id)
             .then(function (data) {
@@ -125,10 +129,18 @@
             .then(function (r) { return r.json(); })
             .then(function (result) {
               if (result.redirect) window.location.href = result.redirect;
-              else showMessage('error', result.error || 'Ошибка входа через VK');
+              else showMessage('error', result.error || 'Не удалось войти через ВКонтакте');
             })
-            .catch(function () { showMessage('error', 'Ошибка входа через VK'); });
+            .catch(function () { showMessage('error', 'Не удалось подключиться. Попробуйте ещё раз.'); });
         });
+
+      document.getElementById('btnVK').addEventListener('click', function (e) {
+        e.preventDefault();
+        const inner = document.querySelector('#vk-id-btn button, #vk-id-btn [role="button"], #vk-id-btn a');
+        if (inner) { inner.click(); } else {
+          showMessage('error', 'Авторизация через ВКонтакте временно недоступна. Попробуйте войти по email.');
+        }
+      });
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -172,7 +184,7 @@
       }
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(login)) {
-        showMessage("error", "Для входа через Supabase Auth используйте email.");
+        showMessage("error", "Введите корректный email для входа.");
         return;
       }
 
@@ -204,7 +216,22 @@
         }
 
       } catch (error) {
-        showMessage("error", error.message || "Неверный email или пароль.");
+        let msg = "Неверный email или пароль.";
+        if (error && error.message) {
+          const m = error.message.toLowerCase();
+          if (m.includes("invalid login credentials") || m.includes("invalid_credentials") || m.includes("invalid email or password")) {
+            msg = "Неправильный логин или пароль.";
+          } else if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("network request failed") || m.includes("fetch")) {
+            msg = "Не удалось подключиться к серверу. Проверьте интернет-соединение и попробуйте ещё раз.";
+          } else if (m.includes("email not confirmed")) {
+            msg = "Email не подтверждён. Проверьте почту и перейдите по ссылке из письма.";
+          } else if (m.includes("too many requests")) {
+            msg = "Слишком много попыток входа. Подождите несколько минут и попробуйте снова.";
+          } else if (m.includes("профиль") || m.includes("profile")) {
+            msg = error.message;
+          }
+        }
+        showMessage("error", msg);
       } finally {
         button.disabled = false;
         button.textContent = "Войти";

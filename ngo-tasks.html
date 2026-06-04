@@ -9,11 +9,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/pages/ngo-dashboard.css">
 <link rel="stylesheet" href="./css/base.css">
+<style>
+  .task-card { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 18px 0; border-bottom: 1px solid #F3F4F6; }
+  .task-card:last-child { border-bottom: none; }
+  .task-title { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+  .task-title a { color: inherit; text-decoration: none; }
+  .task-title a:hover { text-decoration: underline; }
+  .task-sub { font-size: 13px; color: #6B7280; margin: 0 0 8px; }
+  .task-actions { display: flex; flex-direction: column; gap: 8px; min-width: 110px; text-align: right; }
+  .task-link.blue { color: #2563EB; }
+  .task-link.green { color: #16A34A; }
+</style>
 </head>
 <body>
   <div class="page">
     <header class="topbar">
-      <a href="index.html" class="brand"><span class="brand-icon"></span><span>Helpera</span></a>
+      <a href="index.html" class="brand"><span class="brand-icon"></span></a>
       <nav class="nav">
         <a href="ngo-lk.html" id="navProfile">Профиль</a>
         <a href="ngo-tasks.html" id="navTasks">Мои задачи</a>
@@ -28,13 +39,14 @@
         <div>
           <div class="pill">Мои задачи</div>
           <h1>Задачи вашей организации</h1>
-          <p>Список опубликованных задач, которые видят волонтёры. Данные загружаются из Supabase.</p>
+          <p>Управляйте задачами для волонтёров — публикуйте, редактируйте и отслеживайте отклики.</p>
         </div>
         <button class="btn btn-primary" id="createTaskBtn" type="button">Создать новую задачу</button>
       </section>
 
       <section class="panel content" style="margin-top:30px;">
         <h2>Опубликованные задачи</h2>
+        <p class="subtitle">Список опубликованных задач, которые видят волонтёры.</p>
         <p class="subtitle" id="tasksSubtitle">Загружаем задачи...</p>
         <div class="candidate-list" id="tasksList"></div>
       </section>
@@ -56,6 +68,24 @@
     "'": '&#039;'
   })[char]);
   let currentApplications = [];
+
+  function pluralRu(n, one, few, many) {
+    const mod100 = Math.abs(n) % 100;
+    const mod10 = Math.abs(n) % 10;
+    if (mod100 >= 11 && mod100 <= 19) return `${n} ${many}`;
+    if (mod10 === 1) return `${n} ${one}`;
+    if (mod10 >= 2 && mod10 <= 4) return `${n} ${few}`;
+    return `${n} ${many}`;
+  }
+
+  const taskStatusLabels = {
+    published: 'Опубликовано',
+    active: 'Активна',
+    draft: 'Черновик',
+    closed: 'Закрыта',
+    done: 'Завершена',
+    archived: 'Архив'
+  };
 
   async function initNgoTasks() {
     document.getElementById('navProfile').href = withProfileId('ngo-lk.html');
@@ -88,20 +118,33 @@
     }
     document.getElementById('tasksList').innerHTML = ownTasks.length ? ownTasks.map((task) => {
       const count = applications.filter((item) => item.task_id === task.id).length;
+      const statusLabel = taskStatusLabels[task.status] || taskStatusLabels.published;
+      const applicationsLabel = pluralRu(count, 'отклик', 'отклика', 'откликов');
+      const skills = (task.skills || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3);
+      const payload = task.payload || {};
+      const dateStr = (() => {
+        const start = task.date_start || payload.dateStart;
+        const end = task.date_end || payload.dateEnd;
+        if (start && end && start !== end) return `${start} — ${end}`;
+        if (end) return `до ${end}`;
+        if (start) return `с ${start}`;
+        return '';
+      })();
       return `
-        <article class="candidate" data-task-id="${escapeHtml(task.id)}">
-          <div class="cand-left">
-              <div class="initial">З</div>
-            <div>
-              <div class="cand-name">${escapeHtml(task.title)}</div>
-              <div class="cand-meta">${escapeHtml(task.format || 'Формат не указан')} • ${escapeHtml(task.skills || 'Навыки не указаны')}</div>
-              <div class="tags"><span class="tag blue">${count} откликов</span><span class="tag green">${task.status || 'published'}</span></div>
+        <article class="task-card" data-task-id="${escapeHtml(task.id)}">
+          <div>
+            <h3 class="task-title"><a href="${withProfileId(`ngo-task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
+            <p class="task-sub">${escapeHtml(task.format || payload.format || 'Формат не указан')}${dateStr ? ` • ${escapeHtml(dateStr)}` : ''}</p>
+            <div class="chips">
+              <span class="chip blue">${escapeHtml(applicationsLabel)}</span>
+              <span class="chip green">${escapeHtml(statusLabel)}</span>
+              ${skills.map((s) => `<span class="chip">${escapeHtml(s)}</span>`).join('')}
             </div>
           </div>
-          <div class="cand-actions">
-            <button class="primary-action task-details-btn" type="button">Подробнее</button>
-            <button class="secondary-action task-edit-btn" type="button">Редактировать</button>
-            <button class="secondary-action task-delete-btn" type="button">Удалить</button>
+          <div class="task-actions">
+            <a href="${withProfileId(`ngo-task-details.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link blue task-details-btn">Подробнее</a>
+            <a href="${withProfileId(`ngo-task-edit.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link green task-edit-btn">Редактировать</a>
+            <button class="task-link task-delete-btn" type="button" style="color:#DC2626;background:none;border:none;cursor:pointer;padding:0;font-size:inherit;font-weight:400;text-decoration:underline;">Удалить</button>
           </div>
         </article>
       `;
@@ -109,19 +152,11 @@
   }
 
   document.getElementById('tasksList').addEventListener('click', async (event) => {
-    const card = event.target.closest('.candidate[data-task-id]');
+    const card = event.target.closest('.task-card[data-task-id]');
     if (!card) return;
     const taskId = card.dataset.taskId;
-    if (event.target.classList.contains('task-details-btn')) {
-      window.location.href = withProfileId(`ngo-task-details.html?taskId=${encodeURIComponent(taskId)}`);
-      return;
-    }
-    if (event.target.classList.contains('task-edit-btn')) {
-      window.location.href = withProfileId(`ngo-task-edit.html?taskId=${encodeURIComponent(taskId)}`);
-      return;
-    }
     if (event.target.classList.contains('task-delete-btn')) {
-      const title = card.querySelector('.cand-name')?.textContent || 'эту задачу';
+      const title = card.querySelector('.task-title')?.textContent?.trim() || 'эту задачу';
       const confirmed = window.confirm(`Удалить задачу «${title}»? Она исчезнет из списка опубликованных задач для волонтёров.`);
       if (!confirmed) return;
       event.target.disabled = true;
@@ -136,8 +171,8 @@
           payload: { source: 'ngo-tasks.html' }
         });
         card.remove();
-        const remaining = document.querySelectorAll('#tasksList .candidate').length;
-        document.getElementById('tasksSubtitle').textContent = `${remaining} задач • ${currentApplications.length} откликов`;
+        const remaining = document.querySelectorAll('#tasksList .task-card').length;
+        document.getElementById('tasksSubtitle').textContent = `${remaining} ${remaining === 1 ? 'задача' : remaining < 5 ? 'задачи' : 'задач'} • ${currentApplications.length} откликов`;
         if (!remaining) {
           document.getElementById('tasksList').innerHTML = '<p class="subtitle">У этой НКО пока нет опубликованных задач.</p>';
         }
@@ -145,7 +180,7 @@
         console.error(error);
         event.target.disabled = false;
         event.target.textContent = 'Удалить';
-        alert(`Не удалось удалить задачу: ${error?.message || 'проверьте подключение к Supabase'}`);
+        alert(`Не удалось удалить задачу. Попробуйте ещё раз.`);
       }
     }
   });
