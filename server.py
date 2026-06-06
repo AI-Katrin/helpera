@@ -5,10 +5,17 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import logging
 from pathlib import Path
 from urllib.parse import quote, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 from backend.api.oauth import oauth_callback, oauth_start, vk_token_auth
 from backend.api.recommendations import recommendations_event_response, recommendations_for_path, recommendations_health_response
@@ -61,6 +68,9 @@ def json_response(handler, status_code, body):
     handler.send_response(status_code)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Content-Length", str(len(payload)))
+    handler.send_header("X-Content-Type-Options", "nosniff")
+    handler.send_header("X-Frame-Options", "DENY")
+    handler.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
     handler.end_headers()
     handler.wfile.write(payload)
 
@@ -187,6 +197,66 @@ def call_yandex_ai(action, task, user_prompt="", options=None):
     return 200, {"text": text}
 
 
+def _verify_token(handler, supabase_url, supabase_key):
+    """
+    Валидирует Bearer-токен из заголовка Authorization через Supabase.
+    Возвращает dict пользователя или None (ответ 401 уже отправлен).
+    В dev-режиме (Supabase не настроен) пропускает проверку.
+    """
+    if not supabase_url or not supabase_key:
+        return {"id": "dev-user", "email": "dev@local"}  # local dev без Supabase
+
+    raw = handler.headers.get("Authorization") or ""
+    token = raw.removeprefix("Bearer ").strip() if raw.startswith("Bearer ") else ""
+    if not token:
+        json_response(handler, 401, {"error": "Требуется авторизация", "code": "unauthorized"})
+        return None
+
+    req = Request(
+        f"{supabase_url.rstrip('/')}/auth/v1/user",
+        headers={"apikey": supabase_key, "Authorization": f"Bearer {token}"},
+        method="GET",
+    )
+    try:
+        with urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except HTTPError as exc:
+        if exc.code in (401, 403):
+            json_response(handler, 401, {"error": "Недействительный токен авторизации", "code": "invalid_token"})
+        else:
+            json_response(handler, 503, {"error": "Сервис авторизации недоступен"})
+        return None
+    except Exception:
+        json_response(handler, 503, {"error": "Сервис авторизации недоступен"})
+        return None
+
+
+def _is_localhost(handler):
+    """Проверяет, что запрос пришёл с localhost (для admin-эндпоинтов)."""
+    client_addr = handler.client_address[0] if handler.client_address else ""
+    return client_addr in ("127.0.0.1", "::1", "localhost")
+
+
+def _check_volunteer_owner(supabase_url, supabase_key, profile_id, user_id):
+    """True если user_id совпадает с владельцем volunteer_profiles.id."""
+    row = _supabase_get_one(supabase_url, supabase_key, "volunteer_profiles", profile_id, select="user_id")
+    return row and str(row.get("user_id", "")) == str(user_id)
+
+
+def _check_ngo_owner(supabase_url, supabase_key, profile_id, user_id):
+    """True если user_id совпадает с владельцем ngo_profiles.id."""
+    row = _supabase_get_one(supabase_url, supabase_key, "ngo_profiles", profile_id, select="user_id")
+    return row and str(row.get("user_id", "")) == str(user_id)
+
+
+def _check_task_ngo_owner(supabase_url, supabase_key, task_id, user_id):
+    """True если user_id владеет НКО, которой принадлежит задача."""
+    task = _supabase_get_one(supabase_url, supabase_key, "tasks", task_id, select="ngo_profile_id")
+    if not task:
+        return False
+    return _check_ngo_owner(supabase_url, supabase_key, task.get("ngo_profile_id"), user_id)
+
+
 def _supabase_rpc(url, key, function_name, params=None):
     """Вызов Supabase RPC функции через REST API."""
     endpoint = f"{url.rstrip('/')}/rest/v1/rpc/{function_name}"
@@ -210,10 +280,10 @@ def _supabase_rpc(url, key, function_name, params=None):
 
 def _supabase_query(url, key, table, filters=None, select="*", limit=200):
     """Простой SELECT из Supabase через REST API."""
-    params = f"select={select}&limit={limit}"
+    params = f"select={quote(select, safe='*,')}&limit={limit}"
     if filters:
         for key_f, value in filters.items():
-            params += f"&{key_f}={value}"
+            params += f"&{quote(str(key_f), safe='')}={quote(str(value), safe='.')}"
     endpoint = f"{url.rstrip('/')}/rest/v1/{table}?{params}"
     req = Request(
         endpoint,
@@ -822,12 +892,38 @@ def _background_loop(supabase_url, supabase_key, interval, timeout_hours):
         time.sleep(interval)
 
 
+_BLOCKED_PATH = re.compile(
+    r"(^/\.|/\.|"           # скрытые файлы и директории (.env, .git и т.д.)
+    r"/backend/|"           # серверный Python-код
+    r"/deploy/|"            # скрипты деплоя
+    r"server\.py$|"         # главный модуль сервера
+    r"requirements\.txt$|"  # зависимости
+    r"supabase-seed\.sql$|" # данные БД
+    r"supabase-schema\.sql$|"
+    r"CNAME$|"
+    r"README\.md$|"
+    r"Procfile$|"
+    r"\.pyc$|\.py$|\.sh$|\.env)",
+    re.IGNORECASE,
+)
+
+
 class HelperaHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT_DIR), **kwargs)
 
+    def _send_security_headers(self):
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+
     def do_GET(self):
         parsed = urlparse(self.path)
+
+        # Блокируем доступ к чувствительным файлам и директориям
+        if _BLOCKED_PATH.search(parsed.path):
+            self.send_error(403, "Forbidden")
+            return
 
         # OAuth: /auth/{provider}/start?role=volunteer|ngo
         if parsed.path in ("/auth/vk/start", "/auth/yandex/start"):
@@ -866,7 +962,8 @@ class HelperaHandler(SimpleHTTPRequestHandler):
                 from backend.ml.event_logger import get_stats
                 json_response(self, 200, get_stats())
             except Exception as exc:
-                json_response(self, 500, {"error": str(exc)})
+                logging.error("Internal error: %s", exc, exc_info=True)
+                json_response(self, 500, {"error": "Внутренняя ошибка сервера"})
             return
 
         if parsed.path.startswith("/api/recommendations/volunteers/"):
@@ -967,35 +1064,33 @@ class HelperaHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
 
         if parsed.path == "/api/auth/vk-token":
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-                body = self.rfile.read(length) if length > 0 else b""
-            except ValueError:
-                body = b""
-            try:
-                payload = json.loads(body or b"{}")
-            except Exception:
-                json_response(self, 400, {"error": "Invalid JSON"})
+            data, err_code, err_body = read_json_body(self, max_size=4 * 1024)
+            if err_code:
+                json_response(self, err_code, err_body)
                 return
-            token = payload.get("access_token", "")
-            role = payload.get("role", "volunteer")
+            token = data.get("access_token", "")
+            role = data.get("role", "volunteer")
             if not token:
                 json_response(self, 422, {"error": "access_token required"})
                 return
             try:
                 redirect = vk_token_auth(token, role, _OAUTH_SUPABASE_URL, _OAUTH_SUPABASE_KEY)
                 json_response(self, 200, {"redirect": redirect})
-            except Exception as exc:
+            except ValueError as exc:
                 json_response(self, 400, {"error": str(exc)})
+            except Exception as exc:
+                logging.error("vk-token error: %s", exc, exc_info=True)
+                json_response(self, 500, {"error": "Внутренняя ошибка сервера"})
             return
 
         if parsed.path == "/api/recommendations/events":
-            try:
-                length = int(self.headers.get("Content-Length", "0"))
-                body = self.rfile.read(length) if length > 0 else b""
-            except ValueError:
-                body = b""
-            status_code, payload = recommendations_event_response(body)
+            data, err_code, err_body = read_json_body(self, max_size=8 * 1024)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            status_code, payload = recommendations_event_response(
+                json.dumps(data, ensure_ascii=False).encode()
+            )
             json_response(self, status_code, payload)
             return
 
@@ -1012,6 +1107,9 @@ class HelperaHandler(SimpleHTTPRequestHandler):
         # POST /api/tasks/expire  — Правило 26: ручной триггер снятия просроченных задач.
         # Используется для тестирования и admin-панели; в проде запускается фоновым потоком.
         if parsed.path == "/api/tasks/expire":
+            if not _is_localhost(self):
+                json_response(self, 403, {"error": "Forbidden"})
+                return
             sb_url, sb_key = _sb_guard(self)
             if not sb_url:
                 return
@@ -1035,7 +1133,8 @@ class HelperaHandler(SimpleHTTPRequestHandler):
                 repo = SupabaseRecommendationRepository(sb_url, sb_key)
                 computed = repo.compute_volunteer_workload(volunteer_id)
             except Exception as exc:
-                json_response(self, 500, {"error": str(exc)})
+                logging.error("Internal error: %s", exc, exc_info=True)
+                json_response(self, 500, {"error": "Внутренняя ошибка сервера"})
                 return
             if computed is None:
                 json_response(self, 200, {"updated": False, "reason": "Не удалось получить данные о заявках"})
@@ -1056,7 +1155,8 @@ class HelperaHandler(SimpleHTTPRequestHandler):
                 repo = SupabaseRecommendationRepository(sb_url, sb_key)
                 computed = repo.compute_volunteer_reliability(volunteer_id)
             except Exception as exc:
-                json_response(self, 500, {"error": str(exc)})
+                logging.error("Internal error: %s", exc, exc_info=True)
+                json_response(self, 500, {"error": "Внутренняя ошибка сервера"})
                 return
             if not computed:
                 json_response(self, 200, {"updated": False, "reason": "Недостаточно данных о завершённых заявках"})
@@ -1084,7 +1184,8 @@ class HelperaHandler(SimpleHTTPRequestHandler):
                 repo = SupabaseRecommendationRepository(sb_url, sb_key)
                 computed = repo.compute_ngo_reliability(ngo_id)
             except Exception as exc:
-                json_response(self, 500, {"error": str(exc)})
+                logging.error("Internal error: %s", exc, exc_info=True)
+                json_response(self, 500, {"error": "Внутренняя ошибка сервера"})
                 return
             if not computed:
                 json_response(self, 200, {"updated": False, "reason": "Недостаточно данных об откликах"})
@@ -1151,6 +1252,9 @@ class HelperaHandler(SimpleHTTPRequestHandler):
 
         # POST /api/applications/process-timeouts  — Правило 18
         if parsed.path == "/api/applications/process-timeouts":
+            if not _is_localhost(self):
+                json_response(self, 403, {"error": "Forbidden"})
+                return
             sb_url, sb_key = _sb_guard(self)
             if not sb_url:
                 return
@@ -1196,11 +1300,19 @@ class HelperaHandler(SimpleHTTPRequestHandler):
             sb_url, sb_key = _sb_guard(self)
             if not sb_url:
                 return
+            auth_user = _verify_token(self, sb_url, sb_key)
+            if not auth_user:
+                return
             aid = m.group(1)
             data, _ec, _eb = read_json_body(self)
             app_row = _supabase_get_one(sb_url, sb_key, "applications", aid)
             if not app_row:
                 json_response(self, 404, {"error": "Заявка не найдена"})
+                return
+            # IDOR: только владелец профиля волонтёра может отменить свою заявку
+            vol_profile_id = app_row.get("volunteer_profile_id")
+            if not _check_volunteer_owner(sb_url, sb_key, vol_profile_id, auth_user.get("id")):
+                json_response(self, 403, {"error": "Нет прав на отмену этой заявки", "code": "forbidden"})
                 return
             current_status = str(app_row.get("status") or "").lower()
             _CANCELLABLE = {"review", "invite", "active", "timeout"}
@@ -1272,7 +1384,15 @@ class HelperaHandler(SimpleHTTPRequestHandler):
             sb_url, sb_key = _sb_guard(self)
             if not sb_url:
                 return
+            auth_user = _verify_token(self, sb_url, sb_key)
+            if not auth_user:
+                return
             aid, action = m.group(1), m.group(2)
+            # IDOR: accept/reject/complete только представитель НКО-владельца задачи
+            app_for_check = _supabase_get_one(sb_url, sb_key, "applications", aid, select="task_id")
+            if app_for_check and not _check_task_ngo_owner(sb_url, sb_key, app_for_check.get("task_id"), auth_user.get("id")):
+                json_response(self, 403, {"error": "Нет прав на управление этой заявкой", "code": "forbidden"})
+                return
             # Правило 20: partial → partial_done — учитывается как 0.5 в шкале надёжности
             status_map = {"accept": "invite", "reject": "rejected", "complete": "done", "partial": "partial_done"}
             new_status = status_map[action]
@@ -1314,6 +1434,9 @@ class HelperaHandler(SimpleHTTPRequestHandler):
             sb_url, sb_key = _sb_guard(self)
             if not sb_url:
                 return
+            auth_user = _verify_token(self, sb_url, sb_key)
+            if not auth_user:
+                return
             data, err_code, err_body = read_json_body(self)
             if err_code:
                 json_response(self, err_code, err_body)
@@ -1329,6 +1452,17 @@ class HelperaHandler(SimpleHTTPRequestHandler):
 
             review_data = data.get("review") or {}
             actor_role = data.get("actor_role", "volunteer")
+
+            # IDOR: волонтёр может оставить отзыв только за себя, НКО — только за свою задачу
+            user_id = auth_user.get("id")
+            if actor_role == "volunteer":
+                if not _check_volunteer_owner(sb_url, sb_key, app_row.get("volunteer_profile_id"), user_id):
+                    json_response(self, 403, {"error": "Нет прав оставить отзыв от имени этого волонтёра", "code": "forbidden"})
+                    return
+            elif actor_role == "ngo":
+                if not _check_task_ngo_owner(sb_url, sb_key, app_row.get("task_id"), user_id):
+                    json_response(self, 403, {"error": "Нет прав оставить отзыв от имени этой НКО", "code": "forbidden"})
+                    return
 
             # Правило 21: валидация — все три оценки 1–10 обязательны
             ratings = review_data.get("ratings") or {}
@@ -1489,10 +1623,17 @@ class HelperaHandler(SimpleHTTPRequestHandler):
         sb_url, sb_key = _sb_guard(self)
         if not sb_url:
             return
+        auth_user = _verify_token(self, sb_url, sb_key)
+        if not auth_user:
+            return
+        user_id = auth_user.get("id")
 
         # PATCH /api/volunteers/{id}
         m = re.match(r"^/api/volunteers/([^/]+)$", parsed.path)
         if m:
+            if not _check_volunteer_owner(sb_url, sb_key, m.group(1), user_id):
+                json_response(self, 403, {"error": "Нет прав на изменение этого профиля", "code": "forbidden"})
+                return
             data, err_code, err_body = read_json_body(self)
             if err_code:
                 json_response(self, err_code, err_body)
@@ -1504,6 +1645,9 @@ class HelperaHandler(SimpleHTTPRequestHandler):
         # PATCH /api/ngos/{id}
         m = re.match(r"^/api/ngos/([^/]+)$", parsed.path)
         if m:
+            if not _check_ngo_owner(sb_url, sb_key, m.group(1), user_id):
+                json_response(self, 403, {"error": "Нет прав на изменение профиля НКО", "code": "forbidden"})
+                return
             data, err_code, err_body = read_json_body(self)
             if err_code:
                 json_response(self, err_code, err_body)
@@ -1515,26 +1659,33 @@ class HelperaHandler(SimpleHTTPRequestHandler):
         # PATCH /api/tasks/{id}
         m = re.match(r"^/api/tasks/([^/]+)$", parsed.path)
         if m:
+            if not _check_task_ngo_owner(sb_url, sb_key, m.group(1), user_id):
+                json_response(self, 403, {"error": "Нет прав на изменение этой задачи", "code": "forbidden"})
+                return
             data, err_code, err_body = read_json_body(self)
             if err_code:
                 json_response(self, err_code, err_body)
                 return
-            # Полное обновление содержимого (есть title) — валидируем и переиндексируем
             if "title" in data:
                 errors = _validate_task(data)
                 if errors:
                     json_response(self, 422, {"error": errors[0], "errors": errors})
                     return
                 _flag_duplicate(data, sb_url, sb_key)
-                # Правило 4: сбрасываем LinUCB-статистику → задача снова cold-start
                 reset_task_stats(m.group(1))
             row = _supabase_patch_repr(sb_url, sb_key, "tasks", m.group(1), data)
             json_response(self, 200 if row else 404, row or {"error": "Задача не найдена"})
             return
 
-        # PATCH /api/applications/{id}
+        # PATCH /api/applications/{id} — только участники заявки
         m = re.match(r"^/api/applications/([^/]+)$", parsed.path)
         if m:
+            app = _supabase_get_one(sb_url, sb_key, "applications", m.group(1), select="volunteer_profile_id,task_id")
+            is_volunteer = app and _check_volunteer_owner(sb_url, sb_key, app.get("volunteer_profile_id"), user_id)
+            is_ngo = app and _check_task_ngo_owner(sb_url, sb_key, app.get("task_id"), user_id)
+            if not (is_volunteer or is_ngo):
+                json_response(self, 403, {"error": "Нет прав на изменение этой заявки", "code": "forbidden"})
+                return
             data, err_code, err_body = read_json_body(self)
             if err_code:
                 json_response(self, err_code, err_body)

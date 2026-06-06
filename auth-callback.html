@@ -148,7 +148,7 @@
       function redirectAfterAuth(role, isNew, profileId) {
         const param = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
         if (isNew) {
-          window.location.href = role === 'ngo' ? `ngo-about.html${param}` : `volunteer-about.html${param}`;
+          window.location.href = role === 'ngo' ? `ngo-about.html${param}` : `volunteer-account.html${param}`;
         } else {
           window.location.href = role === 'ngo' ? `ngo-lk.html${param}` : `volunteer-lk.html${param}`;
         }
@@ -197,6 +197,10 @@
       // Normal flow: tokens in URL hash
       const accessToken = hash.access_token;
       const refreshToken = hash.refresh_token;
+      // Убираем токены из URL сразу после чтения — не должны оставаться в истории браузера
+      if (accessToken) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
 
       if (!accessToken) {
         showError('Токен авторизации не получен. Попробуйте ещё раз.');
@@ -218,7 +222,10 @@
         const user = sessionData?.session?.user || sessionData?.user;
         const userId = user?.id || query.user_id || null;
         const email = user?.email || '';
-        const displayName = (user?.user_metadata?.full_name || '').trim();
+        const meta = user?.user_metadata || {};
+        const firstName = (meta.first_name || '').trim();
+        const lastName = (meta.last_name || '').trim();
+        const displayName = (meta.full_name || [firstName, lastName].filter(Boolean).join(' ')).trim();
 
         let profileId;
 
@@ -237,6 +244,15 @@
               contact: email,
               fullName: displayName,
             });
+            // Автозаполняем about из данных OAuth-провайдера
+            const birthday = (meta.birthday || '').trim();
+            const aboutPrefill = {};
+            if (firstName) aboutPrefill.firstName = firstName;
+            if (lastName) aboutPrefill.lastName = lastName;
+            if (birthday) aboutPrefill.birthDate = birthday;
+            if (Object.keys(aboutPrefill).length > 0) {
+              await helperaDb.updateVolunteerProfile(profile.profileId, { about: aboutPrefill });
+            }
           }
           profileId = profile.profileId;
         } else {

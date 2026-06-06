@@ -614,10 +614,17 @@
     return item;
   }
 
+  async function getAuthHeaders() {
+    const session = await getAuthSession();
+    const token = session?.access_token;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
   async function submitReview(applicationId, actorRole, review) {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch('/api/reviews', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ application_id: applicationId, actor_role: actorRole, review })
     });
     const data = await response.json().catch(() => ({}));
@@ -626,10 +633,11 @@
   }
 
   async function cancelApplication(applicationId, reason) {
+    const authHeaders = await getAuthHeaders();
     const body = reason ? JSON.stringify({ reason }) : '{}';
     const response = await fetch(`/api/applications/${encodeURIComponent(applicationId)}/cancel`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body
     });
     const data = await response.json().catch(() => ({}));
@@ -757,6 +765,7 @@
     signInWithEmail,
     signOut,
     getAuthSession,
+    getAuthHeaders,
     getCurrentUserProfile
   };
 })();

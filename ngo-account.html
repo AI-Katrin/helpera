@@ -38,51 +38,64 @@
         <p class="subtitle">Это займёт всего пару минут и откроет доступ к публикации задач</p>
         <div class="social-row">
           <a class="social-btn" href="/auth/yandex/start?role=ngo"><span class="social-dot yandex"></span><span>Продолжить через Яндекс</span></a>
-          <div id="vk-id-btn"></div>
+          <div>
+            <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
+            <script type="text/javascript">
+              if ('VKIDSDK' in window) {
+                const VKID = window.VKIDSDK;
+
+                VKID.Config.init({
+                  app: 54612071,
+                  redirectUrl: window.location.origin + '/',
+                  responseMode: VKID.ConfigResponseMode.Callback,
+                  source: VKID.ConfigSource.LOWCODE,
+                  scope: '',
+                });
+
+                const oneTap = new VKID.OneTap();
+
+                oneTap.render({
+                  container: document.currentScript.parentElement,
+                  showAlternativeLogin: true,
+                })
+                .on(VKID.WidgetEvents.ERROR, vkidOnError)
+                .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
+                  VKID.Auth.exchangeCode(payload.code, payload.device_id)
+                    .then(vkidOnSuccess)
+                    .catch(vkidOnError);
+                });
+
+                function vkidOnSuccess(data) {
+                  fetch('/api/auth/vk-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_token: data.access_token, role: 'ngo' }),
+                  })
+                    .then(function (r) { return r.json(); })
+                    .then(function (result) {
+                      if (result.redirect) window.location.href = result.redirect;
+                    })
+                    .catch(vkidOnError);
+                }
+
+                function vkidOnError(error) {
+                  console.error('VK ID error', error);
+                }
+              }
+            </script>
+          </div>
         </div>
         <div class="divider"><span>или</span></div>
         <form id="ngoForm" novalidate>
           <div class="field"><label class="label" for="org-name">Полное название организации <span class="required">*</span></label><input class="input" id="org-name" type="text" placeholder="Введите полное название организации" required></div>
           <div class="field"><label class="label" for="contact">E-mail <span class="required">*</span></label><input class="input" id="contact" type="email" placeholder="example@mail.com" autocomplete="username" required><p class="field-hint" id="contact-hint">Введите email для входа через Supabase Auth.</p></div>
           <div class="field"><label class="label" for="password">Пароль <span class="required">*</span></label><div class="password-wrap"><input id="password" type="password" placeholder="Не менее 8 символов" required minlength="8"><button class="eye-btn" id="togglePassword" type="button" aria-label="Показать пароль" aria-pressed="false"><span class="eye"></span></button></div><p class="field-hint" id="password-hint">Минимум 8 символов: английская буква, цифра и символ.</p></div>
-          <div class="agreement"><input type="checkbox" id="agree" required><label for="agree">Я принимаю условия использования платформы и политику обработки данных</label></div>
+          <div class="agreement"><input type="checkbox" id="agree" required><label for="agree">Я принимаю <a href="terms.html" target="_blank">пользовательское соглашение</a> и <a href="privacy.html" target="_blank">политику конфиденциальности</a></label></div>
           <div class="actions"><button class="btn-primary" id="continueBtn" type="submit" disabled>Продолжить</button><a class="btn-secondary" href="index.html">Назад</a></div>
         </form>
       </section>
     </main>
   </div>
-  <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', function () {
-      if (!('VKIDSDK' in window)) return;
-      const VKID = window.VKIDSDK;
-      VKID.Config.init({
-        app: 54612071,
-        redirectUrl: 'https://helpera.ru/',
-        responseMode: VKID.ConfigResponseMode.Callback,
-        source: VKID.ConfigSource.LOWCODE,
-        scope: '',
-      });
-      new VKID.OneTap()
-        .render({ container: document.getElementById('vk-id-btn'), showAlternativeLogin: true, oauthList: ['ok_ru', 'mail_ru'] })
-        .on(VKID.WidgetEvents.ERROR, function (err) { console.error('VK ID error', err); })
-        .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
-          VKID.Auth.exchangeCode(payload.code, payload.device_id)
-            .then(function (data) {
-              return fetch('/api/auth/vk-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ access_token: data.access_token, role: 'ngo' }),
-              });
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (result) {
-              if (result.redirect) window.location.href = result.redirect;
-            })
-            .catch(function (err) { console.error('VK auth error', err); });
-        });
-    });
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/supabase-config.js"></script>
   <script src="./js/app-db.js"></script>

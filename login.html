@@ -43,9 +43,9 @@
           <a class="social-btn" id="btnYandex" href="/auth/yandex/start?role=volunteer">
             <span class="social-dot yandex"></span>Войти через Яндекс
           </a>
-          <a class="social-btn" id="btnVK" href="#">
+          <button class="social-btn" id="btnVK" type="button">
             <span class="social-dot vk"></span>Войти через ВКонтакте
-          </a>
+          </button>
         </div>
         <div id="vk-id-btn" style="display:none;"></div>
         <div class="divider"><span>или</span></div>
@@ -101,21 +101,41 @@
   </main>
 
   <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-config.js"></script>
+  <script src="./js/app-db.js"></script>
   <script>
-    window.addEventListener('DOMContentLoaded', function () {
-      if (!('VKIDSDK' in window)) return;
+    const form = document.getElementById("loginForm");
+    const message = document.getElementById("message");
+    const button = document.getElementById("loginButton");
+    const passwordInput = document.getElementById("password");
+    const passwordToggle = document.getElementById("passwordToggle");
+
+    // Яндекс — обновляем role в href при переключении
+    const btnYandex = document.getElementById("btnYandex");
+    document.querySelectorAll('input[name="role"]').forEach(function (radio) {
+      radio.addEventListener("change", function () {
+        const role = document.querySelector('input[name="role"]:checked').value;
+        btnYandex.href = `/auth/yandex/start?role=${role}`;
+      });
+    });
+
+    // ВКонтакте — инициализация SDK, виджет в скрытом контейнере
+    if ('VKIDSDK' in window) {
       const VKID = window.VKIDSDK;
       VKID.Config.init({
         app: 54612071,
-        redirectUrl: 'https://helpera.ru/',
+        redirectUrl: window.location.origin + '/',
         responseMode: VKID.ConfigResponseMode.Callback,
         source: VKID.ConfigSource.LOWCODE,
         scope: '',
       });
       const oneTap = new VKID.OneTap();
       oneTap
-        .render({ container: document.getElementById('vk-id-btn'), showAlternativeLogin: false })
-        .on(VKID.WidgetEvents.ERROR, function () {})
+        .render({ container: document.getElementById('vk-id-btn'), showAlternativeLogin: true })
+        .on(VKID.WidgetEvents.ERROR, function (error) {
+          console.error('VK ID error', error);
+        })
         .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
           VKID.Auth.exchangeCode(payload.code, payload.device_id)
             .then(function (data) {
@@ -134,32 +154,12 @@
             .catch(function () { showMessage('error', 'Не удалось подключиться. Попробуйте ещё раз.'); });
         });
 
-      document.getElementById('btnVK').addEventListener('click', function (e) {
-        e.preventDefault();
+      document.getElementById('btnVK').addEventListener('click', function () {
         const inner = document.querySelector('#vk-id-btn button, #vk-id-btn [role="button"], #vk-id-btn a');
-        if (inner) { inner.click(); } else {
-          showMessage('error', 'Авторизация через ВКонтакте временно недоступна. Попробуйте войти по email.');
-        }
+        if (inner) inner.click();
+        else showMessage('error', 'Авторизация через ВКонтакте временно недоступна.');
       });
-    });
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./js/supabase-config.js"></script>
-  <script src="./js/app-db.js"></script>
-  <script>
-    const form = document.getElementById("loginForm");
-    const message = document.getElementById("message");
-    const button = document.getElementById("loginButton");
-    const passwordInput = document.getElementById("password");
-    const passwordToggle = document.getElementById("passwordToggle");
-
-    const btnYandex = document.getElementById("btnYandex");
-    document.querySelectorAll('input[name="role"]').forEach(function (radio) {
-      radio.addEventListener("change", function () {
-        const role = document.querySelector('input[name="role"]:checked').value;
-        btnYandex.href = `/auth/yandex/start?role=${role}`;
-      });
-    });
+    }
 
     passwordToggle.addEventListener("click", () => {
       const isHidden = passwordInput.type === "password";

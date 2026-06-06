@@ -266,7 +266,11 @@
       activeTask = task;
 
       document.title = `Helpera — ${task.title || 'Подробности задачи'}`;
-      document.getElementById('fit-badge').textContent = isNgoView ? 'Задача вашей организации' : `Подходит вам на ${taskScore(task)}%`;
+      const urlMatchPercent = Number(params.get('matchPercent'));
+      const fitPercent = !isNgoView && Number.isFinite(urlMatchPercent) && urlMatchPercent > 0
+        ? urlMatchPercent
+        : taskScore(task);
+      document.getElementById('fit-badge').textContent = isNgoView ? 'Задача вашей организации' : `Подходит вам на ${fitPercent}%`;
       document.getElementById('task-title').textContent = task.title || 'Задача без названия';
       document.getElementById('task-meta').textContent = `${orgName} • ${format} • ${getTaskDates(task)}`;
       document.getElementById('task-description').textContent = task.description || task.payload?.description || 'Организация пока не добавила подробное описание.';

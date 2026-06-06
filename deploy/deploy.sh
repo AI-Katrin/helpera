@@ -18,15 +18,19 @@ rsync -az --delete \
     --exclude='*.pyc' \
     --exclude='.env' \
     --exclude='.env.local' \
+    --exclude='model_artifacts/*.joblib' \
     --exclude='venv' \
     --exclude='node_modules' \
     "$REPO_DIR/" helpera@SERVER_IP:"$APP_DIR/"
+
+echo "=== Защита .env на сервере ==="
+ssh helpera@SERVER_IP "chmod 600 $APP_DIR/.env 2>/dev/null || true"
 
 if $FIRST_RUN; then
     echo "=== Создание виртуального окружения ==="
     ssh helpera@SERVER_IP "
         cd $APP_DIR &&
-        python3.11 -m venv venv &&
+        python3 -m venv venv &&
         venv/bin/pip install --upgrade pip &&
         venv/bin/pip install -r requirements.txt
     "

@@ -88,7 +88,52 @@
 
         <div class="social-row">
           <a class="social-btn" href="/auth/yandex/start?role=volunteer"><span class="social-dot yandex"></span>Продолжить через Яндекс</a>
-          <div id="vk-id-btn"></div>
+          <div>
+            <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
+            <script type="text/javascript">
+              if ('VKIDSDK' in window) {
+                const VKID = window.VKIDSDK;
+
+                VKID.Config.init({
+                  app: 54612071,
+                  redirectUrl: window.location.origin + '/',
+                  responseMode: VKID.ConfigResponseMode.Callback,
+                  source: VKID.ConfigSource.LOWCODE,
+                  scope: '',
+                });
+
+                const oneTap = new VKID.OneTap();
+
+                oneTap.render({
+                  container: document.currentScript.parentElement,
+                  showAlternativeLogin: true,
+                })
+                .on(VKID.WidgetEvents.ERROR, vkidOnError)
+                .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
+                  VKID.Auth.exchangeCode(payload.code, payload.device_id)
+                    .then(vkidOnSuccess)
+                    .catch(vkidOnError);
+                });
+
+                function vkidOnSuccess(data) {
+                  fetch('/api/auth/vk-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_token: data.access_token, role: 'volunteer' }),
+                  })
+                    .then(function (r) { return r.json(); })
+                    .then(function (result) {
+                      if (result.redirect) window.location.href = result.redirect;
+                    })
+                    .catch(vkidOnError);
+                }
+
+                function vkidOnError(error) {
+                  console.error('VK ID error', error);
+                }
+              }
+            </script>
+          </div>
         </div>
 
         <p style="margin: -4px 0 20px; font-size: 13px; line-height: 17px; color: var(--gray-500);">Быстрый вход через российские сервисы авторизации</p>
@@ -113,7 +158,7 @@
 
           <div class="agreement">
             <input type="checkbox" id="agree" required />
-            <label for="agree">Я принимаю условия использования платформы и политику обработки данных</label>
+            <label for="agree">Я принимаю <a href="terms.html" target="_blank">пользовательское соглашение</a> и <a href="privacy.html" target="_blank">политику конфиденциальности</a></label>
           </div>
 
           <div class="actions">
@@ -125,38 +170,6 @@
     </main>
   </div>
 
-  <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', function () {
-      if (!('VKIDSDK' in window)) return;
-      const VKID = window.VKIDSDK;
-      VKID.Config.init({
-        app: 54612071,
-        redirectUrl: 'https://helpera.ru/',
-        responseMode: VKID.ConfigResponseMode.Callback,
-        source: VKID.ConfigSource.LOWCODE,
-        scope: '',
-      });
-      new VKID.OneTap()
-        .render({ container: document.getElementById('vk-id-btn'), showAlternativeLogin: true, oauthList: ['ok_ru', 'mail_ru'] })
-        .on(VKID.WidgetEvents.ERROR, function (err) { console.error('VK ID error', err); })
-        .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
-          VKID.Auth.exchangeCode(payload.code, payload.device_id)
-            .then(function (data) {
-              return fetch('/api/auth/vk-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ access_token: data.access_token, role: 'volunteer' }),
-              });
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (result) {
-              if (result.redirect) window.location.href = result.redirect;
-            })
-            .catch(function (err) { console.error('VK auth error', err); });
-        });
-    });
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/supabase-config.js"></script>
   <script src="./js/app-db.js"></script>
@@ -262,6 +275,44 @@
     });
 
     validateForm();
+
+    // OAuth-режим: если в URL есть profileId — профиль уже создан, показываем данные и пропускаем пароль
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const profileId = params.get('profileId');
+      if (!profileId) return;
+
+      const profile = await helperaDb.getVolunteerProfile(profileId);
+      if (!profile) return;
+
+      const savedEmail = profile.account?.contact || '';
+      if (!savedEmail) return;
+
+      // Заполняем и блокируем email
+      contactInput.value = savedEmail;
+      contactInput.readOnly = true;
+      contactInput.style.background = '#F9FAFB';
+      contactInput.style.color = '#6B7280';
+      contactHint.textContent = 'Email получен через сервис авторизации.';
+
+      // Скрываем поле пароля — OAuth не требует пароля
+      passwordInput.closest('.field').style.display = 'none';
+      passwordInput.removeAttribute('required');
+      passwordInput.value = 'oauth-placeholder';
+
+      // Скрываем чекбокс — соглашение принято автоматически
+      document.querySelector('.agreement').style.display = 'none';
+      document.getElementById('agree').checked = true;
+
+      // Активируем кнопку и меняем поведение формы — переходим к шагу 2
+      continueBtn.disabled = false;
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        window.location.href = `volunteer-about.html?profileId=${encodeURIComponent(profileId)}`;
+      }, { once: true });
+
+      validateForm();
+    })();
   </script>
 </body>
 </html>

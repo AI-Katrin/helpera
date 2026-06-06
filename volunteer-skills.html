@@ -154,48 +154,78 @@
 
       Array.from(selected.querySelectorAll(".chip")).forEach(makeChipRemovable);
 
+      const addChip = (value) => {
+        const trimmed = value.trim();
+        if (!trimmed || selectedValues.has(trimmed)) return;
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip active";
+        chip.textContent = trimmed;
+        selected.appendChild(chip);
+        selectedValues.add(trimmed);
+        makeChipRemovable(chip);
+        input.value = "";
+        suggestions.classList.remove("visible");
+        root.classList.remove("open");
+      };
+
       const renderSuggestions = (showAll = false) => {
-        const value = input.value.trim().toLowerCase();
+        const raw = input.value.trim();
+        const value = raw.toLowerCase();
         suggestions.innerHTML = "";
-        if (!value && !showAll) {
+
+        if (!raw && !showAll) {
           suggestions.classList.remove("visible");
           root.classList.remove("open");
           return;
         }
 
-        const filtered = options.filter((item) => (showAll || item.toLowerCase().includes(value)) && !selectedValues.has(item));
-        if (!filtered.length) {
-          suggestions.classList.remove("visible");
-          root.classList.remove("open");
-          return;
-        }
+        const filtered = options.filter(
+          (item) => (showAll || item.toLowerCase().includes(value)) && !selectedValues.has(item)
+        );
 
         filtered.forEach((item) => {
           const button = document.createElement("button");
           button.type = "button";
           button.className = "suggestion-item";
           button.textContent = item;
-          button.addEventListener("click", () => {
-            const chip = document.createElement("button");
-            chip.type = "button";
-            chip.className = "chip active";
-            chip.textContent = item;
-            selected.appendChild(chip);
-            selectedValues.add(item);
-            makeChipRemovable(chip);
-            input.value = "";
-            suggestions.classList.remove("visible");
-            root.classList.remove("open");
-          });
+          button.addEventListener("click", () => addChip(item));
           suggestions.appendChild(button);
         });
+
+        // Если введён текст, которого нет в списке — показываем «+ Добавить»
+        const exactInList = options.some((o) => o.toLowerCase() === value);
+        if (raw && !exactInList && !selectedValues.has(raw)) {
+          const addBtn = document.createElement("button");
+          addBtn.type = "button";
+          addBtn.className = "suggestion-item suggestion-add";
+          addBtn.textContent = `+ Добавить «${raw}»`;
+          addBtn.addEventListener("click", () => addChip(raw));
+          suggestions.appendChild(addBtn);
+        }
+
+        if (!suggestions.children.length) {
+          suggestions.classList.remove("visible");
+          root.classList.remove("open");
+          return;
+        }
 
         suggestions.classList.add("visible");
         root.classList.add("open");
       };
 
-      input.addEventListener("input", renderSuggestions);
-      input.addEventListener("focus", renderSuggestions);
+      input.addEventListener("input", () => renderSuggestions(false));
+      input.addEventListener("focus", () => renderSuggestions(false));
+
+      // Enter добавляет введённое значение как чип
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const raw = input.value.trim();
+          if (raw) addChip(raw);
+        }
+      });
+
       toggle.addEventListener("click", () => {
         const isOpen = suggestions.classList.contains("visible") && !input.value.trim();
         if (isOpen) {
@@ -210,7 +240,7 @@
         setTimeout(() => {
           suggestions.classList.remove("visible");
           root.classList.remove("open");
-        }, 100);
+        }, 150);
       });
     };
 

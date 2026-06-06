@@ -268,15 +268,15 @@
   const _recCacheTtl = 5 * 60 * 1000;
   function readRecCache() {
     try {
-      const raw = sessionStorage.getItem(_recCacheKey);
+      const raw = localStorage.getItem(_recCacheKey);
       if (!raw) return null;
       const { data, ts } = JSON.parse(raw);
-      if (Date.now() - ts > _recCacheTtl) { sessionStorage.removeItem(_recCacheKey); return null; }
+      if (Date.now() - ts > _recCacheTtl) { localStorage.removeItem(_recCacheKey); return null; }
       return data;
     } catch { return null; }
   }
   function writeRecCache(data) {
-    try { sessionStorage.setItem(_recCacheKey, JSON.stringify({ data, ts: Date.now() })); } catch {}
+    try { localStorage.setItem(_recCacheKey, JSON.stringify({ data, ts: Date.now() })); } catch {}
   }
 
   const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
@@ -338,7 +338,7 @@
     article.dataset.matchPercent = matchPercent || '';
     article.innerHTML = `
       <div>
-        <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
+        <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}${matchPercent ? `&matchPercent=${matchPercent}` : ''}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
         <p class="task-meta">${escapeHtml(orgName)} • ${escapeHtml(format || 'Формат не указан')} • ${escapeHtml(payload.dateStart || '')}${payload.dateEnd ? ` — ${escapeHtml(payload.dateEnd)}` : ''}</p>
         <div class="chip-row">
           ${matchChip}
@@ -346,7 +346,7 @@
         </div>
       </div>
       <div class="task-actions">
-        <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link blue">Подробнее</a>
+        <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}${matchPercent ? `&matchPercent=${matchPercent}` : ''}`)}" class="task-link blue">Подробнее</a>
         <a href="${withProfileId(`task-apply.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link green">Откликнуться</a>
         <a href="#" class="task-link blue small">Не показывать</a>
       </div>

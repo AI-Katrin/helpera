@@ -126,15 +126,15 @@
     const _recCacheTtl = 5 * 60 * 1000;
     function readRecCache() {
       try {
-        const raw = sessionStorage.getItem(_recCacheKey);
+        const raw = localStorage.getItem(_recCacheKey);
         if (!raw) return null;
         const { data, ts } = JSON.parse(raw);
-        if (Date.now() - ts > _recCacheTtl) { sessionStorage.removeItem(_recCacheKey); return null; }
+        if (Date.now() - ts > _recCacheTtl) { localStorage.removeItem(_recCacheKey); return null; }
         return data;
       } catch { return null; }
     }
     function writeRecCache(data) {
-      try { sessionStorage.setItem(_recCacheKey, JSON.stringify({ data, ts: Date.now() })); } catch {}
+      try { localStorage.setItem(_recCacheKey, JSON.stringify({ data, ts: Date.now() })); } catch {}
     }
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -324,7 +324,7 @@
       return `
         <article class="task-card" data-task-id="${escapeHtml(task.id)}">
           <div>
-            <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
+            <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}&matchPercent=${encodeURIComponent(matchPercent)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
             <p class="task-sub">${metaParts.map(escapeHtml).join(' • ')}</p>
             <div class="chips">
               ${urgentChip}
@@ -333,7 +333,7 @@
             </div>
           </div>
           <div class="task-actions">
-            <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link blue">Подробнее</a>
+            <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}&matchPercent=${encodeURIComponent(matchPercent)}`)}" class="task-link blue">Подробнее</a>
             <a href="${withProfileId(`task-apply.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link green">Откликнуться</a>
             <a href="#" class="task-link blue small hide-task-btn" data-task-id="${escapeHtml(task.id)}">Не показывать</a>
           </div>
@@ -374,7 +374,7 @@
           const cached = readRecCache();
           recommendations = cached || await helperaDb.listRecommendedTasks(profileId, 600);
           if (!cached) writeRecCache(recommendations);
-          topTasks = (recommendations.tasks || []).slice(0, 5);
+          topTasks = (recommendations.tasks || []).filter((t) => !isExpiredTask(t)).slice(0, 5);
           recommendationSessionId = recommendations.recommendation_session_id || '';
           // Правило 7: показываем подсказку волонтёру в cold-start режиме
           if (recommendations.is_cold_start) {
@@ -400,8 +400,6 @@
           .slice(0, 5)
           .map(({ task }) => task);
       }
-
-      topTasks = topTasks.filter((task) => !isExpiredTask(task));
 
       if (isTrueNoResults && !topTasks.length) {
         const hints = (recommendations && recommendations.fallback_hints) || [];

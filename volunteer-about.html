@@ -149,7 +149,7 @@
     <div style="padding: 0 72px 54px 736px;">
       <div class="actions">
         <button class="btn-primary" id="continue-btn" disabled>Продолжить</button>
-        <a class="btn-secondary back-link" href="volunteer-account.html">Назад</a>
+        <a class="btn-secondary back-link" id="back-btn" href="volunteer-account.html">Назад</a>
       </div>
     </div>
   </div>
@@ -312,6 +312,10 @@
         }
       }
     });
+
+    if (profileId) {
+      document.getElementById('back-btn').href = `volunteer-account.html?profileId=${encodeURIComponent(profileId)}`;
+    }
 
     hydrateAboutData();
     validateRequiredFields();
