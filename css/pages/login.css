@@ -257,10 +257,16 @@ input[type="password"]:focus {
 }
 
 .social-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 20px;
+}
+
+#vk-widget-container > div,
+#vk-widget-container iframe {
+  width: 100% !important;
+  border-radius: 16px !important;
 }
 
 .social-btn {

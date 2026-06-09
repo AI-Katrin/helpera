@@ -10,6 +10,7 @@ from .features import build_pairs, prepare_feature_rows
 from .linucb import (
     get_cold_start_info,
     get_cold_task_flags_batch,
+    record_context,
     record_impressions,
     score_cold_start,
 )
@@ -204,6 +205,9 @@ class RecommendationService:
                 score_cold_start(row, row["task_id"], volunteer_id)
                 for row in pair_rows
             ]
+            # Сохраняем признаковые векторы для онлайн-обновления θ при фидбеке
+            for row in pair_rows:
+                record_context(str(volunteer_id), str(row["task_id"]), row)
         else:
             ml_scores = predict_scores(
                 model_artifact,
@@ -284,6 +288,8 @@ class RecommendationService:
                     reason=row["reason"],
                     # Правило 13: флаг срочности для отображения на фронте
                     is_urgent=bool(row.get("task_critical_urgency") or safe_float(row.get("task_urgency_score")) >= 0.7),
+                    # Задача показана преимущественно из-за UCB-бонуса (exploration), а не релевантности
+                    is_exploration=row.get("linucb_bonus", 0.0) > 0.1 and row.get("cold_start_task", False),
                     payload=task.get("payload") or {},
                 )
             )
@@ -307,15 +313,18 @@ class RecommendationService:
     def _add_match_percent(self, ranked_rows):
         if not ranked_rows:
             return
-        scores = [row["final_score"] for row in ranked_rows]
+        # Используем ml_score (без UCB-бонуса) — чтобы процент отражал реальное
+        # совпадение навыков, а не exploration-буст незнакомых задач
+        scores = [row.get("ml_score", row["final_score"]) for row in ranked_rows]
         min_score = min(scores)
         max_score = max(scores)
         span = max_score - min_score
         for row in ranked_rows:
+            base = row.get("ml_score", row["final_score"])
             if span <= 0:
                 percent = 85
             else:
-                percent = 55 + round(((row["final_score"] - min_score) / span) * 43)
+                percent = 55 + round(((base - min_score) / span) * 43)
             if row.get("eligible_for_recommendations") == 0:
                 percent = min(percent, 35)
             row["match_percent"] = max(1, min(98, int(percent)))

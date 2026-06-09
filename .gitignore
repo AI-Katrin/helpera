@@ -1,9 +1,26 @@
+# Secrets
 .env
 .env.local
 .env.*.local
-node_modules/
+
+# OS
 .DS_Store
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Claude Code
+.claude/
+
+# JS
+node_modules/
+
+# Experiments
 experiments/

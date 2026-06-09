@@ -146,6 +146,7 @@
       }
 
       function redirectAfterAuth(role, isNew, profileId) {
+        localStorage.setItem('helpera_login_ts', String(Date.now()));
         const param = profileId ? `?profileId=${encodeURIComponent(profileId)}` : '';
         if (isNew) {
           window.location.href = role === 'ngo' ? `ngo-about.html${param}` : `volunteer-account.html${param}`;
@@ -259,11 +260,32 @@
           setStatus('Ищем профиль…');
           const profile = await helperaDb.getCurrentUserProfile(role);
           if (!profile) {
-            throw new Error(
-              role === 'volunteer'
-                ? 'Профиль волонтёра для этого аккаунта не найден.'
-                : 'Профиль организации для этого аккаунта не найден.'
-            );
+            // Пользователь есть в системе, но профиль ещё не создан — направляем на регистрацию
+            setStatus('Создаём профиль…');
+            let newProfile;
+            if (role === 'ngo') {
+              newProfile = await helperaDb.createNgoProfile({
+                userId,
+                contact: email,
+                orgName: displayName || 'Моя организация',
+              });
+            } else {
+              newProfile = await helperaDb.createVolunteerProfile({
+                userId,
+                contact: email,
+                fullName: displayName,
+              });
+              const aboutPrefill = {};
+              if (firstName) aboutPrefill.firstName = firstName;
+              if (lastName) aboutPrefill.lastName = lastName;
+              if (Object.keys(aboutPrefill).length > 0) {
+                await helperaDb.updateVolunteerProfile(newProfile.profileId, { about: aboutPrefill });
+              }
+            }
+            profileId = newProfile.profileId;
+            setStatus('Перенаправляем…');
+            redirectAfterAuth(role, true, profileId);
+            return;
           }
           profileId = profile.profileId;
         }

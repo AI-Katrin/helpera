@@ -23,6 +23,7 @@ class RecommendedTask:
     match_percent: int
     reason: str
     is_urgent: bool = False
+    is_exploration: bool = False  # True если задача показана преимущественно из-за UCB-бонуса
     payload: dict = field(default_factory=dict)
 
     def to_dict(self):

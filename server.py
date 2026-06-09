@@ -17,7 +17,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-from backend.api.oauth import oauth_callback, oauth_start, vk_token_auth
+from backend.api.oauth import oauth_callback, oauth_start, vk_token_auth, vk_code_auth, yandex_token_auth
 from backend.api.recommendations import recommendations_event_response, recommendations_for_path, recommendations_health_response
 from backend.api.tasks import task_duplicate_check_response
 from backend.ml.deduplication import check_duplicate
@@ -1063,7 +1063,7 @@ class HelperaHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
 
-        if parsed.path == "/api/auth/vk-token":
+        if parsed.path == "/api/auth/yandex-token":
             data, err_code, err_body = read_json_body(self, max_size=4 * 1024)
             if err_code:
                 json_response(self, err_code, err_body)
@@ -1074,7 +1074,49 @@ class HelperaHandler(SimpleHTTPRequestHandler):
                 json_response(self, 422, {"error": "access_token required"})
                 return
             try:
-                redirect = vk_token_auth(token, role, _OAUTH_SUPABASE_URL, _OAUTH_SUPABASE_KEY)
+                redirect = yandex_token_auth(token, role, _OAUTH_SUPABASE_URL, _OAUTH_SUPABASE_KEY)
+                json_response(self, 200, {"redirect": redirect})
+            except ValueError as exc:
+                json_response(self, 400, {"error": str(exc)})
+            except Exception as exc:
+                logging.error("yandex-token error: %s", exc, exc_info=True)
+                json_response(self, 500, {"error": "Внутренняя ошибка сервера"})
+            return
+
+        if parsed.path == "/api/auth/vk-code":
+            data, err_code, err_body = read_json_body(self, max_size=4 * 1024)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            code = data.get("code", "")
+            device_id = data.get("device_id", "")
+            role = data.get("role", "volunteer")
+            if not code or not device_id:
+                json_response(self, 422, {"error": "code и device_id обязательны"})
+                return
+            try:
+                redirect = vk_code_auth(code, device_id, role, _OAUTH_SUPABASE_URL, _OAUTH_SUPABASE_KEY)
+                json_response(self, 200, {"redirect": redirect})
+            except ValueError as exc:
+                json_response(self, 400, {"error": str(exc)})
+            except Exception as exc:
+                logging.error("vk-code error: %s", exc, exc_info=True)
+                json_response(self, 500, {"error": "Внутренняя ошибка сервера"})
+            return
+
+        if parsed.path == "/api/auth/vk-token":
+            data, err_code, err_body = read_json_body(self, max_size=4 * 1024)
+            if err_code:
+                json_response(self, err_code, err_body)
+                return
+            token = data.get("access_token", "")
+            role = data.get("role", "volunteer")
+            email_hint = data.get("email") or None
+            if not token:
+                json_response(self, 422, {"error": "access_token required"})
+                return
+            try:
+                redirect = vk_token_auth(token, role, _OAUTH_SUPABASE_URL, _OAUTH_SUPABASE_KEY, email_hint=email_hint)
                 json_response(self, 200, {"redirect": redirect})
             except ValueError as exc:
                 json_response(self, 400, {"error": str(exc)})

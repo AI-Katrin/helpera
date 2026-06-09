@@ -1,6 +1,14 @@
 import json
 import os
+import threading
+import time
 from urllib.parse import parse_qs, urlparse
+
+# Серверный кэш рекомендаций: {cache_key: (timestamp, result_dict)}
+# Lock гарантирует что два потока не считают одновременно для одного профиля
+_REC_CACHE: dict = {}
+_REC_CACHE_LOCK = threading.Lock()
+_REC_CACHE_TTL = 5 * 60  # 5 минут
 
 from backend.ml.config import DEFAULT_TOP_K
 from backend.ml.data_repository import CsvRecommendationRepository
@@ -50,15 +58,36 @@ def recommendations_for_path(path):
         return 422, {"error": "volunteer_id is required."}
     hidden_raw = query.get("hidden", [""])[0] or ""
     hidden_task_ids = {tid.strip() for tid in hidden_raw.split(",") if tid.strip()}
-    try:
-        response = _get_service().recommend_for_volunteer(volunteer_id, k, hidden_task_ids=hidden_task_ids)
-        return 200, response.to_dict()
-    except VolunteerNotFound as error:
-        return 404, {"error": str(error)}
-    except ModelArtifactError as error:
-        return 503, {"error": str(error)}
-    except ValueError as error:
-        return 422, {"error": str(error)}
+
+    cache_key = f"{volunteer_id}:{k}:{','.join(sorted(hidden_task_ids))}"
+
+    # Быстрая проверка без блокировки
+    cached = _REC_CACHE.get(cache_key)
+    if cached:
+        ts, result = cached
+        if time.time() - ts < _REC_CACHE_TTL:
+            return 200, result
+
+    # Блокировка: только один поток считает модель для данного ключа
+    with _REC_CACHE_LOCK:
+        # Повторная проверка — другой поток мог уже посчитать
+        cached = _REC_CACHE.get(cache_key)
+        if cached:
+            ts, result = cached
+            if time.time() - ts < _REC_CACHE_TTL:
+                return 200, result
+
+        try:
+            response = _get_service().recommend_for_volunteer(volunteer_id, k, hidden_task_ids=hidden_task_ids)
+            result = response.to_dict()
+            _REC_CACHE[cache_key] = (time.time(), result)
+            return 200, result
+        except VolunteerNotFound as error:
+            return 404, {"error": str(error)}
+        except ModelArtifactError as error:
+            return 503, {"error": str(error)}
+        except ValueError as error:
+            return 422, {"error": str(error)}
 
 
 def recommendations_event_response(body_bytes):

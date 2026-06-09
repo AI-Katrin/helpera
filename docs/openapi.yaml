@@ -1,18 +1,17 @@
 openapi: 3.0.3
 info:
   title: Helpera API
-  version: 1.1.0
-  description: REST API for the Helpera platform — a volunteer resource distribution system for NGO tasks.
+  version: 1.2.0
+  description: REST API платформы Helpera — распределение волонтёрских ресурсов для задач НКО.
   contact:
     name: Helpera
     url: https://github.com/AI-Katrin/helpera
 servers:
   - url: https://helpera.ru
-    description: Production
-  - url: https://web-production-24e49.up.railway.app
-    description: Railway (fallback)
+    description: Production (reg.ru)
   - url: http://localhost:3000
     description: Local development
+
 tags:
   - name: Health
   - name: Volunteers
@@ -24,622 +23,17 @@ tags:
   - name: Recommendations
   - name: AI
   - name: OAuth
-
-paths:
-  /api/health:
-    get:
-      tags: [Health]
-      summary: Overall server health
-      operationId: getHealth
-      responses:
-        "200":
-          description: Server is running.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthResponse"
-
-  /api/recommendations/health:
-    get:
-      tags: [Health, Recommendations]
-      summary: ML recommendation model health
-      operationId: getRecommendationHealth
-      responses:
-        "200":
-          description: Model health status.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RecommendationHealth"
-
-  /api/volunteers:
-    post:
-      tags: [Volunteers]
-      summary: Create volunteer profile
-      operationId: createVolunteer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/VolunteerInput"
-      responses:
-        "201":
-          description: Created volunteer profile.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VolunteerProfile"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/volunteers/{volunteer_id}:
-    get:
-      tags: [Volunteers]
-      summary: Get volunteer profile by id
-      operationId: getVolunteer
-      parameters:
-        - $ref: "#/components/parameters/VolunteerId"
-      responses:
-        "200":
-          description: Volunteer profile.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VolunteerProfile"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-    patch:
-      tags: [Volunteers]
-      summary: Update volunteer profile
-      operationId: updateVolunteer
-      parameters:
-        - $ref: "#/components/parameters/VolunteerId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/VolunteerInput"
-      responses:
-        "200":
-          description: Updated volunteer profile.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VolunteerProfile"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/ngos:
-    post:
-      tags: [NGOs]
-      summary: Create NGO profile
-      operationId: createNgo
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NgoInput"
-      responses:
-        "201":
-          description: Created NGO profile.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NgoProfile"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/ngos/{ngo_id}:
-    get:
-      tags: [NGOs]
-      summary: Get NGO profile by id
-      operationId: getNgo
-      parameters:
-        - $ref: "#/components/parameters/NgoId"
-      responses:
-        "200":
-          description: NGO profile.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NgoProfile"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-    patch:
-      tags: [NGOs]
-      summary: Update NGO profile
-      operationId: updateNgo
-      parameters:
-        - $ref: "#/components/parameters/NgoId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NgoInput"
-      responses:
-        "200":
-          description: Updated NGO profile.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NgoProfile"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/tasks:
-    get:
-      tags: [Tasks]
-      summary: List published tasks
-      operationId: listTasks
-      responses:
-        "200":
-          description: Array of tasks with embedded NGO profile info.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Task"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-    post:
-      tags: [Tasks]
-      summary: Create task
-      operationId: createTask
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TaskInput"
-      responses:
-        "201":
-          description: Created task.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Task"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/tasks/check-duplicate:
-    post:
-      tags: [Tasks]
-      summary: Check whether a task looks like a duplicate
-      operationId: checkTaskDuplicate
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TaskDuplicateCheckRequest"
-      responses:
-        "200":
-          description: Duplicate check result.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TaskDuplicateCheckResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntity"
-
-  /api/tasks/{task_id}:
-    get:
-      tags: [Tasks]
-      summary: Get task by id
-      operationId: getTask
-      parameters:
-        - $ref: "#/components/parameters/TaskId"
-      responses:
-        "200":
-          description: Task with embedded NGO profile info.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Task"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-    patch:
-      tags: [Tasks]
-      summary: Update task
-      operationId: updateTask
-      parameters:
-        - $ref: "#/components/parameters/TaskId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TaskInput"
-      responses:
-        "200":
-          description: Updated task.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Task"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/applications:
-    post:
-      tags: [Applications]
-      summary: Create application (volunteer applies to task)
-      operationId: createApplication
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApplicationInput"
-      responses:
-        "201":
-          description: Created application.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Application"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/applications/{application_id}:
-    get:
-      tags: [Applications]
-      summary: Get application by id
-      operationId: getApplication
-      parameters:
-        - $ref: "#/components/parameters/ApplicationId"
-      responses:
-        "200":
-          description: Application record.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Application"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-    patch:
-      tags: [Applications]
-      summary: Update application fields
-      operationId: updateApplication
-      parameters:
-        - $ref: "#/components/parameters/ApplicationId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApplicationInput"
-      responses:
-        "200":
-          description: Updated application.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Application"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/applications/{application_id}/accept:
-    post:
-      tags: [Applications]
-      summary: Accept application (status → invite)
-      operationId: acceptApplication
-      parameters:
-        - $ref: "#/components/parameters/ApplicationId"
-      responses:
-        "200":
-          description: Updated application.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Application"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/applications/{application_id}/reject:
-    post:
-      tags: [Applications]
-      summary: Reject application (status → rejected)
-      operationId: rejectApplication
-      parameters:
-        - $ref: "#/components/parameters/ApplicationId"
-      responses:
-        "200":
-          description: Updated application.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Application"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/applications/{application_id}/complete:
-    post:
-      tags: [Applications]
-      summary: Complete application (status → done)
-      operationId: completeApplication
-      parameters:
-        - $ref: "#/components/parameters/ApplicationId"
-      responses:
-        "200":
-          description: Updated application.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Application"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/reviews:
-    post:
-      tags: [Reviews]
-      summary: Submit a review for a completed application
-      description: |
-        Reviews are stored inside `applications.payload.reviews[actor_role]`.
-        Submitting a review also transitions the application status to `done`.
-      operationId: createReview
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReviewInput"
-      responses:
-        "201":
-          description: Updated application with review saved.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Application"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntity"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/events:
-    post:
-      tags: [Events]
-      summary: Log an application event
-      operationId: createEvent
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/EventInput"
-      responses:
-        "201":
-          description: Created event record.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AppEvent"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /api/recommendations/volunteers/{volunteer_id}:
-    get:
-      tags: [Recommendations]
-      summary: Get ML task recommendations for a volunteer
-      operationId: getVolunteerRecommendations
-      parameters:
-        - $ref: "#/components/parameters/VolunteerId"
-        - name: k
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-          description: Number of recommendations to return.
-        - name: hidden
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Comma-separated task ids to exclude from the response.
-      responses:
-        "200":
-          description: Recommendation response.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/RecommendationResponse"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntity"
-        "503":
-          description: Recommendation model artifact is not available.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /api/recommendations/events:
-    post:
-      tags: [Recommendations]
-      summary: Record a recommendation interaction event
-      operationId: recordRecommendationEvent
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RecommendationEventRequest"
-      responses:
-        "200":
-          description: Event accepted.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OkResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntity"
-
-  /api/ai/task:
-    post:
-      tags: [AI]
-      summary: Generate or improve task description with Yandex AI
-      operationId: generateTaskText
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AITaskRequest"
-      responses:
-        "200":
-          description: Generated text.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AITaskResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "413":
-          description: Request body is too large.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Yandex AI credentials are not configured.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "502":
-          description: Yandex AI returned an empty response or could not be reached.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /auth/vk/start:
-    get:
-      tags: [OAuth]
-      summary: Start VK OAuth flow
-      operationId: startVkOAuth
-      parameters:
-        - $ref: "#/components/parameters/Role"
-      responses:
-        "302":
-          description: Redirect to VK OAuth authorization page.
-          headers:
-            Location:
-              schema:
-                type: string
-                format: uri
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /auth/yandex/start:
-    get:
-      tags: [OAuth]
-      summary: Start Yandex OAuth flow
-      operationId: startYandexOAuth
-      parameters:
-        - $ref: "#/components/parameters/Role"
-      responses:
-        "302":
-          description: Redirect to Yandex OAuth authorization page.
-          headers:
-            Location:
-              schema:
-                type: string
-                format: uri
-        "503":
-          $ref: "#/components/responses/SupabaseUnavailable"
-
-  /auth/vk/callback:
-    get:
-      tags: [OAuth]
-      summary: Handle VK OAuth callback
-      operationId: handleVkOAuthCallback
-      parameters:
-        - $ref: "#/components/parameters/OAuthCode"
-        - $ref: "#/components/parameters/OAuthState"
-        - $ref: "#/components/parameters/OAuthError"
-      responses:
-        "302":
-          description: Redirect to auth-callback.html with tokens or error.
-          headers:
-            Location:
-              schema:
-                type: string
-
-  /auth/yandex/callback:
-    get:
-      tags: [OAuth]
-      summary: Handle Yandex OAuth callback
-      operationId: handleYandexOAuthCallback
-      parameters:
-        - $ref: "#/components/parameters/OAuthCode"
-        - $ref: "#/components/parameters/OAuthState"
-        - $ref: "#/components/parameters/OAuthError"
-      responses:
-        "302":
-          description: Redirect to auth-callback.html with tokens or error.
-          headers:
-            Location:
-              schema:
-                type: string
+  - name: Internal
+    description: Только localhost. Используются для admin-панели и фоновых задач.
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase access_token из сессии пользователя.
+
   parameters:
     VolunteerId:
       name: volunteer_id
@@ -677,7 +71,7 @@ components:
         type: string
         default: volunteer
         enum: [volunteer, ngo]
-      description: User role to preserve through the OAuth flow.
+      description: Роль пользователя для сохранения через OAuth flow.
     OAuthCode:
       name: code
       in: query
@@ -699,25 +93,37 @@ components:
 
   responses:
     BadRequest:
-      description: Request body is not valid JSON.
+      description: Тело запроса не является валидным JSON.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     NotFound:
-      description: Resource not found.
+      description: Ресурс не найден.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Требуется авторизация или токен недействителен.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Нет прав на выполнение операции (IDOR-защита).
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     UnprocessableEntity:
-      description: Required fields are missing or invalid.
+      description: Обязательные поля отсутствуют или невалидны.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     SupabaseUnavailable:
-      description: Supabase is not configured or unavailable.
+      description: Supabase не настроен или недоступен.
       content:
         application/json:
           schema:
@@ -730,6 +136,14 @@ components:
       properties:
         error:
           type: string
+        code:
+          type: string
+          description: Машиночитаемый код ошибки.
+        errors:
+          type: array
+          items:
+            type: string
+          description: Список ошибок валидации (при наличии нескольких).
 
     OkResponse:
       type: object
@@ -746,6 +160,8 @@ components:
         status:
           type: string
           enum: [ok]
+
+    # --- Volunteers ---
 
     VolunteerInput:
       type: object
@@ -805,6 +221,47 @@ components:
               type: string
               format: date-time
 
+    VolunteerPublicProfile:
+      description: Публичные поля профиля волонтёра (PII не раскрываются).
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        skills_clean:
+          type: array
+          items:
+            type: string
+          nullable: true
+        directions_clean:
+          type: array
+          items:
+            type: string
+          nullable: true
+        city_clean:
+          type: string
+          nullable: true
+        format_clean:
+          type: string
+          nullable: true
+        age:
+          type: integer
+          nullable: true
+        profile_completeness:
+          type: number
+          format: float
+          nullable: true
+        volunteer_reliability_score:
+          type: number
+          format: float
+          nullable: true
+        active_tasks_count:
+          type: integer
+          nullable: true
+
+    # --- NGOs ---
+
     NgoInput:
       type: object
       properties:
@@ -859,6 +316,36 @@ components:
               type: string
               format: date-time
 
+    NgoPublicProfile:
+      description: Публичные поля профиля НКО (PII и контакты не раскрываются).
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        org_name:
+          type: string
+          nullable: true
+        about:
+          type: object
+          additionalProperties: true
+          nullable: true
+        ngo_reliability_score:
+          type: number
+          format: float
+          nullable: true
+        complaint_rate:
+          type: number
+          format: float
+          nullable: true
+        avg_response_time_hours:
+          type: number
+          format: float
+          nullable: true
+
+    # --- Tasks ---
+
     TaskInput:
       type: object
       properties:
@@ -867,10 +354,13 @@ components:
           format: uuid
         title:
           type: string
+          minLength: 5
         description:
           type: string
+          minLength: 30
         format:
           type: string
+          example: Онлайн
         skills:
           type: string
         date_start:
@@ -883,15 +373,15 @@ components:
           nullable: true
         status:
           type: string
-          enum: [published, closed, draft]
+          enum: [published, closed, draft, active]
           default: published
         payload:
           type: object
           additionalProperties: true
           example:
+            directions: Экология
+            city: Москва
             volunteers_needed: 3
-            location: Парк Горького, Москва
-            contact_person: Мария Смирнова
 
     Task:
       allOf:
@@ -908,14 +398,14 @@ components:
             ngo_profiles:
               type: object
               nullable: true
-              description: Embedded NGO profile (org_name, about, contacts).
+              description: Встроенный профиль НКО (org_name, about).
               additionalProperties: true
               example:
                 org_name: Фонд помощи детям
                 about:
                   mission: Помогаем детям в трудной жизненной ситуации
-                contacts:
-                  website: https://fond.ru
+
+    # --- Applications ---
 
     ApplicationInput:
       type: object
@@ -928,14 +418,23 @@ components:
           format: uuid
         status:
           type: string
-          enum: [draft, review, invite, rejected, done]
+          enum:
+            - draft
+            - review
+            - invite
+            - rejected
+            - done
+            - partial_done
+            - timeout
+            - cancelled_by_volunteer
+            - expired
+            - active
           default: review
         payload:
           type: object
           additionalProperties: true
           example:
             cover_letter: Хочу помочь, у меня есть опыт в фотографии
-            available_dates: [2026-06-01, 2026-06-02]
 
     Application:
       allOf:
@@ -949,6 +448,54 @@ components:
             created_at:
               type: string
               format: date-time
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    ApplicationPublic:
+      description: Статусные поля заявки без раскрытия payload с отзывами.
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        volunteer_profile_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ApplicationWithReview:
+      allOf:
+        - $ref: "#/components/schemas/Application"
+        - type: object
+          properties:
+            both_reviewed:
+              type: boolean
+              description: true если оба участника (волонтёр и НКО) уже оставили отзыв.
+
+    ApplicationCancelResponse:
+      allOf:
+        - $ref: "#/components/schemas/Application"
+        - type: object
+          properties:
+            reliability_refreshed:
+              type: boolean
+              description: true если надёжность волонтёра была пересчитана.
+
+    # --- Reviews ---
 
     ReviewInput:
       type: object
@@ -963,12 +510,34 @@ components:
           default: volunteer
         review:
           type: object
-          additionalProperties: true
-          description: Arbitrary review data (ratings, comment, etc.).
-          example:
-            rating: 5
-            comment: Отличный волонтёр, всё сделал вовремя
-            would_invite_again: true
+          description: |
+            Данные отзыва. Обязательно: ratings (объект с ≥3 оценками 1–10),
+            shortReview (≥50 символов, ≥5 слов).
+            Необязательно: extendedReview (≥200 символов, ≥15 слов),
+            completion (для НКО: completed | partial | not_completed).
+          properties:
+            ratings:
+              type: object
+              additionalProperties:
+                type: number
+              example:
+                communication: 8
+                responsibility: 9
+                quality: 7
+            shortReview:
+              type: string
+              minLength: 50
+              example: Волонтёр отработал отлично, пришёл вовремя и выполнил все задачи.
+            extendedReview:
+              type: string
+              minLength: 200
+              nullable: true
+            completion:
+              type: string
+              enum: [completed, partial, not_completed]
+              description: Только для actor_role=ngo.
+
+    # --- Events ---
 
     EventInput:
       type: object
@@ -1010,6 +579,8 @@ components:
             created_at:
               type: string
               format: date-time
+
+    # --- Recommendations ---
 
     RecommendationHealth:
       type: object
@@ -1130,9 +701,6 @@ components:
         payload:
           type: object
           additionalProperties: true
-          example:
-            image_url: https://helpera.ru/img/task42.jpg
-            tags: [экология, парк]
 
     RecommendationEventRequest:
       type: object
@@ -1146,6 +714,18 @@ components:
         volunteer_id:
           type: string
 
+    EventStatsResponse:
+      type: object
+      description: Статистика лога событий рекомендательной системы.
+      additionalProperties: true
+      example:
+        click: 142
+        apply: 31
+        file_size_bytes: 48320
+        buffer_utilization: 0.47
+
+    # --- Tasks duplicate check ---
+
     TaskDuplicateCheckRequest:
       type: object
       required: [task]
@@ -1154,7 +734,7 @@ components:
           $ref: "#/components/schemas/TaskInput"
         ngo_id:
           type: string
-          description: Optional NGO id. Existing tasks from this NGO are skipped.
+          description: Необязательно. Существующие задачи этой НКО исключаются из проверки.
 
     TaskDuplicateCheckResponse:
       type: object
@@ -1175,6 +755,8 @@ components:
           format: float
           minimum: 0
           maximum: 1
+
+    # --- AI ---
 
     AITaskRequest:
       type: object
@@ -1211,3 +793,1163 @@ components:
       properties:
         text:
           type: string
+
+    # --- OAuth ---
+
+    AuthTokenRequest:
+      type: object
+      required: [access_token]
+      properties:
+        access_token:
+          type: string
+          description: Токен от VK ID SDK или Яндекс ID SDK.
+        role:
+          type: string
+          enum: [volunteer, ngo]
+          default: volunteer
+        email:
+          type: string
+          description: Email из ответа exchangeCode VK (необязательно, только для vk-token).
+
+    VkCodeRequest:
+      type: object
+      required: [code, device_id]
+      properties:
+        code:
+          type: string
+          description: Код авторизации от VK ID SDK.
+        device_id:
+          type: string
+          description: device_id из VK ID SDK.
+        role:
+          type: string
+          enum: [volunteer, ngo]
+          default: volunteer
+
+    AuthRedirectResponse:
+      type: object
+      required: [redirect]
+      properties:
+        redirect:
+          type: string
+          description: |
+            URL для редиректа клиента. Формат:
+            /auth-callback.html?role=...&is_new=0|1&user_id=...#access_token=...&refresh_token=...
+
+    # --- Compute / Reliability ---
+
+    WorkloadResponse:
+      type: object
+      required: [updated]
+      properties:
+        updated:
+          type: boolean
+        reason:
+          type: string
+          description: Причина если updated=false.
+        active_tasks_count:
+          type: integer
+          nullable: true
+
+    ReliabilityVolunteerResponse:
+      type: object
+      required: [updated]
+      properties:
+        updated:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
+        volunteer_cancel_rate:
+          type: number
+          format: float
+          nullable: true
+        volunteer_reliability_score:
+          type: number
+          format: float
+          nullable: true
+        volunteer_review_avg_rating:
+          type: number
+          format: float
+          nullable: true
+
+    ReliabilityNgoResponse:
+      type: object
+      required: [updated]
+      properties:
+        updated:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
+        avg_response_time_hours:
+          type: number
+          format: float
+          nullable: true
+        ngo_reliability_score:
+          type: number
+          format: float
+          nullable: true
+
+    # --- Internal ---
+
+    ExpireTasksResponse:
+      type: object
+      required: [ok, expired, message]
+      properties:
+        ok:
+          type: boolean
+        expired:
+          type: integer
+        message:
+          type: string
+
+    ProcessTimeoutsResponse:
+      type: object
+      required: [processed, timed_out, timeout_days]
+      properties:
+        processed:
+          type: integer
+        timed_out:
+          type: integer
+        timeout_days:
+          type: integer
+
+
+paths:
+
+  # ─── Health ────────────────────────────────────────────────────────────────
+
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Общий health-check сервера
+      description: Возвращает статус ok если сервер запущен и отвечает.
+      operationId: getHealth
+      responses:
+        "200":
+          description: Сервер работает.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/recommendations/health:
+    get:
+      tags: [Health, Recommendations]
+      summary: Health-check ML-модели рекомендаций
+      description: Возвращает статус загрузки артефакта модели, имя, версию схемы и число признаков.
+      operationId: getRecommendationHealth
+      responses:
+        "200":
+          description: Статус модели.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationHealth"
+
+  # ─── OAuth (server-side flow) ───────────────────────────────────────────────
+
+  /auth/vk/start:
+    get:
+      tags: [OAuth]
+      summary: Начало VK OAuth flow (server-side redirect)
+      description: Генерирует URL авторизации VK с HMAC-подписанным state и перенаправляет браузер.
+      operationId: startVkOAuth
+      parameters:
+        - $ref: "#/components/parameters/Role"
+      responses:
+        "302":
+          description: Редирект на страницу авторизации VK.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /auth/yandex/start:
+    get:
+      tags: [OAuth]
+      summary: Начало Yandex OAuth flow (server-side redirect)
+      description: Генерирует URL авторизации Яндекс с HMAC-подписанным state и перенаправляет браузер.
+      operationId: startYandexOAuth
+      parameters:
+        - $ref: "#/components/parameters/Role"
+      responses:
+        "302":
+          description: Редирект на страницу авторизации Яндекс.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /auth/vk/callback:
+    get:
+      tags: [OAuth]
+      summary: Обработка callback от VK OAuth
+      description: Обменивает code на токен VK, создаёт или находит пользователя в Supabase и перенаправляет на auth-callback.html.
+      operationId: handleVkOAuthCallback
+      parameters:
+        - $ref: "#/components/parameters/OAuthCode"
+        - $ref: "#/components/parameters/OAuthState"
+        - $ref: "#/components/parameters/OAuthError"
+      responses:
+        "302":
+          description: Редирект на auth-callback.html с токенами или ошибкой.
+          headers:
+            Location:
+              schema:
+                type: string
+
+  /auth/yandex/callback:
+    get:
+      tags: [OAuth]
+      summary: Обработка callback от Yandex OAuth
+      description: Обменивает code на токен Яндекс, создаёт или находит пользователя в Supabase и перенаправляет на auth-callback.html.
+      operationId: handleYandexOAuthCallback
+      parameters:
+        - $ref: "#/components/parameters/OAuthCode"
+        - $ref: "#/components/parameters/OAuthState"
+        - $ref: "#/components/parameters/OAuthError"
+      responses:
+        "302":
+          description: Редирект на auth-callback.html с токенами или ошибкой.
+          headers:
+            Location:
+              schema:
+                type: string
+
+  # ─── OAuth (client-side SDK flow) ──────────────────────────────────────────
+
+  /api/auth/vk-token:
+    post:
+      tags: [OAuth]
+      summary: Авторизация через VK ID SDK (access_token уже получен браузером)
+      description: Клиентский flow. Браузер получил access_token через VKID.Auth.exchangeCode — сервер запрашивает данные пользователя и создаёт/находит аккаунт в Supabase.
+      operationId: vkTokenAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthTokenRequest"
+      responses:
+        "200":
+          description: URL для редиректа клиента.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthRedirectResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          description: Внутренняя ошибка сервера.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/auth/vk-code:
+    post:
+      tags: [OAuth]
+      summary: Серверный обмен VK ID code → токен (confidential client)
+      description: Сервер сам обменивает code на access_token через VK ID API (confidential client, секрет не раскрывается клиенту).
+      operationId: vkCodeAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VkCodeRequest"
+      responses:
+        "200":
+          description: URL для редиректа клиента.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthRedirectResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          description: Внутренняя ошибка сервера.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/auth/yandex-token:
+    post:
+      tags: [OAuth]
+      summary: Авторизация через Яндекс ID SDK (access_token уже получен браузером)
+      description: Клиентский flow. Браузер получил access_token через Яндекс ID SDK — сервер запрашивает данные пользователя и создаёт/находит аккаунт в Supabase.
+      operationId: yandexTokenAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthTokenRequest"
+      responses:
+        "200":
+          description: URL для редиректа клиента.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthRedirectResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          description: Внутренняя ошибка сервера.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Volunteers ─────────────────────────────────────────────────────────────
+
+  /api/volunteers:
+    post:
+      tags: [Volunteers]
+      summary: Создать профиль волонтёра
+      description: Создаёт запись в таблице volunteer_profiles. Вызывается после завершения онбординга.
+      operationId: createVolunteer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerInput"
+      responses:
+        "201":
+          description: Созданный профиль волонтёра.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/volunteers/{volunteer_id}:
+    get:
+      tags: [Volunteers]
+      summary: Получить публичный профиль волонтёра
+      description: Возвращает только публичные поля (PII не раскрываются).
+      operationId: getVolunteer
+      parameters:
+        - $ref: "#/components/parameters/VolunteerId"
+      responses:
+        "200":
+          description: Публичный профиль волонтёра.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerPublicProfile"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    patch:
+      tags: [Volunteers]
+      summary: Обновить профиль волонтёра
+      description: Только владелец профиля.
+      operationId: updateVolunteer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/VolunteerId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolunteerInput"
+      responses:
+        "200":
+          description: Обновлённый профиль.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolunteerProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/volunteers/{volunteer_id}/refresh-workload:
+    post:
+      tags: [Volunteers]
+      summary: Пересчитать нагрузку волонтёра (активные задачи)
+      description: Пересчитывает active_tasks_count по текущим заявкам и сохраняет в профиль волонтёра.
+      operationId: refreshVolunteerWorkload
+      parameters:
+        - $ref: "#/components/parameters/VolunteerId"
+      responses:
+        "200":
+          description: Результат пересчёта.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkloadResponse"
+        "500":
+          description: Внутренняя ошибка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/volunteers/{volunteer_id}/refresh-reliability:
+    post:
+      tags: [Volunteers]
+      summary: Пересчитать надёжность волонтёра
+      description: Пересчитывает volunteer_cancel_rate и volunteer_reliability_score по истории заявок и сохраняет в профиль.
+      operationId: refreshVolunteerReliability
+      parameters:
+        - $ref: "#/components/parameters/VolunteerId"
+      responses:
+        "200":
+          description: Результат пересчёта.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReliabilityVolunteerResponse"
+        "500":
+          description: Внутренняя ошибка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ─── NGOs ───────────────────────────────────────────────────────────────────
+
+  /api/ngos:
+    post:
+      tags: [NGOs]
+      summary: Создать профиль НКО
+      description: Создаёт запись в таблице ngo_profiles. Вызывается после завершения онбординга НКО.
+      operationId: createNgo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NgoInput"
+      responses:
+        "201":
+          description: Созданный профиль НКО.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NgoProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/ngos/{ngo_id}:
+    get:
+      tags: [NGOs]
+      summary: Получить публичный профиль НКО
+      description: Возвращает только публичные поля (контактные данные не раскрываются).
+      operationId: getNgo
+      parameters:
+        - $ref: "#/components/parameters/NgoId"
+      responses:
+        "200":
+          description: Публичный профиль НКО.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NgoPublicProfile"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    patch:
+      tags: [NGOs]
+      summary: Обновить профиль НКО
+      description: Только представитель НКО-владельца.
+      operationId: updateNgo
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/NgoId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NgoInput"
+      responses:
+        "200":
+          description: Обновлённый профиль.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NgoProfile"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/ngos/{ngo_id}/refresh-reliability:
+    post:
+      tags: [NGOs]
+      summary: Пересчитать надёжность НКО
+      description: Пересчитывает avg_response_time_hours и ngo_reliability_score по истории откликов и сохраняет в профиль НКО.
+      operationId: refreshNgoReliability
+      parameters:
+        - $ref: "#/components/parameters/NgoId"
+      responses:
+        "200":
+          description: Результат пересчёта.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReliabilityNgoResponse"
+        "500":
+          description: Внутренняя ошибка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ─── Tasks ──────────────────────────────────────────────────────────────────
+
+  /api/tasks:
+    get:
+      tags: [Tasks]
+      summary: Список опубликованных задач
+      description: Возвращает задачи со статусом published, отсортированные по дате создания (новые первые). Включает публичный профиль НКО.
+      operationId: listTasks
+      responses:
+        "200":
+          description: Массив задач с встроенным профилем НКО.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    post:
+      tags: [Tasks]
+      summary: Создать задачу
+      description: |
+        Валидация: title ≥5 символов, description ≥30, skills и format обязательны,
+        обе даты обязательны, directions обязательны, city обязателен для офлайн/смешанного.
+        Лимит: не более 10 активных задач на НКО.
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Созданная задача.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          description: Ошибка валидации или превышен лимит задач НКО.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/tasks/check-duplicate:
+    post:
+      tags: [Tasks]
+      summary: Проверить задачу на дубликат
+      description: Сравнивает задачу с существующими через TF-IDF и возвращает оценку сходства. Задачи самой НКО исключаются.
+      operationId: checkTaskDuplicate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskDuplicateCheckRequest"
+      responses:
+        "200":
+          description: Результат проверки на дубликат.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskDuplicateCheckResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/tasks/{task_id}:
+    get:
+      tags: [Tasks]
+      summary: Получить задачу по id
+      description: Возвращает задачу с встроенным публичным профилем НКО (org_name, about).
+      operationId: getTask
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Задача с встроенным профилем НКО.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    patch:
+      tags: [Tasks]
+      summary: Обновить задачу
+      description: Только представитель НКО-владельца задачи.
+      operationId: updateTask
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "200":
+          description: Обновлённая задача.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/tasks/expire:
+    post:
+      tags: [Internal]
+      summary: Вручную снять задачи с истёкшим дедлайном
+      description: Только localhost. В проде запускается фоновым потоком каждые N секунд.
+      operationId: expireTasks
+      responses:
+        "200":
+          description: Результат снятия задач.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpireTasksResponse"
+        "403":
+          description: Доступ разрешён только с localhost.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ─── Applications ───────────────────────────────────────────────────────────
+
+  /api/applications:
+    post:
+      tags: [Applications]
+      summary: Создать заявку (волонтёр откликается на задачу)
+      description: |
+        Проверяет право на отклик: статус задачи, дедлайн, заполненность, дубликат заявки.
+      operationId: createApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationInput"
+      responses:
+        "201":
+          description: Созданная заявка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Не выполнены условия для отклика (дубликат, задача закрыта и т.д.).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/process-timeouts:
+    post:
+      tags: [Internal]
+      summary: Перевести зависшие заявки в статус timeout
+      description: Только localhost. Заявки в статусе review старше N дней → timeout.
+      operationId: processApplicationTimeouts
+      responses:
+        "200":
+          description: Результат обработки.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessTimeoutsResponse"
+        "403":
+          description: Доступ разрешён только с localhost.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}:
+    get:
+      tags: [Applications]
+      summary: Получить заявку по id
+      description: Возвращает только статусные поля (payload с отзывами не раскрывается).
+      operationId: getApplication
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Публичные поля заявки.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationPublic"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+    patch:
+      tags: [Applications]
+      summary: Обновить поля заявки
+      description: Только участники заявки (волонтёр или НКО-владелец задачи).
+      operationId: updateApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationInput"
+      responses:
+        "200":
+          description: Обновлённая заявка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}/accept:
+    post:
+      tags: [Applications]
+      summary: Принять заявку (status → invite)
+      description: Только представитель НКО-владельца задачи.
+      operationId: acceptApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Обновлённая заявка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}/reject:
+    post:
+      tags: [Applications]
+      summary: Отклонить заявку (status → rejected)
+      description: Только представитель НКО-владельца задачи.
+      operationId: rejectApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Обновлённая заявка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}/complete:
+    post:
+      tags: [Applications]
+      summary: Завершить заявку (status → done)
+      description: Только представитель НКО-владельца задачи.
+      operationId: completeApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Обновлённая заявка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}/partial:
+    post:
+      tags: [Applications]
+      summary: Закрыть заявку с частичным выполнением (status → partial_done)
+      description: |
+        Только представитель НКО-владельца задачи.
+        Засчитывается как 0.5 в шкале надёжности волонтёра.
+      operationId: partialCompleteApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Обновлённая заявка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  /api/applications/{application_id}/cancel:
+    post:
+      tags: [Applications]
+      summary: Отменить заявку волонтёром (status → cancelled_by_volunteer)
+      description: |
+        Только владелец волонтёрского профиля заявки.
+        Допустимые статусы для отмены: review, invite, active, timeout.
+        Поздняя отмена (после invite/active) помечается как lateCancellation.
+      operationId: cancelApplication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Необязательная причина отмены.
+      responses:
+        "200":
+          description: Обновлённая заявка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationCancelResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Нельзя отменить заявку в текущем статусе.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ─── Reviews ────────────────────────────────────────────────────────────────
+
+  /api/reviews:
+    post:
+      tags: [Reviews]
+      summary: Оставить отзыв по завершённой заявке
+      description: |
+        Отзывы хранятся в applications.payload.reviews[actor_role].
+        Повторный отзыв от той же стороны запрещён.
+        Задача переходит в статус done только при двустороннем отзыве.
+        Валидация: ratings ≥3 оценок (1–10), shortReview ≥50 символов и ≥5 слов.
+      operationId: createReview
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Обновлённая заявка с сохранённым отзывом.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationWithReview"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Отзыв от этой стороны уже оставлен.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ─── Events ─────────────────────────────────────────────────────────────────
+
+  /api/events:
+    post:
+      tags: [Events]
+      summary: Записать событие заявки
+      description: Вставляет запись в таблицу app_events для аналитики и дообучения ML-модели.
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: Созданная запись события.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppEvent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/SupabaseUnavailable"
+
+  # ─── Recommendations ────────────────────────────────────────────────────────
+
+  /api/recommendations/volunteers/{volunteer_id}:
+    get:
+      tags: [Recommendations]
+      summary: ML-рекомендации задач для волонтёра
+      description: Возвращает ранжированный список задач на основе TF-IDF + LinUCB. При нехватке данных активируется fallback-режим.
+      operationId: getVolunteerRecommendations
+      parameters:
+        - $ref: "#/components/parameters/VolunteerId"
+        - name: k
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+          description: Количество рекомендаций.
+        - name: hidden
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Задачи через запятую для исключения из выдачи.
+      responses:
+        "200":
+          description: Ответ рекомендательной системы.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "503":
+          description: Артефакт модели недоступен.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/recommendations/events:
+    post:
+      tags: [Recommendations]
+      summary: Записать событие взаимодействия с рекомендацией
+      description: Фиксирует click/skip/apply для дообучения LinUCB. Событие попадает в кольцевой буфер event_logger.
+      operationId: recordRecommendationEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecommendationEventRequest"
+      responses:
+        "200":
+          description: Событие принято.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/recommendations/events/stats:
+    get:
+      tags: [Recommendations]
+      summary: Статистика лога событий рекомендательной системы
+      description: Показывает число событий по типам, размер файла и утилизацию буфера event_logger.
+      operationId: getRecommendationEventStats
+      responses:
+        "200":
+          description: Статистика по типам событий и состоянию буфера.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventStatsResponse"
+        "500":
+          description: Внутренняя ошибка.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── AI ─────────────────────────────────────────────────────────────────────
+
+  /api/ai/task:
+    post:
+      tags: [AI]
+      summary: Сгенерировать или улучшить описание задачи через Яндекс AI
+      description: Использует YandexGPT для генерации (action=draft) или улучшения (action=transform) текста описания задачи НКО.
+      operationId: generateTaskText
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AITaskRequest"
+      responses:
+        "200":
+          description: Сгенерированный текст.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AITaskResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "413":
+          description: Тело запроса слишком большое.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: YANDEX_CLOUD_API_KEY или YANDEX_CLOUD_FOLDER не настроены.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Яндекс AI вернул пустой ответ или недоступен.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

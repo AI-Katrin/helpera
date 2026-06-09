@@ -419,6 +419,13 @@ input:focus {
 }
 
 /* Правило 20: градуированные статусы выполнения */
+.chip.exploration {
+  background: #FEF9C3;
+  color: #713F12;
+  border: 1px solid #FDE047;
+  cursor: help;
+}
+
 .status-partial {
   background: #FEF9C3;
   color: #713F12;

@@ -8,14 +8,18 @@ OAuth 2.0 авторизация через ВКонтакте и Яндекс.
   HELPERA_BASE_URL                       — публичный URL сервера (http://localhost:3000)
 """
 
+import base64
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
 import urllib.parse
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+
+log = logging.getLogger("helpera.oauth")
 
 def _env(key, default=""):
     """Читает env-переменную в момент вызова, а не при импорте модуля."""
@@ -111,11 +115,22 @@ def _http_get(url, headers=None):
 # VK OAuth
 # ---------------------------------------------------------------------------
 
+def _pkce_pair():
+    """Генерирует code_verifier и code_challenge (S256) для PKCE."""
+    verifier = secrets.token_urlsafe(64)
+    challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(verifier.encode()).digest()
+    ).rstrip(b"=").decode()
+    return verifier, challenge
+
+
 def vk_auth_url(base_url, role):
     client_id = _env("VK_CLIENT_ID")
     if not client_id:
         return None
-    state, _ = _make_state(role)
+    nonce = secrets.token_hex(16)
+    sig = _sign_nonce(nonce)
+    state = _state_encode({"role": role, "nonce": nonce, "sig": sig})
     params = urllib.parse.urlencode({
         "client_id": client_id,
         "redirect_uri": _make_redirect_uri(base_url, "vk"),
@@ -123,11 +138,12 @@ def vk_auth_url(base_url, role):
         "response_type": "code",
         "state": state,
         "display": "page",
+        "v": "5.131",
     })
     return f"https://oauth.vk.com/authorize?{params}"
 
 
-def vk_exchange(code, base_url):
+def vk_exchange(code, base_url, code_verifier=""):
     """Обменивает code → (email, vk_user_id, first_name, last_name, birthday)."""
     data = _http_post("https://oauth.vk.com/access_token", {
         "client_id": _env("VK_CLIENT_ID"),
@@ -187,6 +203,51 @@ def yandex_exchange(code, base_url):
     return email, yandex_id, info.get("first_name", ""), info.get("last_name", ""), birthday
 
 
+def yandex_token_auth(access_token, role, supabase_url, supabase_key):
+    """Аутентификация через Яндекс ID SDK (клиентский flow, access_token уже получен)."""
+    log.info("[Yandex] yandex_token_auth started | role=%s token_prefix=%s",
+             role, access_token[:8] if access_token else "None")
+    info = _http_get(
+        "https://login.yandex.ru/info?format=json",
+        headers={"Authorization": f"OAuth {access_token}"},
+    )
+    log.info("[Yandex] user_info response keys=%s", list(info.keys()))
+    if "error" in info:
+        log.error("[Yandex] user_info error: %s | full=%s", info.get("error"), info)
+        raise ValueError(f"Яндекс ID: {info.get('message', info['error'])}")
+    yandex_id = str(info.get("id", ""))
+    if not yandex_id:
+        raise ValueError("Яндекс не вернул данные пользователя")
+    email = info.get("default_email") or f"{yandex_id}@yandex-oauth.helpera"
+    first_name = info.get("first_name", "")
+    last_name = info.get("last_name", "")
+    raw_birthday = info.get("birthday") or ""
+    birthday = raw_birthday if (raw_birthday and not raw_birthday.startswith("0000")) else ""
+    log.info("[Yandex] resolved | yandex_id=%s first_name=%s email=%s birthday=%s",
+             yandex_id, first_name, email, birthday)
+
+    if not supabase_url or not supabase_key:
+        params = urllib.parse.urlencode({
+            "role": role, "is_new": "1", "email": email,
+            "provider": "yandex", "provider_id": yandex_id,
+            "display_name": f"{first_name} {last_name}".strip(),
+            "no_supabase": "1",
+        })
+        return f"/auth-callback.html?{params}"
+
+    sb_access, refresh, user_id, is_new = get_or_create_supabase_user(
+        supabase_url, supabase_key, email, "yandex", yandex_id, role, first_name, last_name, birthday
+    )
+    params = urllib.parse.urlencode({
+        "role": role, "is_new": "1" if is_new else "0", "user_id": user_id,
+    })
+    fragment = urllib.parse.urlencode({
+        "access_token": sb_access, "refresh_token": refresh,
+        "token_type": "bearer", "type": "signup" if is_new else "signin",
+    })
+    return f"/auth-callback.html?{params}#{fragment}"
+
+
 # ---------------------------------------------------------------------------
 # Supabase пользователь
 # ---------------------------------------------------------------------------
@@ -205,6 +266,105 @@ def _supabase_auth_post(supabase_url, supabase_key, path, body):
             return exc.code, json.loads(exc.read().decode("utf-8"))
         except Exception:
             return exc.code, {"error": str(exc)}
+    except Exception as exc:
+        log.error("[Supabase] auth_post %s network error: %s", path, exc)
+        raise ValueError(f"Supabase недоступен: {exc}") from exc
+
+
+def _find_user_by_email(supabase_url, service_key, email):
+    """Находит user_id через generate_link (надёжнее, чем поиск по filter)."""
+    url = f"{supabase_url.rstrip('/')}/auth/v1/admin/generate_link"
+    payload = json.dumps({
+        "type": "recovery",
+        "email": email,
+        "options": {"should_send_email": False}
+    }, ensure_ascii=False).encode("utf-8")
+    req = Request(url, data=payload, method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("apikey", service_key)
+    req.add_header("Authorization", f"Bearer {service_key}")
+    try:
+        with urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            log.info("[Supabase] generate_link full_keys=%s data=%s", list(data.keys()), str(data)[:500])
+            props = data.get("properties", {})
+            user_id = props.get("user_id") or data.get("user", {}).get("id") or data.get("id")
+            log.info("[Supabase] generate_link user_id=%s props_keys=%s", user_id, list(props.keys()))
+            return {"id": user_id, "email": email} if user_id else None
+    except HTTPError as exc:
+        body = ""
+        try: body = exc.read().decode("utf-8")
+        except Exception: pass
+        log.error("[Supabase] generate_link HTTP %s: %s", exc.code, body)
+        return None
+    except Exception as exc:
+        log.error("[Supabase] generate_link exception: %s", exc)
+        return None
+
+
+def _admin_session_for_email(supabase_url, supabase_key, service_key, email):
+    """Создаёт сессию для существующего пользователя через magic link (без смены пароля)."""
+    url = f"{supabase_url.rstrip('/')}/auth/v1/admin/generate_link"
+    payload = json.dumps({
+        "type": "magiclink",
+        "email": email,
+        "options": {"should_send_email": False}
+    }, ensure_ascii=False).encode("utf-8")
+    req = Request(url, data=payload, method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("apikey", service_key)
+    req.add_header("Authorization", f"Bearer {service_key}")
+    try:
+        with urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except HTTPError as exc:
+        body = ""
+        try: body = exc.read().decode("utf-8")
+        except Exception: pass
+        log.error("[Supabase] admin_session generate_link HTTP %s: %s", exc.code, body)
+        return None
+    except Exception as exc:
+        log.error("[Supabase] admin_session generate_link exception: %s", exc)
+        return None
+
+    # Извлекаем token из action_link
+    action_link = data.get("action_link", "")
+    log.info("[Supabase] admin_session action_link=%s", action_link[:80] if action_link else "None")
+    if not action_link:
+        return None
+    try:
+        parsed = urllib.parse.urlparse(action_link)
+        params = urllib.parse.parse_qs(parsed.query)
+        token = params.get("token", [None])[0]
+        link_type = params.get("type", ["magiclink"])[0]
+    except Exception:
+        return None
+    if not token:
+        return None
+
+    # Обмениваем OTP-токен на сессию
+    status, session = _supabase_auth_post(supabase_url, supabase_key,
+                                           f"/token?grant_type=otp",
+                                           {"email": email, "token": token, "type": link_type})
+    log.info("[Supabase] admin_session otp exchange status=%s", status)
+    if status == 200:
+        return session
+    return None
+
+
+def _update_user_password(supabase_url, service_key, user_id, new_password):
+    """Обновляет пароль пользователя через Supabase Admin API."""
+    url = f"{supabase_url.rstrip('/')}/auth/v1/admin/users/{user_id}"
+    payload = json.dumps({"password": new_password}, ensure_ascii=False).encode("utf-8")
+    req = Request(url, data=payload, method="PUT")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("apikey", service_key)
+    req.add_header("Authorization", f"Bearer {service_key}")
+    try:
+        with urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return {}
 
 
 def _supabase_admin_find_user_by_email(supabase_url, service_key, email):
@@ -263,6 +423,7 @@ def get_or_create_supabase_user(supabase_url, supabase_key, email, provider, pro
     if birthday:
         user_meta["birthday"] = birthday
 
+    log.info("[Supabase] get_or_create | provider=%s email=%s role=%s", provider, email, role)
     # Пробуем зарегистрировать нового пользователя
     status, data = _supabase_auth_post(supabase_url, supabase_key, "/signup", {
         "email": email,
@@ -270,6 +431,7 @@ def get_or_create_supabase_user(supabase_url, supabase_key, email, provider, pro
         "data": user_meta,
     })
 
+    log.info("[Supabase] signup status=%s data_keys=%s", status, list(data.keys()))
     is_new = True
     if status in (200, 201):
         # Новый пользователь создан
@@ -288,22 +450,33 @@ def get_or_create_supabase_user(supabase_url, supabase_key, email, provider, pro
         data.get("error_code") == "user_already_exists"
         or "already registered" in str(data.get("msg", "") or data.get("message", "") or data.get("error_description", ""))
     ):
+        log.info("[Supabase] user already exists, signing in | email=%s", email)
         # Пользователь уже существует — входим (Supabase возвращает 400 или 422)
         is_new = False
         status2, data2 = _supabase_auth_post(supabase_url, supabase_key,
                                               "/token?grant_type=password",
                                               {"email": email, "password": password})
+        log.info("[Supabase] sign-in status=%s error_code=%s", status2, data2.get("error_code"))
         if status2 != 200:
             if data2.get("error_code") == "invalid_credentials":
-                # Аккаунт зарегистрирован через форму — нельзя перезаписывать пароль.
-                # Предлагаем войти по email и привязать OAuth в настройках.
-                raise ValueError(
-                    "Этот email уже зарегистрирован. Войдите по email и паролю — "
-                    "привязку через Яндекс можно добавить в настройках профиля."
-                )
-            raise ValueError("Не удалось войти. Попробуйте ещё раз.")
+                # Аккаунт зарегистрирован через форму — не меняем пароль.
+                # Создаём сессию через magic link (admin API).
+                service_key = _env("HELPERA_SUPABASE_SERVICE_KEY") or _env("SUPABASE_SERVICE_KEY")
+                if not service_key:
+                    raise ValueError(
+                        "Этот email уже зарегистрирован. Войдите по email и паролю."
+                    )
+                session = _admin_session_for_email(supabase_url, supabase_key, service_key, email)
+                if not session:
+                    raise ValueError(
+                        "Этот email уже зарегистрирован. Войдите по email и паролю."
+                    )
+                data2 = session
+            else:
+                raise ValueError("Не удалось войти. Попробуйте ещё раз.")
         session = data2
     else:
+        log.error("[Supabase] signup unexpected error | status=%s data=%s", status, data)
         raise ValueError(f"Supabase signup failed ({status}): {data}")
 
     access_token = session.get("access_token", "")
@@ -316,24 +489,81 @@ def get_or_create_supabase_user(supabase_url, supabase_key, email, provider, pro
 # Публичные обработчики
 # ---------------------------------------------------------------------------
 
-def vk_token_auth(access_token, role, supabase_url, supabase_key):
+def vk_token_auth(access_token, role, supabase_url, supabase_key, email_hint=None):
     """Аутентификация через VK ID SDK (клиентский Callback-flow).
     access_token уже получен браузером через VKID.Auth.exchangeCode.
+    email_hint — email из ответа exchangeCode (если VK вернул).
     """
-    info = _http_get(
-        f"https://api.vk.com/method/users.get?access_token={urllib.parse.quote(access_token)}&v=5.131&fields=first_name,last_name"
-    )
+    log.info("[VK] vk_token_auth started | role=%s email_hint=%s token_prefix=%s",
+             role, email_hint, access_token[:8] if access_token else "None")
+    info = _http_post("https://id.vk.com/oauth2/user_info", {
+        "client_id": _env("VK_CLIENT_ID"),
+        "access_token": access_token,
+    })
+    log.info("[VK] user_info response keys=%s", list(info.keys()))
     error = info.get("error")
     if error:
-        raise ValueError(f"VK API: {error.get('error_msg', 'ошибка')}")
-    users = info.get("response", [])
-    if not users:
-        raise ValueError("VK API не вернул данные пользователя")
-    user = users[0]
-    vk_id = str(user.get("id", ""))
+        log.error("[VK] user_info error: %s | full=%s", error, info)
+        raise ValueError(f"VK ID: {info.get('error_description', error)}")
+    user = info.get("user", {})
+    log.info("[VK] user fields=%s", list(user.keys()))
+    if not user:
+        raise ValueError("VK ID не вернул данные пользователя")
+    vk_id = str(user.get("user_id", ""))
     first_name = user.get("first_name", "")
     last_name = user.get("last_name", "")
-    email = f"{vk_id}@vk-oauth.helpera"
+    email = email_hint or user.get("email") or f"{vk_id}@vk-oauth.helpera"
+    log.info("[VK] resolved | vk_id=%s first_name=%s email=%s", vk_id, first_name, email)
+
+    if not supabase_url or not supabase_key:
+        params = urllib.parse.urlencode({
+            "role": role, "is_new": "1", "email": email,
+            "provider": "vk", "provider_id": vk_id,
+            "display_name": f"{first_name} {last_name}".strip(),
+            "no_supabase": "1",
+        })
+        return f"/auth-callback.html?{params}"
+
+    sb_access, refresh, user_id, is_new = get_or_create_supabase_user(
+        supabase_url, supabase_key, email, "vk", vk_id, role, first_name, last_name
+    )
+    params = urllib.parse.urlencode({
+        "role": role, "is_new": "1" if is_new else "0", "user_id": user_id,
+    })
+    fragment = urllib.parse.urlencode({
+        "access_token": sb_access, "refresh_token": refresh,
+        "token_type": "bearer", "type": "signup" if is_new else "signin",
+    })
+    return f"/auth-callback.html?{params}#{fragment}"
+
+
+def vk_code_auth(code, device_id, role, supabase_url, supabase_key):
+    """Серверный обмен VK ID code → токен (confidential client, без PKCE).
+    Используется когда SDK отдаёт code на клиенте, а сервер делает обмен сам.
+    """
+    data = _http_post("https://id.vk.com/oauth2/token", {
+        "grant_type": "authorization_code",
+        "code": code,
+        "client_id": _env("VK_CLIENT_ID"),
+        "client_secret": _env("VK_CLIENT_SECRET"),
+        "redirect_uri": "https://helpera.ru/",
+        "device_id": device_id,
+    })
+    if "error" in data:
+        raise ValueError(f"VK token error: {data.get('error_description', data['error'])}")
+
+    access_token = data.get("access_token", "")
+    vk_id = str(data.get("user_id", ""))
+
+    # Получаем данные пользователя через VK API (сервер → сервер, нет IP-привязки к браузеру)
+    info = _http_get(
+        f"https://api.vk.com/method/users.get?access_token={urllib.parse.quote(access_token)}&v=5.131&fields=first_name,last_name,email"
+    )
+    users = info.get("response", [])
+    user = users[0] if users else {}
+    first_name = user.get("first_name", "")
+    last_name = user.get("last_name", "")
+    email = data.get("email") or f"{vk_id}@vk-oauth.helpera"
 
     if not supabase_url or not supabase_key:
         params = urllib.parse.urlencode({
@@ -390,10 +620,11 @@ def oauth_callback(provider, query_params, base_url, supabase_url, supabase_key)
     if not state:
         return "/auth-callback.html?error=invalid_state"
     role = state.get("role", "volunteer")
+    code_verifier = state.get("cv", "")
 
     try:
         if provider == "vk":
-            email, provider_id, first_name, last_name, birthday = vk_exchange(code, base_url)
+            email, provider_id, first_name, last_name, birthday = vk_exchange(code, base_url, code_verifier)
         elif provider == "yandex":
             email, provider_id, first_name, last_name, birthday = yandex_exchange(code, base_url)
         else:

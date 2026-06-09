@@ -70,27 +70,8 @@
               <span class="select-label">Выбрать направления</span>
               <span class="chevron"></span>
             </button>
-            <div class="dropdown-menu">
-              <label class="check-option">
-                <input type="checkbox" value="Образование" />
-                <span class="check-box"></span>
-                <span>Образование</span>
-              </label>
-              <label class="check-option">
-                <input type="checkbox" value="Экология" />
-                <span class="check-box"></span>
-                <span>Экология</span>
-              </label>
-              <label class="check-option">
-                <input type="checkbox" value="Соц. проекты" />
-                <span class="check-box"></span>
-                <span>Социальные проекты</span>
-              </label>
-              <label class="check-option">
-                <input type="checkbox" value="Культура" />
-                <span class="check-box"></span>
-                <span>Культура</span>
-              </label>
+            <div class="dropdown-menu" id="directions-menu">
+              <p class="dropdown-empty">Загрузка…</p>
             </div>
           </div>
         </div>
@@ -102,27 +83,8 @@
               <span class="select-label">Выбрать навыки</span>
               <span class="chevron"></span>
             </button>
-            <div class="dropdown-menu">
-              <label class="check-option">
-                <input type="checkbox" value="Аналитика" />
-                <span class="check-box"></span>
-                <span>Аналитика</span>
-              </label>
-              <label class="check-option">
-                <input type="checkbox" value="SMM" />
-                <span class="check-box"></span>
-                <span>SMM</span>
-              </label>
-              <label class="check-option">
-                <input type="checkbox" value="Дизайн" />
-                <span class="check-box"></span>
-                <span>Дизайн</span>
-              </label>
-              <label class="check-option">
-                <input type="checkbox" value="Копирайтинг" />
-                <span class="check-box"></span>
-                <span>Копирайтинг</span>
-              </label>
+            <div class="dropdown-menu" id="skills-menu">
+              <p class="dropdown-empty">Загрузка…</p>
             </div>
           </div>
         </div>
@@ -139,95 +101,24 @@
             <h2 class="tasks-title">Подходящие задачи</h2>
             <p class="tasks-subtitle">Топ-10 задач с наибольшим совпадением</p>
           </div>
-          <div class="sort">Сортировка: сначала более подходящие</div>
+          <div class="sort-dropdown" id="sortDropdown">
+            <button type="button" class="sort" id="sortToggle">
+              <span>Сортировка: <span id="sortLabel">более подходящие</span></span>
+              <span class="sort-chevron"></span>
+            </button>
+            <div class="sort-menu" id="sortMenu" style="display:none;">
+              <button type="button" class="sort-option active" data-sort="relevance">Более подходящие</button>
+              <button type="button" class="sort-option" data-sort="urgent">Срочные задачи</button>
+              <button type="button" class="sort-option" data-sort="newest">Новые задачи</button>
+            </div>
+          </div>
         </div>
 
         <div id="activeFilters" class="active-filters" style="display:none;"></div>
 
-        <article class="task-card task-item" data-title="Анализ обратной связи участников образовательной программы" data-org="АНО Открытые знания" data-format="Онлайн" data-duration="Разово" data-directions="Образование" data-skills="Аналитика">
-          <div>
-            <h3 class="task-title">Анализ обратной связи участников образовательной программы</h3>
-            <p class="task-meta">АНО «Открытые знания» • Онлайн • Разовая задача</p>
-            <div class="chip-row">
-              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 93%</span>
-              <span class="chip active">Аналитика</span>
-              <span class="chip active">Образование</span>
-            </div>
-          </div>
-          <div class="task-actions">
-            <a href="#" class="task-link blue">Подробнее</a>
-            <a href="#" class="task-link green">Откликнуться</a>
-            <a href="#" class="task-link blue small">Не показывать</a>
-          </div>
-        </article>
-
-        <article class="task-card task-item" data-title="Подготовка аналитического отчёта по социальному проекту" data-org="Фонд Шаг вперёд" data-format="Онлайн" data-duration="Короткие" data-directions="Соц. проекты" data-skills="Аналитика">
-          <div>
-            <h3 class="task-title">Подготовка аналитического отчёта по социальному проекту</h3>
-            <p class="task-meta">Фонд «Шаг вперёд» • Онлайн • Короткая задача</p>
-            <div class="chip-row">
-              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 91%</span>
-              <span class="chip active">Аналитика</span>
-              <span class="chip active">Соц. проекты</span>
-            </div>
-          </div>
-          <div class="task-actions">
-            <a href="#" class="task-link blue">Подробнее</a>
-            <a href="#" class="task-link green">Откликнуться</a>
-            <a href="#" class="task-link blue small">Не показывать</a>
-          </div>
-        </article>
-
-        <article class="task-card task-item" data-title="Помощь в ведении социальных сетей НКО" data-org="Фонд Тёплый дом" data-format="Онлайн" data-duration="Долгосрочные" data-directions="Образование" data-skills="SMM">
-          <div>
-            <h3 class="task-title">Помощь в ведении социальных сетей НКО</h3>
-            <p class="task-meta">Фонд «Тёплый дом» • Онлайн • Постоянное участие</p>
-            <div class="chip-row">
-              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 88%</span>
-              <span class="chip active">SMM</span>
-              <span class="chip active">Образование</span>
-            </div>
-          </div>
-          <div class="task-actions">
-            <a href="#" class="task-link blue">Подробнее</a>
-            <a href="#" class="task-link green">Откликнуться</a>
-            <a href="#" class="task-link blue small">Не показывать</a>
-          </div>
-        </article>
-
-        <article class="task-card task-item" data-title="Подготовка материалов для онлайн-курса для подростков" data-org="Центр поддержки молодёжи" data-format="Онлайн" data-duration="Проектные" data-directions="Образование" data-skills="Дизайн">
-          <div>
-            <h3 class="task-title">Подготовка материалов для онлайн-курса для подростков</h3>
-            <p class="task-meta">Центр поддержки молодёжи • Онлайн • Проектная задача</p>
-            <div class="chip-row">
-              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 86%</span>
-              <span class="chip active">Дизайн</span>
-              <span class="chip active">Образование</span>
-            </div>
-          </div>
-          <div class="task-actions">
-            <a href="#" class="task-link blue">Подробнее</a>
-            <a href="#" class="task-link green">Откликнуться</a>
-            <a href="#" class="task-link blue small">Не показывать</a>
-          </div>
-        </article>
-
-        <article class="task-card task-item" data-title="Систематизация отзывов участников благотворительной акции" data-org="Фонд Добро вместе" data-format="Онлайн" data-duration="Разово" data-directions="Соц. проекты" data-skills="Аналитика">
-          <div>
-            <h3 class="task-title">Систематизация отзывов участников благотворительной акции</h3>
-            <p class="task-meta">Фонд «Добро вместе» • Онлайн • Разовая задача</p>
-            <div class="chip-row">
-              <span class="chip active" style="background: var(--blue-light); color: var(--blue-dark);">Подходит на 84%</span>
-              <span class="chip active">Аналитика</span>
-              <span class="chip active">Соц. проекты</span>
-            </div>
-          </div>
-          <div class="task-actions">
-            <a href="#" class="task-link blue">Подробнее</a>
-            <a href="#" class="task-link green">Откликнуться</a>
-            <a href="#" class="task-link blue small">Не показывать</a>
-          </div>
-        </article>
+        <div id="loadingState" class="hint-box" style="margin:24px 0 20px;">
+          <p class="hint-text" style="text-align:center; color: var(--gray-400);">Загружаем задачи…</p>
+        </div>
 
         <div id="emptyState" class="hint-box" style="display:none; margin:24px 0 20px;">
           <h3 class="hint-title">Не нашли подходящий вариант?</h3>
@@ -261,25 +152,33 @@
   let filteredTasks = [];
   let displayedCount = 0;
   let recommendationSessionId = '';
+  let currentSort = 'relevance';
   const PAGE_SIZE = 10;
   const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
 
-  const _recCacheKey = `helpera_rec_${profileId}`;
-  const _recCacheTtl = 5 * 60 * 1000;
-  function readRecCache() {
-    try {
-      const raw = localStorage.getItem(_recCacheKey);
-      if (!raw) return null;
-      const { data, ts } = JSON.parse(raw);
-      if (Date.now() - ts > _recCacheTtl) { localStorage.removeItem(_recCacheKey); return null; }
-      return data;
-    } catch { return null; }
-  }
-  function writeRecCache(data) {
-    try { localStorage.setItem(_recCacheKey, JSON.stringify({ data, ts: Date.now() })); } catch {}
+  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
+
+  const _normalizeText = (value) => String(value || '').trim().toLowerCase();
+  const _splitSkills = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+
+  function _scoreTaskLocally(task, profile) {
+    const volunteerSkills = (profile.skills?.skills || []).map(_normalizeText);
+    const volunteerDirections = (profile.skills?.helpDirections || []).map(_normalizeText);
+    const preferredFormat = _normalizeText(profile.interests?.format);
+    const taskSkills = _splitSkills(task.skills || task.payload?.skills).map(_normalizeText);
+    const taskText = _normalizeText(`${task.title} ${task.description} ${task.payload?.comment || ''}`);
+    let score = 50;
+    volunteerSkills.forEach((skill) => {
+      if (taskSkills.some((ts) => ts === skill || ts.includes(skill) || skill.includes(ts))) score += 12;
+    });
+    volunteerDirections.forEach((direction) => {
+      if (taskText.includes(direction)) score += 8;
+    });
+    if (preferredFormat && _normalizeText(task.format || task.payload?.format) === preferredFormat) score += 18;
+    if (profile.about?.city && _normalizeText(task.ngo_profiles?.about?.city || task.payload?.city || '') === _normalizeText(profile.about.city)) score += 6;
+    return Math.min(score, 98);
   }
 
-  const withProfileId = (path) => profileId ? `${path}${path.includes('?') ? '&' : '?'}profileId=${encodeURIComponent(profileId)}` : path;
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -341,6 +240,7 @@
         <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}${matchPercent ? `&matchPercent=${matchPercent}` : ''}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
         <p class="task-meta">${escapeHtml(orgName)} • ${escapeHtml(format || 'Формат не указан')} • ${escapeHtml(payload.dateStart || '')}${payload.dateEnd ? ` — ${escapeHtml(payload.dateEnd)}` : ''}</p>
         <div class="chip-row">
+          ${task.recommendation?.isExploration ? `<span class="chip exploration" title="Задача появилась недавно и ещё мало кому показывалась — возможно, она вам подойдёт">Новая задача</span>` : ''}
           ${matchChip}
           ${skills.map((skill) => `<span class="chip active">${escapeHtml(skill)}</span>`).join('')}
         </div>
@@ -365,6 +265,10 @@
 
   function normalizeVal(v) { return String(v || '').trim().toLowerCase(); }
 
+  function splitDirections(val) {
+    return String(val || '').split(/[,;\/\n]+/).map((s) => normalizeVal(s)).filter(Boolean);
+  }
+
   function matchesFilters(task, filters) {
     const payload = task.payload || {};
     const title = normalizeVal(task.title);
@@ -373,15 +277,20 @@
     const taskSkills = normalizeVal(task.skills || payload.skills);
     const taskFormat = normalizeVal(task.format || payload.format);
     const taskDuration = normalizeVal(payload.duration || payload.taskDuration || payload.participationType);
-    const taskDirections = [payload.direction, payload.directions, payload.category, payload.comment].filter(Boolean).map(normalizeVal).join(' ');
+
+    // Разбиваем по той же логике что и populateFilterDropdowns — сравниваем по отдельным значениям
+    const taskDirections = [payload.direction, payload.directions, payload.category]
+      .flatMap(splitDirections);
+    const taskDirectionsText = taskDirections.join(' ');
 
     if (filters.search) {
       const q = filters.search;
-      if (!title.includes(q) && !org.includes(q) && !desc.includes(q) && !taskSkills.includes(q) && !taskDirections.includes(q)) return false;
+      const dirText = normalizeVal([payload.direction, payload.directions, payload.category, payload.comment].filter(Boolean).join(' '));
+      if (!title.includes(q) && !org.includes(q) && !desc.includes(q) && !taskSkills.includes(q) && !dirText.includes(q)) return false;
     }
     if (filters.formats.length && !filters.formats.some((f) => taskFormat.includes(normalizeVal(f)))) return false;
     if (filters.durations.length && !filters.durations.some((d) => taskDuration.includes(normalizeVal(d)))) return false;
-    if (filters.directions.length && !filters.directions.some((d) => taskDirections.includes(normalizeVal(d)))) return false;
+    if (filters.directions.length && !filters.directions.some((d) => taskDirections.some((v) => v.includes(normalizeVal(d))))) return false;
     if (filters.skills.length && !filters.skills.some((s) => taskSkills.includes(normalizeVal(s)))) return false;
     return true;
   }
@@ -389,6 +298,7 @@
   function renderPage(append = false) {
     const parent = document.querySelector('.tasks-panel');
     if (!parent) return;
+    document.getElementById('loadingState')?.remove();
     if (!append) {
       document.querySelectorAll('.task-item').forEach((card) => card.remove());
       displayedCount = 0;
@@ -407,9 +317,29 @@
     showMoreButton.style.display = displayedCount < filteredTasks.length ? 'inline-flex' : 'none';
   }
 
+  function sortTasks(tasks) {
+    const copy = [...tasks];
+    if (currentSort === 'urgent') {
+      copy.sort((a, b) => {
+        const da = new Date(a.date_end || a.payload?.dateEnd || '9999-12-31');
+        const db = new Date(b.date_end || b.payload?.dateEnd || '9999-12-31');
+        return da - db;
+      });
+    } else if (currentSort === 'newest') {
+      copy.sort((a, b) => {
+        const da = new Date(a.createdAt || a.payload?.dateStart || 0);
+        const db = new Date(b.createdAt || b.payload?.dateStart || 0);
+        return db - da;
+      });
+    }
+    // 'relevance' — порядок уже задан ML-рангом, копию возвращаем как есть
+    return copy;
+  }
+
   function renderVisibleTasks() {
     const filters = getFilters();
-    filteredTasks = rankedTasks.filter((task) => !isExpiredTask(task) && matchesFilters(task, filters));
+    const filtered = rankedTasks.filter((task) => !isExpiredTask(task) && matchesFilters(task, filters));
+    filteredTasks = sortTasks(filtered);
     renderPage(false);
   }
 
@@ -417,9 +347,7 @@
     try {
       if (profileId && helperaDb.listRecommendedTasks) {
         try {
-          const cached = readRecCache();
-          const recommendations = cached || await helperaDb.listRecommendedTasks(profileId, 600);
-          if (!cached) writeRecCache(recommendations);
+          const recommendations = await helperaDb.listRecommendedTasks(profileId, 600);
           rankedTasks = recommendations.tasks || [];
           recommendationSessionId = recommendations.recommendation_session_id || '';
         } catch (error) {
@@ -427,20 +355,78 @@
         }
       }
       if (!rankedTasks.length) {
-        rankedTasks = (await helperaDb.listTasks()).map((task, index) => ({
+        const allTasks = await helperaDb.listTasks();
+        let profile = null;
+        if (profileId && helperaDb.getVolunteerProfile) {
+          try { profile = await helperaDb.getVolunteerProfile(profileId); } catch {}
+        }
+        const scored = allTasks.map((task) => ({
+          task,
+          score: profile ? _scoreTaskLocally(task, profile) : 50
+        }));
+        if (profile) scored.sort((a, b) => b.score - a.score);
+        rankedTasks = scored.map(({ task, score }, index) => ({
           ...task,
           recommendation: {
             rank: index + 1,
-            matchPercent: Math.max(55, 98 - index),
+            matchPercent: score,
             reason: 'Локальная оценка соответствия, ML API временно недоступно.'
           }
         }));
       }
       if (!rankedTasks.length) return;
+      populateFilterDropdowns(rankedTasks);
       renderVisibleTasks();
     } catch (error) {
       console.error('Не удалось загрузить задачи из Supabase', error);
     }
+  }
+
+  function populateFilterDropdowns(tasks) {
+    const directionsSet = new Set();
+    const skillsSet = new Set();
+
+    tasks.forEach((task) => {
+      const payload = task.payload || {};
+
+      // Собираем направления
+      [payload.directions, payload.direction, payload.category].forEach((val) => {
+        if (!val) return;
+        String(val).split(/[,;\/\n]+/).forEach((s) => {
+          const t = s.trim();
+          if (t.length > 1 && t.length < 60) directionsSet.add(t);
+        });
+      });
+
+      // Собираем навыки
+      const rawSkills = task.skills || payload.skills || '';
+      String(rawSkills).split(/[,;\/\n]+/).forEach((s) => {
+        const t = s.trim();
+        if (t.length > 1 && t.length < 60) skillsSet.add(t);
+      });
+    });
+
+    const renderMenu = (menuEl, values, placeholder) => {
+      const currentChecked = new Set(getCheckedValues(menuEl.closest('.dropdown')));
+      menuEl.innerHTML = values.size
+        ? [...values].sort((a, b) => a.localeCompare(b, 'ru')).map((v) => `
+            <label class="check-option">
+              <input type="checkbox" value="${escapeHtml(v)}"${currentChecked.has(v) ? ' checked' : ''} />
+              <span class="check-box"></span>
+              <span>${escapeHtml(v)}</span>
+            </label>`).join('')
+        : `<p class="dropdown-empty">${placeholder}</p>`;
+
+      menuEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+        cb.addEventListener('change', () => {
+          updateDropdownLabel(menuEl.closest('.dropdown'), menuEl.closest('.dropdown').dataset.dropdown === 'directions' ? 'Выбрать направления' : 'Выбрать навыки');
+          applyFilters();
+        });
+      });
+    };
+
+    renderMenu(document.getElementById('directions-menu'), directionsSet, 'Направления не найдены');
+    renderMenu(document.getElementById('skills-menu'), skillsSet, 'Навыки не найдены');
   }
 
   function toggleChip(button) {
@@ -553,7 +539,7 @@
     updateDropdownLabel(directionDropdown, 'Выбрать направления');
     updateDropdownLabel(skillDropdown, 'Выбрать навыки');
     renderActiveFilters(filters);
-    filteredTasks = rankedTasks.filter((task) => !isExpiredTask(task) && matchesFilters(task, filters));
+    filteredTasks = sortTasks(rankedTasks.filter((task) => !isExpiredTask(task) && matchesFilters(task, filters)));
     renderPage(false);
   }
 
@@ -568,10 +554,43 @@
     applyFilters();
   }
 
+  // Сортировка
+  const sortDropdown = document.getElementById('sortDropdown');
+  const sortToggle = document.getElementById('sortToggle');
+  const sortMenu = document.getElementById('sortMenu');
+  const sortLabelEl = document.getElementById('sortLabel');
+
+  const openSortMenu  = () => { sortMenu.style.display = 'block'; sortDropdown.classList.add('open'); };
+  const closeSortMenu = () => { sortMenu.style.display = 'none';  sortDropdown.classList.remove('open'); };
+
+  sortToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sortMenu.style.display === 'none' ? openSortMenu() : closeSortMenu();
+  });
+
+  document.addEventListener('click', closeSortMenu);
+
+  sortMenu.addEventListener('click', (e) => e.stopPropagation());
+
+  sortMenu.querySelectorAll('.sort-option').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentSort = btn.dataset.sort;
+      sortMenu.querySelectorAll('.sort-option').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      sortLabelEl.textContent = btn.textContent;
+      closeSortMenu();
+      renderVisibleTasks();
+    });
+  });
+
   applyButton.addEventListener('click', applyFilters);
   resetButton.addEventListener('click', resetAllFilters);
   showMoreButton.addEventListener('click', () => {
+    const firstNewIndex = displayedCount;
     renderPage(true);
+    const allCards = document.querySelectorAll('.task-item[data-task-id]');
+    const firstNew = allCards[firstNewIndex];
+    if (firstNew) firstNew.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   searchInput.addEventListener('input', applyFilters);
   document.querySelectorAll('.dropdown input[type="checkbox"]').forEach(input => {

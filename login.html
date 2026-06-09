@@ -40,14 +40,9 @@
         </div>
 
         <div class="social-row">
-          <a class="social-btn" id="btnYandex" href="/auth/yandex/start?role=volunteer">
-            <span class="social-dot yandex"></span>Войти через Яндекс
-          </a>
-          <button class="social-btn" id="btnVK" type="button">
-            <span class="social-dot vk"></span>Войти через ВКонтакте
-          </button>
+          <div id="yandex-widget-container"></div>
+          <div id="vk-widget-container"></div>
         </div>
-        <div id="vk-id-btn" style="display:none;"></div>
         <div class="divider"><span>или</span></div>
 
         <div class="form-group">
@@ -100,6 +95,7 @@
     </section>
   </main>
 
+  <script src="https://yastatic.net/s3/passport-sdk/autofill/v1/sdk-suggest-with-polyfills-latest.js"></script>
   <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/supabase-config.js"></script>
@@ -111,53 +107,74 @@
     const passwordInput = document.getElementById("password");
     const passwordToggle = document.getElementById("passwordToggle");
 
-    // Яндекс — обновляем role в href при переключении
-    const btnYandex = document.getElementById("btnYandex");
+    // Яндекс — фирменная кнопка через YaAuthSuggest
+    function initYandexButton() {
+      const role = document.querySelector('input[name="role"]:checked')?.value || 'volunteer';
+      const container = document.getElementById('yandex-widget-container');
+      container.innerHTML = '';
+      if (typeof YaAuthSuggest !== 'undefined') {
+        YaAuthSuggest.init(
+          { client_id: 'd03b76c5a057430eb4216ac2246b7347', response_type: 'token' },
+          'yandex-widget-container',
+          { view: 'button', parentOrigin: 'https://helpera.ru', buttonSize: 'm', buttonView: 'main', buttonTheme: 'light', buttonBorderRadius: 16, buttonIcon: 'yaicon' }
+        )
+        .then(({ handler }) => handler())
+        .then(function (data) {
+          return fetch('/api/auth/yandex-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: data.access_token, role }),
+          });
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+          if (result.redirect) window.location.href = result.redirect;
+          else showMessage('error', result.error || 'Не удалось войти через Яндекс');
+        })
+        .catch(function () { window.location.href = `/auth/yandex/start?role=${role}`; });
+      } else {
+        container.innerHTML = `<a class="social-btn" href="/auth/yandex/start?role=${role}" style="display:flex;align-items:center;gap:10px;height:52px;border:1px solid #D1D5DB;border-radius:16px;background:#fff;padding:0 14px;font-size:13px;font-weight:700;color:#111827;text-decoration:none;"><span style="width:24px;height:24px;border-radius:50%;background:#FCE7D6;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#FC3F1D;flex-shrink:0;">Я</span>Войти через Яндекс</a>`;
+      }
+    }
+    initYandexButton();
     document.querySelectorAll('input[name="role"]').forEach(function (radio) {
-      radio.addEventListener("change", function () {
-        const role = document.querySelector('input[name="role"]:checked').value;
-        btnYandex.href = `/auth/yandex/start?role=${role}`;
-      });
+      radio.addEventListener("change", initYandexButton);
     });
 
-    // ВКонтакте — инициализация SDK, виджет в скрытом контейнере
+    // ВКонтакте — виджет VK ID
     if ('VKIDSDK' in window) {
       const VKID = window.VKIDSDK;
       VKID.Config.init({
         app: 54612071,
-        redirectUrl: window.location.origin + '/',
+        redirectUrl: 'https://helpera.ru/',
         responseMode: VKID.ConfigResponseMode.Callback,
         source: VKID.ConfigSource.LOWCODE,
-        scope: '',
+        scope: 'email',
       });
       const oneTap = new VKID.OneTap();
-      oneTap
-        .render({ container: document.getElementById('vk-id-btn'), showAlternativeLogin: true })
-        .on(VKID.WidgetEvents.ERROR, function (error) {
-          console.error('VK ID error', error);
-        })
-        .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
-          VKID.Auth.exchangeCode(payload.code, payload.device_id)
-            .then(function (data) {
-              const role = document.querySelector('input[name="role"]:checked')?.value || 'volunteer';
-              return fetch('/api/auth/vk-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ access_token: data.access_token, role }),
-              });
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (result) {
-              if (result.redirect) window.location.href = result.redirect;
-              else showMessage('error', result.error || 'Не удалось войти через ВКонтакте');
-            })
-            .catch(function () { showMessage('error', 'Не удалось подключиться. Попробуйте ещё раз.'); });
-        });
-
-      document.getElementById('btnVK').addEventListener('click', function () {
-        const inner = document.querySelector('#vk-id-btn button, #vk-id-btn [role="button"], #vk-id-btn a');
-        if (inner) inner.click();
-        else showMessage('error', 'Авторизация через ВКонтакте временно недоступна.');
+      oneTap.render({
+        container: document.getElementById('vk-widget-container'),
+        showAlternativeLogin: false
+      })
+      .on(VKID.WidgetEvents.ERROR, function (error) {
+        console.error('VK ID error', error);
+      })
+      .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function (payload) {
+        const role = document.querySelector('input[name="role"]:checked')?.value || 'volunteer';
+        VKID.Auth.exchangeCode(payload.code, payload.device_id)
+          .then(function (data) {
+            return fetch('/api/auth/vk-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access_token: data.access_token, email: data.email || null, role }),
+            });
+          })
+          .then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result.redirect) window.location.href = result.redirect;
+            else showMessage('error', result.error || 'Не удалось войти через ВКонтакте');
+          })
+          .catch(function () { showMessage('error', 'Не удалось подключиться. Попробуйте ещё раз.'); });
       });
     }
 
@@ -206,6 +223,7 @@
         } else {
           localStorage.setItem(helperaDb.localKeys.activeNgoProfileId, profile.profileId);
         }
+        localStorage.setItem('helpera_login_ts', String(Date.now()));
 
         showMessage("success", "Вход выполнен успешно.");
 

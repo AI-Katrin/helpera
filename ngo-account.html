@@ -37,7 +37,7 @@
         <h2>Создайте аккаунт организации</h2>
         <p class="subtitle">Это займёт всего пару минут и откроет доступ к публикации задач</p>
         <div class="social-row">
-          <a class="social-btn" href="/auth/yandex/start?role=ngo"><span class="social-dot yandex"></span><span>Продолжить через Яндекс</span></a>
+          <div id="yandex-widget-container"></div>
           <div>
             <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script>
             <script type="text/javascript">
@@ -96,6 +96,7 @@
       </section>
     </main>
   </div>
+  <script src="https://yastatic.net/s3/passport-sdk/autofill/v1/sdk-suggest-with-polyfills-latest.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/supabase-config.js"></script>
   <script src="./js/app-db.js"></script>
@@ -195,6 +196,26 @@
       }
     });
     validateForm();
+
+    if (typeof YaAuthSuggest !== 'undefined') {
+      YaAuthSuggest.init(
+        { client_id: 'd03b76c5a057430eb4216ac2246b7347', response_type: 'token' },
+        'yandex-widget-container',
+        { view: 'button', parentOrigin: 'https://helpera.ru', buttonSize: 'm', buttonView: 'main', buttonTheme: 'light', buttonBorderRadius: 16, buttonIcon: 'yaicon' }
+      ).then(({ handler }) => handler())
+       .then(function (data) {
+         return fetch('/api/auth/yandex-token', {
+           method: 'POST', headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ access_token: data.access_token, role: 'ngo' }),
+         });
+       })
+       .then(function (r) { return r.json(); })
+       .then(function (result) { if (result.redirect) window.location.href = result.redirect; })
+       .catch(function () { window.location.href = '/auth/yandex/start?role=ngo'; });
+    } else {
+      document.getElementById('yandex-widget-container').innerHTML =
+        '<a class="social-btn" href="/auth/yandex/start?role=ngo" style="display:flex;align-items:center;gap:10px;height:52px;border:1px solid #D1D5DB;border-radius:16px;background:#fff;padding:0 14px;font-size:13px;font-weight:700;color:#111827;text-decoration:none;"><span style="width:24px;height:24px;border-radius:50%;background:#FCE7D6;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#FC3F1D;flex-shrink:0;">Я</span>Продолжить через Яндекс</a>';
+    }
   </script>
 </body>
 </html>

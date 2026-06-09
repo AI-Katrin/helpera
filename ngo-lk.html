@@ -248,6 +248,7 @@
 
     async function logoutProfile() {
       localStorage.removeItem(helperaDb.localKeys.activeNgoProfileId);
+      localStorage.removeItem('helpera_login_ts');
       try {
         await helperaDb.signOut();
       } catch (error) {

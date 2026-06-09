@@ -421,7 +421,7 @@ body { min-width: 1440px; }
   margin-bottom: 8px;
 }
 
-.ai-actions { display: flex; gap: 10px; }
+.ai-actions { display: flex; gap: 10px; align-items: center; }
 
 .small-btn {
   height: 40px;

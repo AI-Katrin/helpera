@@ -122,20 +122,6 @@
     const urlParams = new URLSearchParams(window.location.search);
     const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
 
-    const _recCacheKey = `helpera_rec_${profileId}`;
-    const _recCacheTtl = 5 * 60 * 1000;
-    function readRecCache() {
-      try {
-        const raw = localStorage.getItem(_recCacheKey);
-        if (!raw) return null;
-        const { data, ts } = JSON.parse(raw);
-        if (Date.now() - ts > _recCacheTtl) { localStorage.removeItem(_recCacheKey); return null; }
-        return data;
-      } catch { return null; }
-    }
-    function writeRecCache(data) {
-      try { localStorage.setItem(_recCacheKey, JSON.stringify({ data, ts: Date.now() })); } catch {}
-    }
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
       '&': '&amp;',
@@ -224,6 +210,7 @@
 
     async function logoutProfile() {
       localStorage.removeItem(helperaDb.localKeys.activeVolunteerProfileId);
+      localStorage.removeItem('helpera_login_ts');
       try {
         await helperaDb.signOut();
       } catch (error) {
@@ -318,6 +305,9 @@
       const recommendationChip = task.recommendation
         ? `<span class="chip blue" title="${escapeHtml(task.recommendation.reason || '')}">Подходит вам на ${escapeHtml(matchPercent)}%</span>`
         : `<span class="chip blue">Подходит на ${score}%</span>`;
+      const explorationChip = task.recommendation?.isExploration
+        ? `<span class="chip exploration" title="Задача появилась недавно и ещё мало кому показывалась — возможно, она вам подойдёт">Новая задача</span>`
+        : '';
       const format = task.format || task.payload?.format || 'Формат не указан';
       const dates = taskDates(task);
       const metaParts = [orgName, format, dates].filter(Boolean);
@@ -328,6 +318,7 @@
             <p class="task-sub">${metaParts.map(escapeHtml).join(' • ')}</p>
             <div class="chips">
               ${urgentChip}
+              ${explorationChip}
               ${recommendationChip}
               ${skills.map((skill) => `<span class="chip green">${escapeHtml(skill)}</span>`).join('')}
             </div>
@@ -371,9 +362,7 @@
       let recommendations = null;
       if (helperaDb.listRecommendedTasks) {
         try {
-          const cached = readRecCache();
-          recommendations = cached || await helperaDb.listRecommendedTasks(profileId, 600);
-          if (!cached) writeRecCache(recommendations);
+          recommendations = await helperaDb.listRecommendedTasks(profileId, 600);
           topTasks = (recommendations.tasks || []).filter((t) => !isExpiredTask(t)).slice(0, 5);
           recommendationSessionId = recommendations.recommendation_session_id || '';
           // Правило 7: показываем подсказку волонтёру в cold-start режиме

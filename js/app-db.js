@@ -492,7 +492,8 @@
         finalScore: item.final_score,
         matchPercent: Number.isFinite(matchPercent) ? matchPercent : null,
         reason: item.reason,
-        isUrgent: Boolean(item.is_urgent)
+        isUrgent: Boolean(item.is_urgent),
+        isExploration: Boolean(item.is_exploration)
       },
       ngo_profiles: {
         org_name: item.ngo_name || 'НКО',
@@ -502,17 +503,56 @@
     };
   }
 
+  const _REC_CACHE_TTL = 15 * 60 * 1000; // 15 минут
+  const _REC_LOCK_TTL = 8 * 1000;        // максимум 8 сек держим лок
+
+  function _recCacheKey(profileId) { return `helpera_rec_${profileId}`; }
+  function _recLockKey(profileId)  { return `helpera_rec_lock_${profileId}`; }
+
+  function _readRecCache(profileId) {
+    try {
+      const raw = localStorage.getItem(_recCacheKey(profileId));
+      if (!raw) return null;
+      const { data, ts } = JSON.parse(raw);
+      if (Date.now() - ts > _REC_CACHE_TTL) { localStorage.removeItem(_recCacheKey(profileId)); return null; }
+      return data;
+    } catch { return null; }
+  }
+
+  function _writeRecCache(profileId, data) {
+    try { localStorage.setItem(_recCacheKey(profileId), JSON.stringify({ data, ts: Date.now() })); } catch {}
+  }
+
   async function listRecommendedTasks(volunteerProfileId, k = 10) {
     if (!volunteerProfileId) return [];
-    const response = await fetch(`/api/recommendations/volunteers/${encodeURIComponent(volunteerProfileId)}?k=${encodeURIComponent(k)}`);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data.error || 'Не удалось получить ML-рекомендации.');
+
+    // Читаем кэш (общий для всех вкладок через localStorage)
+    const cached = _readRecCache(volunteerProfileId);
+    if (cached) return cached;
+
+    // Если другая вкладка уже fetching — ждём её результат (до 6 сек)
+    const lockKey = _recLockKey(volunteerProfileId);
+    const lockTs = Number(localStorage.getItem(lockKey) || 0);
+    if (lockTs && Date.now() - lockTs < _REC_LOCK_TTL) {
+      for (let i = 0; i < 12; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        const retried = _readRecCache(volunteerProfileId);
+        if (retried) return retried;
+      }
     }
-    return {
-      ...data,
-      tasks: (data.items || []).map(recommendationToTask)
-    };
+
+    // Ставим лок и делаем запрос
+    localStorage.setItem(lockKey, String(Date.now()));
+    try {
+      const response = await fetch(`/api/recommendations/volunteers/${encodeURIComponent(volunteerProfileId)}?k=${encodeURIComponent(k)}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Не удалось получить ML-рекомендации.');
+      const result = { ...data, tasks: (data.items || []).map(recommendationToTask) };
+      _writeRecCache(volunteerProfileId, result);
+      return result;
+    } finally {
+      localStorage.removeItem(lockKey);
+    }
   }
 
   async function createApplication(application) {

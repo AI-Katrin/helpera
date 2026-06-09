@@ -32,7 +32,7 @@ if $FIRST_RUN; then
         cd $APP_DIR &&
         python3 -m venv venv &&
         venv/bin/pip install --upgrade pip &&
-        venv/bin/pip install -r requirements.txt
+        venv/bin/pip install -r requirements.txt -r backend/requirements.txt
     "
 
     echo "=== Установка systemd-сервиса ==="
@@ -46,7 +46,7 @@ else
     echo "=== Перезапуск сервиса ==="
     ssh root@SERVER_IP "
         cd $APP_DIR &&
-        venv/bin/pip install -r requirements.txt --quiet &&
+        venv/bin/pip install -r requirements.txt -r backend/requirements.txt --quiet &&
         systemctl restart helpera
     "
 fi

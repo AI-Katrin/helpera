@@ -4,67 +4,154 @@ import os
 import threading
 from pathlib import Path
 
+import numpy as np
+
 from .config import COLD_START_THRESH, COLD_TASK_THRESHOLD, ROOT_DIR
 
 _STATS_PATH = Path(os.environ.get("HELPERA_LINUCB_STATS", ROOT_DIR / "model_artifacts" / "linucb_stats.json"))
+_MATRIX_PATH = Path(os.environ.get("HELPERA_LINUCB_MATRIX", ROOT_DIR / "model_artifacts" / "linucb_matrix.npz"))
 _ALPHA = float(os.environ.get("HELPERA_LINUCB_ALPHA", "0.5"))
-# Правило 9: ограниченный буст — UCB-бонус не превышает MAX_UCB_BONUS,
-# чтобы новые задачи не вытесняли качественные и не дестабилизировали обучение.
+_LAMBDA_REG = float(os.environ.get("HELPERA_LINUCB_LAMBDA", "1.0"))
 _MAX_UCB_BONUS = float(os.environ.get("HELPERA_MAX_UCB_BONUS", "0.30"))
 _COLD_TASK_THRESHOLD = COLD_TASK_THRESHOLD
 _COLD_VOL_THRESHOLD = 5
 
-# Веса для линейного скоринга cold-start пользователей.
-# Правило 7: используем и признаки задачи, и профиля/контента — чтобы персонализация
-# работала даже без истории взаимодействий.
-_COLD_START_FEATURE_WEIGHTS = {
-    # Контентные признаки совпадения профиля с задачей
-    "embedding_cosine_sim": 1.5,   # семантическое сходство текста профиля и задачи
-    "format_match": 0.6,           # совпадение формата участия
-    "skill_overlap_count": 0.5,    # кол-во совпадающих навыков
-    "direction_overlap": 0.4,      # кол-во совпадающих направлений
-    "city_match": 0.3,             # совпадение города для оффлайн-задач
-    # Признаки качества задачи (когда профиль пустой — опираемся на них)
-    "task_urgency_score": 1.0,
-    "ngo_reliability_score": 0.8,
-    "task_quality_final": 0.6,
-    "task_quality_score": 0.6,
-    "exploration_slot": 0.5,
-    "cold_start_task": 0.3,
-    "task_is_new": 0.2,
-}
+# Ordered feature list for LinUCB context vector x.
+# Prior: A₀ = λI, b₀ = λ·w → θ₀ = w (current hand-tuned weights become Bayesian prior).
+# As feedback accumulates, θ shifts toward empirically learned values.
+_FEATURES: list[str] = [
+    "embedding_cosine_sim",
+    "format_match",
+    "skill_overlap_count",
+    "direction_overlap",
+    "city_match",
+    "task_urgency_score",
+    "ngo_reliability_score",
+    "task_quality_final",
+    "exploration_slot",
+    "cold_start_task",
+    "task_is_new",
+]
+_PRIOR_WEIGHTS: list[float] = [1.5, 0.6, 0.5, 0.4, 0.3, 1.0, 0.8, 0.6, 0.5, 0.3, 0.2]
+_D = len(_FEATURES)
 
 _lock = threading.Lock()
-_cache: dict | None = None
+_stats_cache: dict | None = None
+_A: np.ndarray | None = None
+_b: np.ndarray | None = None
+# In-memory context store: "vol_id:task_id" → feature vector x.
+# Lost on restart; reward updates silently skip if context is missing.
+_context: dict[str, np.ndarray] = {}
+_MAX_CONTEXT = 50_000
 
 
-def _load():
-    global _cache
-    if _cache is not None:
-        return _cache
+# ── Stats (impression counters, reward log) ──────────────────────────────────
+
+def _load_stats() -> dict:
+    global _stats_cache
+    if _stats_cache is not None:
+        return _stats_cache
     if _STATS_PATH.exists():
         try:
             with _STATS_PATH.open("r", encoding="utf-8") as f:
-                _cache = json.load(f)
-                return _cache
+                _stats_cache = json.load(f)
+                return _stats_cache
         except Exception:
             pass
-    _cache = {"tasks": {}, "volunteers": {}, "total_impressions": 0}
-    return _cache
+    _stats_cache = {"tasks": {}, "volunteers": {}, "total_impressions": 0}
+    return _stats_cache
 
 
-def _save(stats):
+def _save_stats(stats: dict) -> None:
     _STATS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _STATS_PATH.open("w", encoding="utf-8") as f:
         json.dump(stats, f, ensure_ascii=False)
 
 
-def get_cold_start_info(task_id, volunteer_id):
+# ── LinUCB matrix state ───────────────────────────────────────────────────────
+
+def _load_matrix() -> tuple[np.ndarray, np.ndarray]:
+    global _A, _b
+    if _A is not None and _b is not None:
+        return _A, _b
+    if _MATRIX_PATH.exists():
+        try:
+            data = np.load(str(_MATRIX_PATH))
+            _A = data["A"].astype(np.float64)
+            _b = data["b"].astype(np.float64)
+            return _A, _b
+        except Exception:
+            pass
+    _A = _LAMBDA_REG * np.eye(_D, dtype=np.float64)
+    _b = _LAMBDA_REG * np.array(_PRIOR_WEIGHTS, dtype=np.float64)
+    return _A, _b
+
+
+def _save_matrix(A: np.ndarray, b: np.ndarray) -> None:
+    _MATRIX_PATH.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(str(_MATRIX_PATH), A=A, b=b)
+
+
+def _update_linucb(x: np.ndarray, reward: float) -> None:
+    """Rank-1 LinUCB update: A += xxᵀ, b += r·x. Must be called inside _lock."""
+    global _A, _b
+    A, b = _load_matrix()
+    _A = A + np.outer(x, x)
+    _b = b + reward * x
+    _save_matrix(_A, _b)
+
+
+# ── Context store ─────────────────────────────────────────────────────────────
+
+def _extract_context(row: dict) -> np.ndarray:
+    x = np.zeros(_D, dtype=np.float64)
+    for i, feat in enumerate(_FEATURES):
+        try:
+            x[i] = float(row.get(feat) or 0.0)
+        except (TypeError, ValueError):
+            x[i] = 0.0
+    return x
+
+
+def record_context(volunteer_id: str, task_id: str, row: dict) -> None:
+    """Store feature vector for a cold-start impression for later LinUCB update on feedback."""
+    key = f"{volunteer_id}:{task_id}"
+    _context[key] = _extract_context(row)
+    if len(_context) > _MAX_CONTEXT:
+        del _context[next(iter(_context))]
+
+
+def _get_context(volunteer_id: str, task_id: str) -> np.ndarray | None:
+    return _context.get(f"{volunteer_id}:{task_id}")
+
+
+# ── Public scoring ────────────────────────────────────────────────────────────
+
+def score_cold_start(row: dict, task_id: str, volunteer_id: str) -> float:
+    """
+    LinUCB score for cold-start volunteers: xᵀθ + α·√(xᵀA⁻¹x), capped at MAX_UCB_BONUS.
+    θ = A⁻¹b is updated online from click/apply/outcome feedback.
+    """
+    x = _extract_context(row)
+    with _lock:
+        A, b = _load_matrix()
+        try:
+            A_inv = np.linalg.inv(A)
+        except np.linalg.LinAlgError:
+            A_inv = np.linalg.pinv(A)
+        theta = A_inv @ b
+
+    linear = float(x @ theta)
+    ucb_bonus = min(_ALPHA * float(np.sqrt(max(float(x @ A_inv @ x), 0.0))), _MAX_UCB_BONUS)
+    return round(linear + ucb_bonus, 6)
+
+
+def get_cold_start_info(task_id: str, volunteer_id: str) -> tuple[int, int, float]:
     """
     Returns (is_cold_task, is_cold_volunteer, exploration_bonus).
-    Exploration bonus uses UCB formula: alpha * sqrt(log(1 + N) / (1 + n_task)).
+    Used for warm volunteers: adds UCB bonus for underexplored tasks.
     """
-    stats = _load()
+    stats = _load_stats()
     total = max(stats.get("total_impressions", 0), 1)
     task_n = stats.get("tasks", {}).get(str(task_id), {}).get("impressions", 0)
     vol_n = stats.get("volunteers", {}).get(str(volunteer_id), {}).get("impressions", 0)
@@ -77,29 +164,13 @@ def get_cold_start_info(task_id, volunteer_id):
         bonus += _ALPHA * math.sqrt(math.log(1 + total) / (1 + task_n))
     if is_cold_vol:
         bonus += 0.3 * _ALPHA * math.sqrt(math.log(1 + total) / (1 + vol_n))
-
-    # Правило 9: UCB-бонус не превышает MAX_UCB_BONUS — стабильность обучения.
     bonus = min(bonus, _MAX_UCB_BONUS)
     return is_cold_task, is_cold_vol, round(bonus, 6)
 
 
-def record_impressions(task_ids, volunteer_id):
-    """Call after each recommendation response to update LinUCB impression counts."""
-    with _lock:
-        stats = _load()
-        stats["total_impressions"] = stats.get("total_impressions", 0) + len(task_ids)
-        tasks_dict = stats.setdefault("tasks", {})
-        for tid in task_ids:
-            entry = tasks_dict.setdefault(str(tid), {"impressions": 0, "clicks": 0})
-            entry["impressions"] += 1
-        vols_dict = stats.setdefault("volunteers", {})
-        vols_dict.setdefault(str(volunteer_id), {"impressions": 0})["impressions"] += 1
-        _save(stats)
-
-
-def get_cold_task_flags_batch(task_ids):
-    """Возвращает dict[task_id -> is_cold_task] для пакета задач."""
-    stats = _load()
+def get_cold_task_flags_batch(task_ids) -> dict:
+    """Returns dict[task_id -> is_cold_task] for a batch of tasks."""
+    stats = _load_stats()
     tasks_stats = stats.get("tasks", {})
     return {
         tid: int(tasks_stats.get(str(tid), {}).get("impressions", 0) < _COLD_TASK_THRESHOLD)
@@ -107,45 +178,62 @@ def get_cold_task_flags_batch(task_ids):
     }
 
 
-def score_cold_start(row, task_id, volunteer_id):
-    """
-    Линейный контекстный скор для cold-start волонтёров (completeness < 0.4).
-    Не использует персонализированные признаки — только характеристики задачи.
-    Включает UCB-бонус за исследование.
-    """
-    stats = _load()
-    total = max(stats.get("total_impressions", 0), 1)
-    task_n = stats.get("tasks", {}).get(str(task_id), {}).get("impressions", 0)
+# ── Impression & feedback recording ──────────────────────────────────────────
 
-    score = 0.0
-    seen = set()
-    for feature, weight in _COLD_START_FEATURE_WEIGHTS.items():
-        if feature in seen:
-            continue
-        seen.add(feature)
-        val = row.get(feature)
-        try:
-            score += weight * float(val or 0)
-        except (TypeError, ValueError):
-            pass
-
-    # Правило 9: ограниченный буст — не более MAX_UCB_BONUS.
-    ucb_bonus = min(_ALPHA * math.sqrt(math.log(1 + total) / (1 + task_n)), _MAX_UCB_BONUS)
-    return round(score + ucb_bonus, 6)
-
-
-def record_click(task_id, volunteer_id):
-    """Call when a volunteer clicks a recommended task (reward signal)."""
+def record_impressions(task_ids, volunteer_id: str) -> None:
+    """Update impression counters after each recommendation response."""
     with _lock:
-        stats = _load()
+        stats = _load_stats()
+        stats["total_impressions"] = stats.get("total_impressions", 0) + len(task_ids)
+        tasks_dict = stats.setdefault("tasks", {})
+        for tid in task_ids:
+            entry = tasks_dict.setdefault(str(tid), {"impressions": 0, "clicks": 0})
+            entry["impressions"] += 1
+        stats.setdefault("volunteers", {}).setdefault(str(volunteer_id), {"impressions": 0})["impressions"] += 1
+        _save_stats(stats)
+
+
+def record_click(task_id: str, volunteer_id: str) -> None:
+    """Volunteer opened a task card: reward +1."""
+    with _lock:
+        stats = _load_stats()
         entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
         entry["clicks"] = entry.get("clicks", 0) + 1
         entry["reward_sum"] = entry.get("reward_sum", 0.0) + 1.0
-        _save(stats)
+        _save_stats(stats)
+        x = _get_context(volunteer_id, task_id)
+        if x is not None:
+            _update_linucb(x, 1.0)
 
 
-# Правило 27: Логирование — веса сигналов для формирования reward при дообучении.
-# apply сильнее клика в 3 раза; outcome — сильнейший сигнал.
+def record_apply(task_id: str, volunteer_id: str) -> None:
+    """Volunteer applied to a task: reward +3."""
+    with _lock:
+        stats = _load_stats()
+        entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
+        entry["applies"] = entry.get("applies", 0) + 1
+        entry["reward_sum"] = entry.get("reward_sum", 0.0) + 3.0
+        vol_entry = stats.setdefault("volunteers", {}).setdefault(str(volunteer_id), {"impressions": 0})
+        vol_entry["applies"] = vol_entry.get("applies", 0) + 1
+        _save_stats(stats)
+        x = _get_context(volunteer_id, task_id)
+        if x is not None:
+            _update_linucb(x, 3.0)
+
+
+def record_hide(task_id: str, volunteer_id: str) -> None:
+    """Volunteer hid a task: reward −1."""
+    with _lock:
+        stats = _load_stats()
+        entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
+        entry["hides"] = entry.get("hides", 0) + 1
+        entry["reward_sum"] = entry.get("reward_sum", 0.0) - 1.0
+        _save_stats(stats)
+        x = _get_context(volunteer_id, task_id)
+        if x is not None:
+            _update_linucb(x, -1.0)
+
+
 _OUTCOME_REWARDS = {
     "completed": 5.0,
     "done": 5.0,
@@ -159,52 +247,29 @@ _OUTCOME_REWARDS = {
 }
 
 
-def record_apply(task_id, volunteer_id):
-    """Правило 27: волонтёр откликнулся — сильный позитивный сигнал (reward +3)."""
-    with _lock:
-        stats = _load()
-        entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
-        entry["applies"] = entry.get("applies", 0) + 1
-        entry["reward_sum"] = entry.get("reward_sum", 0.0) + 3.0
-        vol_entry = stats.setdefault("volunteers", {}).setdefault(str(volunteer_id), {"impressions": 0})
-        vol_entry["applies"] = vol_entry.get("applies", 0) + 1
-        _save(stats)
-
-
-def record_hide(task_id, volunteer_id):
-    """Правило 27: волонтёр скрыл задачу — слабый негативный сигнал (reward −1)."""
-    with _lock:
-        stats = _load()
-        entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
-        entry["hides"] = entry.get("hides", 0) + 1
-        entry["reward_sum"] = entry.get("reward_sum", 0.0) - 1.0
-        _save(stats)
-
-
-def record_outcome(task_id, volunteer_id, outcome_status):
-    """
-    Правило 27: исход задачи — самый сильный сигнал для дообучения модели.
-    completed/done → +5, partial → +2, cancelled → −3, not_done → −2.
-    """
+def record_outcome(task_id: str, volunteer_id: str, outcome_status: str) -> None:
+    """Task outcome — strongest feedback signal. Rewards: +5/+2/−3/−2."""
     reward = _OUTCOME_REWARDS.get(str(outcome_status).lower(), 0.0)
     with _lock:
-        stats = _load()
+        stats = _load_stats()
         entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
         entry["outcomes"] = entry.get("outcomes", 0) + 1
         entry["reward_sum"] = entry.get("reward_sum", 0.0) + reward
         vol_entry = stats.setdefault("volunteers", {}).setdefault(str(volunteer_id), {"impressions": 0})
         vol_entry["outcomes"] = vol_entry.get("outcomes", 0) + 1
         vol_entry["reward_sum"] = vol_entry.get("reward_sum", 0.0) + reward
-        _save(stats)
+        _save_stats(stats)
+        if reward != 0.0:
+            x = _get_context(volunteer_id, task_id)
+            if x is not None:
+                _update_linucb(x, reward)
 
 
-def reset_task_stats(task_id):
-    """Правило 4: сбрасывает счётчики показов задачи после обновления её содержимого.
-    Задача снова считается cold-start и получает UCB-бонус за исследование.
-    """
+def reset_task_stats(task_id: str) -> None:
+    """Reset impression counters after a task update so it re-enters exploration."""
     with _lock:
-        stats = _load()
+        stats = _load_stats()
         task_id_str = str(task_id)
         if task_id_str in stats.get("tasks", {}):
             stats["tasks"][task_id_str] = {"impressions": 0, "clicks": 0}
-            _save(stats)
+            _save_stats(stats)
