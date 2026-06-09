@@ -2,6 +2,7 @@ import json
 import math
 import os
 import threading
+import time
 from pathlib import Path
 
 import numpy as np
@@ -10,15 +11,15 @@ from .config import COLD_START_THRESH, COLD_TASK_THRESHOLD, ROOT_DIR
 
 _STATS_PATH = Path(os.environ.get("HELPERA_LINUCB_STATS", ROOT_DIR / "model_artifacts" / "linucb_stats.json"))
 _MATRIX_PATH = Path(os.environ.get("HELPERA_LINUCB_MATRIX", ROOT_DIR / "model_artifacts" / "linucb_matrix.npz"))
+_CONTEXT_PATH = Path(os.environ.get("HELPERA_LINUCB_CONTEXT", ROOT_DIR / "model_artifacts" / "linucb_context.json"))
 _ALPHA = float(os.environ.get("HELPERA_LINUCB_ALPHA", "0.5"))
 _LAMBDA_REG = float(os.environ.get("HELPERA_LINUCB_LAMBDA", "1.0"))
 _MAX_UCB_BONUS = float(os.environ.get("HELPERA_MAX_UCB_BONUS", "0.30"))
 _COLD_TASK_THRESHOLD = COLD_TASK_THRESHOLD
 _COLD_VOL_THRESHOLD = 5
+# Контекст хранится не дольше 7 дней — старые показы уже не получат фидбек
+_CONTEXT_TTL_DAYS = 7
 
-# Ordered feature list for LinUCB context vector x.
-# Prior: A₀ = λI, b₀ = λ·w → θ₀ = w (current hand-tuned weights become Bayesian prior).
-# As feedback accumulates, θ shifts toward empirically learned values.
 _FEATURES: list[str] = [
     "embedding_cosine_sim",
     "format_match",
@@ -39,10 +40,14 @@ _lock = threading.Lock()
 _stats_cache: dict | None = None
 _A: np.ndarray | None = None
 _b: np.ndarray | None = None
-# In-memory context store: "vol_id:task_id" → feature vector x.
-# Lost on restart; reward updates silently skip if context is missing.
-_context: dict[str, np.ndarray] = {}
+# Персистентный контекст: "vol_id:task_id" → {x: [...], ts: unix_timestamp}
+# Загружается с диска при старте, сохраняется при каждой записи.
+_context: dict[str, dict] = {}
+_context_loaded: bool = False
 _MAX_CONTEXT = 50_000
+# Защита от двойного счёта: храним максимальный уровень награды для пары
+# "vol_id:task_id" → max reward already applied (click=1, apply=3, outcome=5)
+_rewarded: dict[str, float] = {}
 
 
 # ── Stats (impression counters, reward log) ──────────────────────────────────
@@ -101,7 +106,7 @@ def _update_linucb(x: np.ndarray, reward: float) -> None:
     _save_matrix(_A, _b)
 
 
-# ── Context store ─────────────────────────────────────────────────────────────
+# ── Context store (persistent) ────────────────────────────────────────────────
 
 def _extract_context(row: dict) -> np.ndarray:
     x = np.zeros(_D, dtype=np.float64)
@@ -113,16 +118,46 @@ def _extract_context(row: dict) -> np.ndarray:
     return x
 
 
+def _load_context() -> None:
+    global _context, _context_loaded
+    if _context_loaded:
+        return
+    _context_loaded = True
+    if not _CONTEXT_PATH.exists():
+        return
+    try:
+        with _CONTEXT_PATH.open("r", encoding="utf-8") as f:
+            raw = json.load(f)
+        cutoff = time.time() - _CONTEXT_TTL_DAYS * 86400
+        _context = {k: v for k, v in raw.items() if v.get("ts", 0) >= cutoff}
+    except Exception:
+        _context = {}
+
+
+def _save_context() -> None:
+    _CONTEXT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with _CONTEXT_PATH.open("w", encoding="utf-8") as f:
+        json.dump(_context, f, ensure_ascii=False)
+
+
 def record_context(volunteer_id: str, task_id: str, row: dict) -> None:
-    """Store feature vector for a cold-start impression for later LinUCB update on feedback."""
+    """Store feature vector persistently so LinUCB can update on feedback after restart."""
     key = f"{volunteer_id}:{task_id}"
-    _context[key] = _extract_context(row)
-    if len(_context) > _MAX_CONTEXT:
-        del _context[next(iter(_context))]
+    with _lock:
+        _load_context()
+        _context[key] = {"x": _extract_context(row).tolist(), "ts": time.time()}
+        if len(_context) > _MAX_CONTEXT:
+            oldest = min(_context, key=lambda k: _context[k].get("ts", 0))
+            del _context[oldest]
+        _save_context()
 
 
 def _get_context(volunteer_id: str, task_id: str) -> np.ndarray | None:
-    return _context.get(f"{volunteer_id}:{task_id}")
+    _load_context()
+    entry = _context.get(f"{volunteer_id}:{task_id}")
+    if not entry:
+        return None
+    return np.array(entry["x"], dtype=np.float64)
 
 
 # ── Public scoring ────────────────────────────────────────────────────────────
@@ -195,19 +230,24 @@ def record_impressions(task_ids, volunteer_id: str) -> None:
 
 def record_click(task_id: str, volunteer_id: str) -> None:
     """Volunteer opened a task card: reward +1."""
+    key = f"{volunteer_id}:{task_id}"
     with _lock:
         stats = _load_stats()
         entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
         entry["clicks"] = entry.get("clicks", 0) + 1
         entry["reward_sum"] = entry.get("reward_sum", 0.0) + 1.0
         _save_stats(stats)
-        x = _get_context(volunteer_id, task_id)
-        if x is not None:
-            _update_linucb(x, 1.0)
+        # Не обновляем матрицу если уже была более сильная награда (apply/outcome)
+        if _rewarded.get(key, 0.0) < 1.0:
+            x = _get_context(volunteer_id, task_id)
+            if x is not None:
+                _update_linucb(x, 1.0)
+                _rewarded[key] = 1.0
 
 
 def record_apply(task_id: str, volunteer_id: str) -> None:
     """Volunteer applied to a task: reward +3."""
+    key = f"{volunteer_id}:{task_id}"
     with _lock:
         stats = _load_stats()
         entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
@@ -216,22 +256,31 @@ def record_apply(task_id: str, volunteer_id: str) -> None:
         vol_entry = stats.setdefault("volunteers", {}).setdefault(str(volunteer_id), {"impressions": 0})
         vol_entry["applies"] = vol_entry.get("applies", 0) + 1
         _save_stats(stats)
+        prev = _rewarded.get(key, 0.0)
         x = _get_context(volunteer_id, task_id)
         if x is not None:
-            _update_linucb(x, 3.0)
+            # Доначисляем только разницу, чтобы не считать дважды
+            delta = 3.0 - prev
+            if delta > 0:
+                _update_linucb(x, delta)
+        _rewarded[key] = max(prev, 3.0)
 
 
 def record_hide(task_id: str, volunteer_id: str) -> None:
     """Volunteer hid a task: reward −1."""
+    key = f"{volunteer_id}:{task_id}"
     with _lock:
         stats = _load_stats()
         entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
         entry["hides"] = entry.get("hides", 0) + 1
         entry["reward_sum"] = entry.get("reward_sum", 0.0) - 1.0
         _save_stats(stats)
-        x = _get_context(volunteer_id, task_id)
-        if x is not None:
-            _update_linucb(x, -1.0)
+        # Скрытие: обновляем только если ещё не было позитивного фидбека
+        if _rewarded.get(key, 0.0) <= 0.0:
+            x = _get_context(volunteer_id, task_id)
+            if x is not None:
+                _update_linucb(x, -1.0)
+                _rewarded[key] = -1.0
 
 
 _OUTCOME_REWARDS = {
@@ -250,6 +299,7 @@ _OUTCOME_REWARDS = {
 def record_outcome(task_id: str, volunteer_id: str, outcome_status: str) -> None:
     """Task outcome — strongest feedback signal. Rewards: +5/+2/−3/−2."""
     reward = _OUTCOME_REWARDS.get(str(outcome_status).lower(), 0.0)
+    key = f"{volunteer_id}:{task_id}"
     with _lock:
         stats = _load_stats()
         entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
@@ -262,7 +312,12 @@ def record_outcome(task_id: str, volunteer_id: str, outcome_status: str) -> None
         if reward != 0.0:
             x = _get_context(volunteer_id, task_id)
             if x is not None:
-                _update_linucb(x, reward)
+                prev = _rewarded.get(key, 0.0)
+                # Для позитивных исходов доначисляем разницу; для негативных — полная награда
+                delta = (reward - prev) if reward > 0 else reward
+                if delta != 0.0:
+                    _update_linucb(x, delta)
+            _rewarded[key] = reward
 
 
 def reset_task_stats(task_id: str) -> None:

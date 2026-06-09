@@ -120,7 +120,7 @@
   <script src="./js/app-db.js"></script>
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
+    let profileId = urlParams.get('profileId') || localStorage.getItem(helperaDb.localKeys.activeVolunteerProfileId);
 
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -340,13 +340,16 @@
             window.location.href = 'login.html';
             return;
           }
-        } else {
+          const found = await helperaDb.getCurrentUserProfile('volunteer');
+          if (found?.profileId) {
+            profileId = found.profileId;
+            localStorage.setItem(helperaDb.localKeys.activeVolunteerProfileId, profileId);
+          }
+        }
+        if (!profileId) {
           window.location.href = 'login.html';
           return;
         }
-        document.getElementById('profile-name').textContent = 'Профиль не выбран';
-        document.getElementById('tasks-list').innerHTML = '<p class="empty-state">Сначала завершите регистрацию волонтёра.</p>';
-        return;
       }
 
       const profile = await helperaDb.getVolunteerProfile(profileId);
