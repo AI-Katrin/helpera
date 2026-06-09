@@ -22,13 +22,13 @@ python3 server.py
 Healthcheck:
 
 ```bash
-curl http://localhost:3000/api/recommendations/health
+curl https://helpera.ru/api/recommendations/health
 ```
 
 Рекомендации:
 
 ```bash
-curl "http://localhost:3000/api/recommendations/volunteers/<volunteer_uuid>?k=10"
+curl "https://helpera.ru/api/recommendations/volunteers/<volunteer_uuid>?k=10"
 ```
 
 `volunteer-tasks.html` запрашивает top-10, `volunteer-lk.html` запрашивает top-5. Если ML API временно недоступно, frontend сохраняет текущую локальную сортировку как fallback.

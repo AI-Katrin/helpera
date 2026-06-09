@@ -5,7 +5,7 @@ OAuth 2.0 авторизация через ВКонтакте и Яндекс.
   VK_CLIENT_ID, VK_CLIENT_SECRET        — приложение VK OAuth
   YANDEX_OAUTH_CLIENT_ID, YANDEX_OAUTH_CLIENT_SECRET — приложение Яндекс ID
   HELPERA_OAUTH_SALT                     — соль для деривации пароля Supabase
-  HELPERA_BASE_URL                       — публичный URL сервера (http://localhost:3000)
+  HELPERA_BASE_URL                       — публичный URL сервера (https://helpera.ru)
 """
 
 import base64

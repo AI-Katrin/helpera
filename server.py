@@ -1746,7 +1746,7 @@ if __name__ == "__main__":
         or os.environ.get("SUPABASE_ANON_KEY")
         or os.environ.get("SUPABASE_KEY", "")
     )
-    _BASE_URL = os.environ.get("HELPERA_BASE_URL", f"http://localhost:{PORT}")
+    _BASE_URL = os.environ.get("HELPERA_BASE_URL", "https://helpera.ru")
 
     # Пробрасываем в глобальные переменные для OAuth-обработчика
     _OAUTH_SUPABASE_URL = _supabase_url
@@ -1762,7 +1762,7 @@ if __name__ == "__main__":
 
     host = os.environ.get("HOST", "0.0.0.0")
     server = ThreadingHTTPServer((host, PORT), HelperaHandler)
-    print(f"Helpera is running at http://localhost:{PORT}")
+    print(f"Helpera is running at {_BASE_URL} (port {PORT})")
     print(f"YANDEX_CLOUD_FOLDER: {'set' if YANDEX_FOLDER else 'missing'}")
     print(f"YANDEX_CLOUD_API_KEY: {'set' if YANDEX_API_KEY else 'missing'}")
     print(f"YANDEX_CLOUD_MODEL: {YANDEX_MODEL}")
