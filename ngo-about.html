@@ -122,7 +122,11 @@
 
             <div class="field">
               <label class="label" for="city">Город / населённый пункт <span class="required">*</span></label>
-              <input class="input" id="city" type="text" placeholder="Укажите город" required>
+              <div class="autocomplete">
+                <input class="input autocomplete-input" id="city" type="text" placeholder="Начните вводить город..." autocomplete="off" required>
+                <button class="autocomplete-toggle" id="cityToggle" type="button" aria-label="Показать все города"></button>
+                <div class="suggestions" id="citySuggestions"></div>
+              </div>
             </div>
 
             <div class="field full">
@@ -246,6 +250,13 @@
 
   async function hydrateAboutData() {
     if (!profileId) return;
+    const sessionProfile = await helperaDb.getCurrentUserProfile('ngo');
+    if (!sessionProfile || sessionProfile.id !== profileId) {
+      document.querySelector('.next-btn') && (document.querySelector('.next-btn').disabled = true);
+      alert('Доступ запрещён.');
+      window.location.href = 'index.html';
+      return;
+    }
     const profile = await helperaDb.getNgoProfile(profileId);
     if (!profile || !profile.about) return;
     const about = profile.about;
@@ -360,5 +371,7 @@
   hydrateAboutData();
   validateForm();
 </script>
+<script src="./js/cities.js"></script>
+<script>CitySelect({ inputEl: document.getElementById('city'), toggleEl: document.getElementById('cityToggle'), dropdownEl: document.getElementById('citySuggestions') });</script>
 </body>
 </html>

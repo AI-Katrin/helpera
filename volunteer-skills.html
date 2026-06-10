@@ -258,6 +258,12 @@
 
     async function saveSkills() {
       if (!profileId) return;
+      const sessionProfile = await helperaDb.getCurrentUserProfile('volunteer');
+      if (!sessionProfile || sessionProfile.id !== profileId) {
+        alert('Доступ запрещён.');
+        window.location.href = 'index.html';
+        return;
+      }
       const files = Array.from(document.querySelectorAll('#files-list .file-card')).map((card) => ({
         fileName: card.querySelector('.file-name')?.textContent.trim() || '',
         fileMeta: card.querySelector('.file-meta')?.textContent.trim() || ''

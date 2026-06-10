@@ -389,6 +389,12 @@
       : withProfileId('volunteer-tasks.html');
 
     if (volunteerProfileId) {
+      const sessionProfile = await helperaDb.getCurrentUserProfile('volunteer');
+      if (!sessionProfile || sessionProfile.id !== volunteerProfileId) {
+        alert('Доступ запрещён.');
+        window.location.href = 'index.html';
+        return;
+      }
       activeProfile = await helperaDb.getVolunteerProfile(volunteerProfileId);
       document.getElementById('avatarMini').textContent = (activeProfile?.about?.firstName || 'В').slice(0, 1).toUpperCase();
     }

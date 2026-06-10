@@ -89,7 +89,11 @@
               </div>
               <div class="field">
                 <label for="city">Город</label>
-                <input class="input" id="city" type="text" placeholder="Укажите город">
+                <div class="autocomplete">
+                  <input class="input autocomplete-input" id="city" type="text" placeholder="Начните вводить город..." autocomplete="off">
+                  <button class="autocomplete-toggle" id="cityToggle" type="button" aria-label="Показать все города"></button>
+                  <div class="suggestions" id="citySuggestions"></div>
+                </div>
               </div>
             </div>
 
@@ -211,6 +215,14 @@
         return;
       }
 
+      // Проверяем что залогиненный пользователь — владелец этого НКО-профиля
+      const sessionProfile = await helperaDb.getCurrentUserProfile('ngo');
+      if (!sessionProfile || sessionProfile.id !== profileId) {
+        saveStatus.textContent = 'Доступ запрещён.';
+        saveBtn.disabled = true;
+        return;
+      }
+
       currentProfile = await helperaDb.getNgoProfile(profileId);
       if (!currentProfile) {
         saveStatus.textContent = 'Профиль не найден.';
@@ -305,5 +317,7 @@
       saveBtn.disabled = true;
     });
   </script>
+  <script src="./js/cities.js"></script>
+  <script>CitySelect({ inputEl: document.getElementById('city'), toggleEl: document.getElementById('cityToggle'), dropdownEl: document.getElementById('citySuggestions') });</script>
 </body>
 </html>

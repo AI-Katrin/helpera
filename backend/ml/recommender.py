@@ -1,5 +1,6 @@
 import math
 import os
+import re
 import uuid
 
 from .business_rules import business_adjustment, make_recommendation_reason
@@ -10,15 +11,18 @@ from .features import build_pairs, prepare_feature_rows
 from .linucb import (
     get_cold_start_info,
     get_cold_task_flags_batch,
+    is_cold_start_volunteer,
     record_context,
     record_impressions,
-    score_cold_start,
 )
 from .model_loader import load_model_artifact, predict_scores
-from .normalization import safe_float
+from .normalization import normalize_format, safe_float, safe_int
 from .schemas import RecommendationResponse, RecommendedTask
 
 CANDIDATE_POOL_SIZE = int(os.environ.get("HELPERA_CANDIDATE_POOL_SIZE", "200"))
+# Exploration slots: cold volunteer gets more LinUCB slots than warm
+_EXPLORATION_SLOTS_COLD = int(os.environ.get("HELPERA_EXPLORATION_SLOTS_COLD", "2"))
+_EXPLORATION_SLOTS_WARM = int(os.environ.get("HELPERA_EXPLORATION_SLOTS_WARM", "1"))
 # Правило 11: не более MAX_POPULAR_FRAC позиций в top-K могут занимать популярные задачи.
 # Задача считается популярной, если application_pressure >= POPULAR_PRESSURE_THRESHOLD.
 _MAX_POPULAR_FRAC = float(os.environ.get("HELPERA_MAX_POPULAR_FRAC", "0.6"))
@@ -71,16 +75,28 @@ def _diversity_rerank(scored_rows, lambda_div=None):
     return selected
 
 
+def _norm_title(title: str) -> str:
+    t = str(title or "").lower().strip()
+    return " ".join(re.sub(r"[^а-яёa-z0-9]", " ", t).split()[:6])
+
+
 def _diversify(ranked, top_k, max_per_ngo=MAX_TASKS_PER_NGO, max_per_direction=4, max_cold_tasks=2):
     """
     Ограничивает число задач в top-K по нескольким осям:
+    - не более 1 задачи с одинаковым заголовком (только для малых k ≤ 20);
     - не более max_per_ngo задач от одной НКО;
     - не более max_per_direction по одному направлению;
     - не более max_cold_tasks cold-start задач (Правило 8);
     - не более ceil(top_k * MAX_POPULAR_FRAC) популярных задач (Правило 11).
     Популярная задача: application_pressure >= POPULAR_PRESSURE_THRESHOLD.
     """
+    # При большом k (каталог) дедупликация по заголовку не применяется —
+    # пользователь должен видеть все задачи. При малом k (рекомендации) ограничиваем 1 per title.
+    # Малые k (рекомендации): 1 задача на заголовок — строгое разнообразие.
+    # Большие k (каталог): не более 2 — видно разные НКО с похожей задачей, но без 5+ повторов.
+    max_per_title = 1 if top_k <= 20 else 2
     selected = []
+    seen_titles: dict[str, int] = {}
     ngo_counts = {}
     dir_counts = {}
     cold_count = 0
@@ -88,15 +104,19 @@ def _diversify(ranked, top_k, max_per_ngo=MAX_TASKS_PER_NGO, max_per_direction=4
     max_popular = max(1, math.ceil(top_k * _MAX_POPULAR_FRAC))
     for row in ranked:
         ngo = row.get("ngo_id")
+        title_key = _norm_title(row.get("title") or "")
         direction = str(row.get("direction_work") or row.get("directions_clean") or "").strip().split(",")[0].strip().lower()
         is_cold = int(row.get("cold_start_task") or 0)
         is_popular = float(row.get("application_pressure") or 0) >= _POPULAR_PRESSURE_THRESHOLD
+        title_ok = not title_key or seen_titles.get(title_key, 0) < max_per_title
         ngo_ok = ngo_counts.get(ngo, 0) < max_per_ngo
         dir_ok = not direction or dir_counts.get(direction, 0) < max_per_direction
         cold_ok = not is_cold or cold_count < max_cold_tasks
         popular_ok = not is_popular or popular_count < max_popular
-        if ngo_ok and dir_ok and cold_ok and popular_ok:
+        if title_ok and ngo_ok and dir_ok and cold_ok and popular_ok:
             selected.append(row)
+            if title_key:
+                seen_titles[title_key] = seen_titles.get(title_key, 0) + 1
             ngo_counts[ngo] = ngo_counts.get(ngo, 0) + 1
             if direction:
                 dir_counts[direction] = dir_counts.get(direction, 0) + 1
@@ -144,23 +164,24 @@ def _make_fallback_hints(volunteer):
     return hints[:3]
 
 
-def _ensure_exploration_slot(top_rows, ranked, top_k):
+def _ensure_exploration_slot(top_rows, ranked, top_k, min_slots=1):
     """
-    Правило 9: резервирует минимум один слот в top-K для cold-start задачи.
-    Если диверсификация вытеснила все cold-задачи — заменяет последний элемент
-    на лучшую cold-задачу из отсортированного ranked, которой ещё нет в выдаче.
+    Правило 9: резервирует минимум min_slots слотов в top-K для cold-start задач.
+    Для холодного волонтёра min_slots=2, для тёплого min_slots=1.
     """
-    has_cold = any(int(r.get("cold_start_task") or 0) for r in top_rows)
-    if has_cold or len(top_rows) < top_k:
+    current_cold = sum(1 for r in top_rows if int(r.get("cold_start_task") or 0))
+    needed = min_slots - current_cold
+    if needed <= 0 or len(top_rows) < top_k:
         return top_rows
     selected_ids = {r["task_id"] for r in top_rows}
     cold_candidates = [
         r for r in ranked
         if int(r.get("cold_start_task") or 0) and r["task_id"] not in selected_ids
     ]
-    if not cold_candidates:
-        return top_rows
-    return top_rows[:-1] + [cold_candidates[0]]
+    result = list(top_rows)
+    for candidate in cold_candidates[:needed]:
+        result = result[:-1] + [candidate]
+    return result
 
 
 class RecommendationService:
@@ -173,9 +194,25 @@ class RecommendationService:
         if not volunteer:
             raise VolunteerNotFound(f"Volunteer not found: {volunteer_id}")
 
+        # Early exit: волонтёр уже ведёт 5+ задач — новые недоступны
+        if safe_int(volunteer.get("active_tasks_count")) >= 5:
+            hints = ["Вы уже ведёте максимальное число задач (5). Завершите одну из активных, чтобы взять новую."]
+            return self._response(volunteer_id, k, [], None, fallback_mode="overloaded", fallback_hints=hints)
+
         all_tasks = self.repository.get_candidate_tasks(volunteer_id)
         if hidden_task_ids:
             all_tasks = [t for t in all_tasks if t.get("task_id") not in hidden_task_ids]
+
+        # Фильтр формата до Stage 1: волонтёр хочет только онлайн, задача только оффлайн
+        vol_fmt = normalize_format(volunteer.get("format_clean") or volunteer.get("task_format") or "")
+        if vol_fmt == "Онлайн":
+            all_tasks = [
+                t for t in all_tasks
+                if normalize_format(
+                    t.get("format_clean") or t.get("participation_type") or t.get("format") or ""
+                ) != "Оффлайн"
+            ]
+
         if not all_tasks:
             # Правило 10: нулевая выдача — формируем подсказки по профилю
             hints = _make_fallback_hints(volunteer)
@@ -188,34 +225,23 @@ class RecommendationService:
         # чтобы CatBoost видел правильный флаг cold_start_task.
         cold_task_flags = get_cold_task_flags_batch([t["task_id"] for t in tasks])
 
-        is_cold_volunteer = (
-            safe_float(volunteer.get("profile_completeness"), 0.5) < COLD_START_THRESH
-        )
+        is_cold_volunteer = is_cold_start_volunteer(str(volunteer_id))
 
         ngos = self.repository.get_ngos_for_tasks(tasks)
         pair_rows = build_pairs(volunteer, tasks, ngos, embedding_sims, cold_task_flags)
 
-        # Stage 2: CatBoost re-ranking (для тёплых) или LinUCB (для cold-start)
+        # Stage 2: CatBoost re-ranking для всех волонтёров
         model_artifact = load_model_artifact()
         feature_rows = prepare_feature_rows(pair_rows, model_artifact.feature_cols)
+        ml_scores = predict_scores(
+            model_artifact,
+            feature_rows,
+            [volunteer["volunteer_id"]] * len(feature_rows),
+        )
 
-        if is_cold_volunteer:
-            # Для cold-start волонтёров используем LinUCB вместо CatBoost
-            ml_scores = [
-                score_cold_start(row, row["task_id"], volunteer_id)
-                for row in pair_rows
-            ]
-            # Сохраняем признаковые векторы для онлайн-обновления θ при фидбеке
-            for row in pair_rows:
-                record_context(str(volunteer_id), str(row["task_id"]), row)
-        else:
-            ml_scores = predict_scores(
-                model_artifact,
-                feature_rows,
-                [volunteer["volunteer_id"]] * len(feature_rows),
-            )
-
-        # Stage 3 + Stage 4: LinUCB exploration bonus + business rules
+        # Stage 3: LinUCB exploration bonus + business rules
+        # Холодный волонтёр получает тот же CatBoost-скор, но больше exploration слотов.
+        # Сохраняем контекст для cold-задач, чтобы LinUCB θ обновлялся из фидбека.
         task_by_id = {task["task_id"]: task for task in tasks}
         ranked = []
         for row, ml_score in zip(pair_rows, ml_scores):
@@ -223,19 +249,14 @@ class RecommendationService:
             is_cold_task, _, linucb_bonus = get_cold_start_info(task_id, volunteer_id)
             row["ml_score"] = ml_score
             row["cold_start_volunteer"] = int(is_cold_volunteer)
-            # cold_start_task уже выставлен через cold_task_flags в build_pairs,
-            # но синхронизируем со статистикой LinUCB для бизнес-правил
             row["cold_start_task"] = is_cold_task
             row["business_adjustment"] = business_adjustment(row)
-            # Для cold-start волонтёра: score_cold_start уже включает UCB-бонус
-            if is_cold_volunteer:
-                row["linucb_bonus"] = 0.0
-                row["final_score"] = ml_score + row["business_adjustment"]
-            else:
-                row["linucb_bonus"] = linucb_bonus
-                row["final_score"] = ml_score + linucb_bonus + row["business_adjustment"]
+            row["linucb_bonus"] = linucb_bonus
+            row["final_score"] = ml_score + linucb_bonus + row["business_adjustment"]
             row["reason"] = make_recommendation_reason(row)
             ranked.append(row)
+            if is_cold_task:
+                record_context(str(volunteer_id), str(task_id), row)
 
         ranked.sort(key=lambda item: item["final_score"], reverse=True)
         self._add_match_percent(ranked)
@@ -244,10 +265,11 @@ class RecommendationService:
         reranked = _diversity_rerank(ranked)
 
         # Правила 8, 11: hard-cap по НКО, направлению, cold-задачам, популярным задачам
-        top_rows = _diversify(reranked, k)
+        exploration_slots = _EXPLORATION_SLOTS_COLD if is_cold_volunteer else _EXPLORATION_SLOTS_WARM
+        top_rows = _diversify(reranked, k, max_cold_tasks=exploration_slots)
 
-        # Правило 9: гарантируем минимум один слот для cold-start задачи в top-K
-        top_rows = _ensure_exploration_slot(top_rows, ranked, k)
+        # Правило 9: гарантируем минимум exploration_slots для cold задач в top-K
+        top_rows = _ensure_exploration_slot(top_rows, ranked, k, min_slots=exploration_slots)
 
         # Нулевая выдача: ослабляем диверсификацию, если результатов нет
         fallback_mode = None
@@ -277,7 +299,7 @@ class RecommendationService:
                     direction_work=task.get("direction_work") or task.get("directions_clean") or "",
                     region=task.get("region") or task.get("city_clean") or "",
                     date_start=task.get("date_start") or "",
-                    date_end=task.get("date_end") or task.get("deadline") or "",
+                    date_end=task.get("date_end") or "",
                     participation_type=task.get("participation_type") or task.get("format") or "",
                     ngo_name=task.get("ngo_name") or "НКО",
                     ml_score=round(row["ml_score"], 6),
@@ -287,7 +309,7 @@ class RecommendationService:
                     match_percent=row["match_percent"],
                     reason=row["reason"],
                     # Правило 13: флаг срочности для отображения на фронте
-                    is_urgent=bool(row.get("task_critical_urgency") or safe_float(row.get("task_urgency_score")) >= 0.7),
+                    is_urgent=bool(row.get("task_critical_urgency")),
                     # Задача показана преимущественно из-за UCB-бонуса (exploration), а не релевантности
                     is_exploration=row.get("linucb_bonus", 0.0) > 0.1 and row.get("cold_start_task", False),
                     payload=task.get("payload") or {},

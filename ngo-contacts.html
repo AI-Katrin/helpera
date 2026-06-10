@@ -289,6 +289,12 @@
 
   async function hydrateData() {
     if (!profileId) return;
+    const sessionProfile = await helperaDb.getCurrentUserProfile('ngo');
+    if (!sessionProfile || sessionProfile.id !== profileId) {
+      alert('Доступ запрещён.');
+      window.location.href = 'index.html';
+      return;
+    }
     const profile = await helperaDb.getNgoProfile(profileId);
     if (!profile || !profile.contacts) return;
     const contacts = profile.contacts;

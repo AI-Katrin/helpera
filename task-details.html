@@ -46,7 +46,7 @@
           <p id="task-description">Подождите, получаем описание задачи.</p>
         </section>
 
-        <section class="section">
+        <section class="section" id="bullets-section">
           <h2>Что нужно будет делать</h2>
           <ul class="bullets" id="task-bullets"></ul>
         </section>
@@ -84,11 +84,6 @@
           <div class="side-block">
             <p class="side-label">Тип участия</p>
             <p class="side-value" id="side-type">Проектная задача</p>
-          </div>
-
-          <div class="side-block">
-            <p class="side-label">Ожидаемая занятость</p>
-            <p class="side-value" id="side-workload">Уточняется у организации</p>
           </div>
 
           <div class="side-block">
@@ -226,13 +221,12 @@
       const normalizedActions = Array.isArray(actionItems)
         ? actionItems
         : String(actionItems || '').split(/\n|;/).map((item) => item.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
-      const bullets = normalizedActions.length ? normalizedActions : [
-        description ? `Разобраться с задачей: ${description}` : '',
-        skills.length ? `Использовать навыки: ${skills.join(', ')}` : '',
-        comment,
-        'Передать результат координатору проекта'
-      ].filter(Boolean);
-      document.getElementById('task-bullets').innerHTML = bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+      const bulletsSection = document.getElementById('bullets-section');
+      if (!normalizedActions.length) {
+        bulletsSection.style.display = 'none';
+        return;
+      }
+      document.getElementById('task-bullets').innerHTML = normalizedActions.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
     }
 
     function renderFiles(task) {
@@ -282,7 +276,6 @@
       document.getElementById('side-format').textContent = format;
       document.getElementById('side-dates').textContent = getTaskDates(task);
       document.getElementById('side-city').textContent = task.payload?.city || about.city || 'Не указан';
-      document.getElementById('side-workload').textContent = task.payload?.workload || 'Уточняется у организации';
       document.getElementById('org-description').textContent = about.description || about.activity || 'Организация пока не добавила описание.';
       document.getElementById('org-type').textContent = about.orgType || 'Профиль НКО';
       document.getElementById('contact-role').textContent = contacts.position || 'Координатор проекта';

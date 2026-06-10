@@ -93,7 +93,6 @@
       payload.experience_level = cleanText(patch.skills.experience);
     }
     if (patch.interests) {
-      payload.format_raw = patch.interests.format || null;
       payload.format_clean = cleanText(patch.interests.format);
       if (patch.interests.availabilityHoursWeek) {
         payload.availability_hours_week = Number(patch.interests.availabilityHoursWeek);
@@ -394,6 +393,12 @@
         .select()
         .single();
       if (error) throw error;
+      // Отменяем все активные заявки на удалённую задачу
+      await client
+        .from('applications')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('task_id', taskId)
+        .in('status', ['review', 'invite', 'active', 'draft']);
       return data;
     }
 
@@ -762,6 +767,8 @@
       return (data || []).filter((item) => {
         if (filters.ngoProfileId && item.tasks?.ngo_profile_id !== filters.ngoProfileId) return false;
         if (filters.includeDrafts === false && item.status === 'draft') return false;
+        // Скрываем заявки на удалённые/закрытые задачи
+        if (item.tasks?.status === 'closed' || item.tasks?.status === 'expired') return false;
         return true;
       });
     }

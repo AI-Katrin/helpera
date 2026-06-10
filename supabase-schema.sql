@@ -82,6 +82,9 @@ alter table public.volunteer_profiles add column if not exists profile_completen
 alter table public.volunteer_profiles add column if not exists volunteer_reliability_score numeric(5,3) not null default 0.5;
 alter table public.volunteer_profiles add column if not exists volunteer_cancel_rate numeric(5,3) not null default 0;
 alter table public.volunteer_profiles add column if not exists active_tasks_count integer not null default 0;
+alter table public.volunteer_profiles add column if not exists volunteer_avg_outcome numeric(5,3) default 1.0;
+alter table public.volunteer_profiles add column if not exists volunteer_extended_review_flag boolean default false;
+alter table public.volunteer_profiles add column if not exists volunteer_review_avg_rating numeric(5,3) default 0.7;
 
 alter table public.ngo_profiles add column if not exists ngo_city_raw text;
 alter table public.ngo_profiles add column if not exists ngo_city_clean text;

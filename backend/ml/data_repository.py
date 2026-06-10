@@ -1,10 +1,50 @@
 import csv
 import uuid
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 
 from .config import DATASET_DIR
 from .normalization import safe_float, safe_int
+
+
+def _deadline_passed(task) -> bool:
+    raw = str(task.get("date_end") or task.get("deadline") or "").strip()
+    if not raw:
+        return False
+    # Supabase returns ISO format "2026-06-09T10:30:00.000Z" — take date part only
+    raw = raw[:10]
+    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(raw, fmt).date() < date.today()
+        except ValueError:
+            continue
+    return False
+
+
+def _task_is_full(task) -> bool:
+    capacity = max(safe_int(task.get("capacity"), 1), 1)
+    return safe_int(task.get("current_applications")) >= capacity
+
+
+def pre_filter_tasks(tasks: list) -> list:
+    """
+    Hard pre-pipeline filter: removes tasks that can never appear in recommendations
+    regardless of volunteer profile. Keeps tasks with unknown/missing deadline (no deadline = open).
+    """
+    result = []
+    for t in tasks:
+        status = str(t.get("publication_status") or "published").lower()
+        if status not in {"published", "active"}:
+            continue
+        if _deadline_passed(t):
+            continue
+        if _task_is_full(t):
+            continue
+        if safe_int(t.get("is_duplicate_candidate")):
+            continue
+        result.append(t)
+    return result
 
 UUID_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "https://helpera.synthetic")
 
@@ -100,7 +140,7 @@ class CsvRecommendationRepository:
         return self.volunteers().get(str(volunteer_id))
 
     def get_candidate_tasks(self, volunteer_id):
-        return list(self.tasks())
+        return pre_filter_tasks(self.tasks())
 
     def get_ngos_for_tasks(self, tasks):
         ngos = self.ngos()

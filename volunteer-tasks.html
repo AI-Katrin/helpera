@@ -53,15 +53,6 @@
           </div>
         </div>
 
-        <div class="filter-group">
-          <label class="filter-label">Длительность</label>
-          <div class="chip-row filter-duration" data-select="multiple">
-            <button class="chip" type="button">Разово</button>
-            <button class="chip" type="button">Короткие</button>
-            <button class="chip" type="button">Проектные</button>
-            <button class="chip" type="button">Долгосрочные</button>
-          </div>
-        </div>
 
         <div class="filter-group">
           <label class="filter-label">Направления</label>
@@ -138,7 +129,6 @@
 <script>
   const searchInput = document.getElementById('taskSearch');
   const formatButtons = document.querySelectorAll('.filter-format .chip');
-  const durationButtons = document.querySelectorAll('.filter-duration .chip');
   const directionDropdown = document.querySelector('[data-dropdown="directions"]');
   const skillDropdown = document.querySelector('[data-dropdown="skills"]');
   const applyButton = document.getElementById('applyFilters');
@@ -215,6 +205,13 @@
     const matchChip = matchPercent
       ? `<span class="chip active" title="${escapeHtml(task.recommendation?.reason || '')}" style="background: var(--blue-light); color: var(--blue-dark);">Подходит вам на ${escapeHtml(matchPercent)}%</span>`
       : '';
+    const isUrgent = (() => {
+      const end = task.payload?.dateEnd || task.date_end;
+      if (!end) return false;
+      const days = (new Date(end) - new Date()) / 86400000;
+      return days >= 0 && days <= 3;
+    })();
+    const urgentChip = isUrgent ? `<span class="chip urgent">Срочно</span>` : '';
     const searchableDirections = [
       payload.direction,
       payload.directions,
@@ -240,7 +237,7 @@
         <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}${matchPercent ? `&matchPercent=${matchPercent}` : ''}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
         <p class="task-meta">${escapeHtml(orgName)} • ${escapeHtml(format || 'Формат не указан')} • ${escapeHtml(payload.dateStart || '')}${payload.dateEnd ? ` — ${escapeHtml(payload.dateEnd)}` : ''}</p>
         <div class="chip-row">
-          ${task.recommendation?.isExploration ? `<span class="chip exploration" title="Задача появилась недавно и ещё мало кому показывалась — возможно, она вам подойдёт">Новая задача</span>` : ''}
+          ${urgentChip}
           ${matchChip}
           ${skills.map((skill) => `<span class="chip active">${escapeHtml(skill)}</span>`).join('')}
         </div>
@@ -289,7 +286,6 @@
       if (!title.includes(q) && !org.includes(q) && !desc.includes(q) && !taskSkills.includes(q) && !dirText.includes(q)) return false;
     }
     if (filters.formats.length && !filters.formats.some((f) => taskFormat.includes(normalizeVal(f)))) return false;
-    if (filters.durations.length && !filters.durations.some((d) => taskDuration.includes(normalizeVal(d)))) return false;
     if (filters.directions.length && !filters.directions.some((d) => taskDirections.some((v) => v.includes(normalizeVal(d))))) return false;
     if (filters.skills.length && !filters.skills.some((s) => taskSkills.includes(normalizeVal(s)))) return false;
     return true;
@@ -348,8 +344,17 @@
       if (profileId && helperaDb.listRecommendedTasks) {
         try {
           const recommendations = await helperaDb.listRecommendedTasks(profileId, 600);
-          rankedTasks = recommendations.tasks || [];
           recommendationSessionId = recommendations.recommendation_session_id || '';
+          // Дедупликация: не более 2 задач с одинаковым заголовком (разные НКО допустимы)
+          const _titleCounts = new Map();
+          rankedTasks = (recommendations.tasks || []).filter((t) => {
+            const key = String(t.title || '').trim().toLowerCase().replace(/[^а-яёa-z0-9\s]/gi, ' ').replace(/\s+/g, ' ').split(' ').slice(0, 6).join(' ');
+            if (!key) return true;
+            const count = _titleCounts.get(key) || 0;
+            if (count >= 2) return false;
+            _titleCounts.set(key, count + 1);
+            return true;
+          });
         } catch (error) {
           console.warn('ML-рекомендации недоступны, показываем задачи из базы', error);
         }
@@ -435,7 +440,6 @@
   }
 
   formatButtons.forEach(btn => btn.addEventListener('click', () => toggleChip(btn)));
-  durationButtons.forEach(btn => btn.addEventListener('click', () => toggleChip(btn)));
 
   document.querySelectorAll('.dropdown .select-button').forEach(button => {
     button.addEventListener('click', (e) => {
@@ -476,7 +480,6 @@
     activeFiltersBox.innerHTML = '';
     const chips = [];
     filters.formats.forEach(v => chips.push({ type: 'format', value: v }));
-    filters.durations.forEach(v => chips.push({ type: 'duration', value: v }));
     filters.directions.forEach(v => chips.push({ type: 'direction', value: v }));
     filters.skills.forEach(v => chips.push({ type: 'skill', value: v }));
     if (filters.search) chips.push({ type: 'search', value: filters.search, label: 'Поиск: ' + filters.search });
@@ -512,9 +515,6 @@
     if (filter.type === 'format') Array.from(formatButtons).forEach(btn => {
       if (btn.textContent.trim() === filter.value) btn.classList.remove('active');
     });
-    if (filter.type === 'duration') Array.from(durationButtons).forEach(btn => {
-      if (btn.textContent.trim() === filter.value) btn.classList.remove('active');
-    });
     if (filter.type === 'direction') directionDropdown.querySelectorAll('input[type="checkbox"]').forEach(input => {
       if (input.value === filter.value) input.checked = false;
     });
@@ -528,7 +528,6 @@
     return {
       search: searchInput.value.trim().toLowerCase(),
       formats: getActiveTexts(formatButtons),
-      durations: getActiveTexts(durationButtons),
       directions: getCheckedValues(directionDropdown),
       skills: getCheckedValues(skillDropdown)
     };
@@ -546,7 +545,6 @@
   function resetAllFilters() {
     searchInput.value = '';
     formatButtons.forEach(btn => btn.classList.remove('active'));
-    durationButtons.forEach(btn => btn.classList.remove('active'));
     directionDropdown.querySelectorAll('input[type="checkbox"]').forEach(input => input.checked = false);
     skillDropdown.querySelectorAll('input[type="checkbox"]').forEach(input => input.checked = false);
     updateDropdownLabel(directionDropdown, 'Выбрать направления');

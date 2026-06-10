@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .config import COLD_START_THRESH, COLD_TASK_THRESHOLD, ROOT_DIR
+from .config import COLD_START_THRESH, COLD_TASK_INTERACTION_THRESHOLD, COLD_TASK_THRESHOLD, COLD_VOL_INTERACTION_THRESHOLD, ROOT_DIR
 
 _STATS_PATH = Path(os.environ.get("HELPERA_LINUCB_STATS", ROOT_DIR / "model_artifacts" / "linucb_stats.json"))
 _MATRIX_PATH = Path(os.environ.get("HELPERA_LINUCB_MATRIX", ROOT_DIR / "model_artifacts" / "linucb_matrix.npz"))
@@ -188,29 +188,49 @@ def get_cold_start_info(task_id: str, volunteer_id: str) -> tuple[int, int, floa
     """
     stats = _load_stats()
     total = max(stats.get("total_impressions", 0), 1)
-    task_n = stats.get("tasks", {}).get(str(task_id), {}).get("impressions", 0)
-    vol_n = stats.get("volunteers", {}).get(str(volunteer_id), {}).get("impressions", 0)
+    task_stats = stats.get("tasks", {}).get(str(task_id), {})
+    vol_stats = stats.get("volunteers", {}).get(str(volunteer_id), {})
 
-    is_cold_task = int(task_n < _COLD_TASK_THRESHOLD)
-    is_cold_vol = int(vol_n < _COLD_VOL_THRESHOLD)
+    task_interactions = task_stats.get("clicks", 0) + task_stats.get("applies", 0)
+    vol_interactions = vol_stats.get("clicks", 0) + vol_stats.get("applies", 0)
+
+    is_cold_task = int(task_interactions < COLD_TASK_INTERACTION_THRESHOLD)
+    is_cold_vol = int(vol_interactions < COLD_VOL_INTERACTION_THRESHOLD)
 
     bonus = 0.0
     if is_cold_task:
-        bonus += _ALPHA * math.sqrt(math.log(1 + total) / (1 + task_n))
+        bonus += _ALPHA * math.sqrt(math.log(1 + total) / (1 + task_interactions))
     if is_cold_vol:
-        bonus += 0.3 * _ALPHA * math.sqrt(math.log(1 + total) / (1 + vol_n))
+        bonus += 0.3 * _ALPHA * math.sqrt(math.log(1 + total) / (1 + vol_interactions))
     bonus = min(bonus, _MAX_UCB_BONUS)
     return is_cold_task, is_cold_vol, round(bonus, 6)
 
 
+def is_cold_start_volunteer(volunteer_id: str) -> bool:
+    """
+    Volunteer is cold-start when they have fewer than COLD_VOL_INTERACTION_THRESHOLD
+    meaningful interactions (clicks + applies). Impressions (passive views) don't count.
+    """
+    stats = _load_stats()
+    vol = stats.get("volunteers", {}).get(str(volunteer_id), {})
+    interactions = vol.get("clicks", 0) + vol.get("applies", 0)
+    return interactions < COLD_VOL_INTERACTION_THRESHOLD
+
+
 def get_cold_task_flags_batch(task_ids) -> dict:
-    """Returns dict[task_id -> is_cold_task] for a batch of tasks."""
+    """
+    Returns dict[task_id -> is_cold_task] for a batch of tasks.
+    Task is cold-start when (clicks + applies) < COLD_TASK_INTERACTION_THRESHOLD —
+    no real interest shown yet regardless of how many times it was displayed.
+    """
     stats = _load_stats()
     tasks_stats = stats.get("tasks", {})
-    return {
-        tid: int(tasks_stats.get(str(tid), {}).get("impressions", 0) < _COLD_TASK_THRESHOLD)
-        for tid in task_ids
-    }
+    result = {}
+    for tid in task_ids:
+        t = tasks_stats.get(str(tid), {})
+        interactions = t.get("clicks", 0) + t.get("applies", 0)
+        result[tid] = int(interactions < COLD_TASK_INTERACTION_THRESHOLD)
+    return result
 
 
 # ── Impression & feedback recording ──────────────────────────────────────────
@@ -236,6 +256,8 @@ def record_click(task_id: str, volunteer_id: str) -> None:
         entry = stats.setdefault("tasks", {}).setdefault(str(task_id), {"impressions": 0, "clicks": 0})
         entry["clicks"] = entry.get("clicks", 0) + 1
         entry["reward_sum"] = entry.get("reward_sum", 0.0) + 1.0
+        vol_entry = stats.setdefault("volunteers", {}).setdefault(str(volunteer_id), {"impressions": 0})
+        vol_entry["clicks"] = vol_entry.get("clicks", 0) + 1
         _save_stats(stats)
         # Не обновляем матрицу если уже была более сильная награда (apply/outcome)
         if _rewarded.get(key, 0.0) < 1.0:

@@ -4,7 +4,7 @@ import math
 
 from .business_rules import is_eligible
 from .config import COLD_START_THRESH, LEAKAGE_FEATURES
-from .normalization import normalize_city, normalize_format, normalize_skills, normalize_text, safe_float, safe_int
+from .normalization import normalize_city, normalize_direction, normalize_format, normalize_skills, normalize_text, safe_float, safe_int
 
 
 _OUTCOME_COMPLETED = frozenset({"completed", "done", "finished"})
@@ -49,8 +49,8 @@ def stable_bucket(value, modulo):
 def build_pair_features(volunteer, task, ngo, embedding_sim=0.0, cold_start_task=0):
     vol_skills, vol_unknown = normalize_skills(volunteer.get("skills_clean") or volunteer.get("skills") or volunteer.get("skills_raw"))
     task_skills, task_unknown = normalize_skills(task.get("skills_clean") or task.get("useful_skills") or task.get("skills"))
-    vol_dirs = set(normalize_text(x) for x in (volunteer.get("directions_clean") or volunteer.get("help_directions") or "").split(",") if x.strip())
-    task_dirs = set(normalize_text(x) for x in (task.get("directions_clean") or task.get("direction_work") or "").split(",") if x.strip())
+    vol_dirs = set(normalize_direction(x) for x in (volunteer.get("directions_clean") or volunteer.get("help_directions") or "").split(",") if x.strip())
+    task_dirs = set(normalize_direction(x) for x in (task.get("directions_clean") or task.get("direction_work") or "").split(",") if x.strip())
     vol_skill_set = set(vol_skills)
     task_skill_set = set(task_skills)
     intersection = vol_skill_set & task_skill_set
@@ -65,7 +65,7 @@ def build_pair_features(volunteer, task, ngo, embedding_sim=0.0, cold_start_task
     created = parse_date(task.get("created_at")) or today
     # Правило 4: учитываем дату обновления задачи для task_is_new
     updated = parse_date(task.get("updated_at"))
-    deadline = parse_date(task.get("deadline") or task.get("date_end"))
+    deadline = parse_date(task.get("date_end"))
     days_to_deadline = max((deadline - today).days, 0) if deadline else 0
     deadline_passed = int(bool(deadline and deadline < today))
     capacity = max(safe_int(task.get("capacity"), 1), 1)
@@ -123,10 +123,14 @@ def build_pair_features(volunteer, task, ngo, embedding_sim=0.0, cold_start_task
         "skill_coverage_from_raw": ratio(len(intersection), len(task_skill_set)),
         "direction_overlap": len(vol_dirs & task_dirs),
         "format_match": int(bool(vol_format and task_format and (
-            vol_format == task_format or task_format == "Смешанный"
+            vol_format == task_format
+            or task_format == "Смешанный"
+            or vol_format == "Смешанный"
         ))),
         "format_match_from_raw": int(bool(vol_format and task_format and (
-            vol_format == task_format or task_format == "Смешанный"
+            vol_format == task_format
+            or task_format == "Смешанный"
+            or vol_format == "Смешанный"
         ))),
         "city_match": int(bool(vol_city and task_city and vol_city == task_city) or task_format == "Онлайн"),
         "embedding_cosine_sim": embedding_sim,

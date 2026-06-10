@@ -132,7 +132,7 @@
         ${status === 'review' ? `<a href="${inviteUrl}" class="card-link">Принять</a>` : ''}
         ${status === 'invite' || status === 'active' || status === 'done' ? `<a href="${chatUrl}" class="card-link">Чат</a>` : ''}
         ${status === 'invite' || status === 'active' || status === 'done' ? `<a href="${reviewUrl}" class="card-link">Оставить отзыв</a>` : ''}
-        ${status !== 'done' && status !== 'rejected' ? `<button class="card-link action-link" type="button" data-action="rejected" data-id="${application.id}">Отклонить</button>` : ''}
+        ${status !== 'done' && status !== 'rejected' ? `<button class="card-link" type="button" data-action="rejected" data-id="${application.id}" style="color:#DC2626 !important;">Отклонить</button>` : ''}
         ${status === 'done' ? `<span class="card-note" style="font-size:12px;color:#6B7280;font-style:italic;">Завершено — доступен только отзыв</span>` : ''}
       </div>
     `;

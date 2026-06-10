@@ -305,29 +305,39 @@
   .status-feedback { background: var(--violet-light); color: var(--violet-dark); }
 
   .card-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
     min-width: 150px;
-    text-align: right;
     padding-top: 2px;
+    flex-shrink: 0;
   }
 
-  .card-link {
-    display: block;
-    margin-bottom: 12px;
-    color: #2563EB;
-    font-size: 12px;
-    line-height: 15px;
+  .card-actions .card-link,
+  .card-actions button.card-link {
+    display: inline !important;
+    height: auto !important;
+    min-height: 0 !important;
+    width: auto !important;
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    color: #2563EB !important;
+    font-size: 14px;
+    line-height: 17px;
     font-weight: 700;
     text-decoration: none;
-  }
-
-  button.card-link {
-    width: 100%;
-    border: 0;
-    background: transparent;
-    padding: 0;
     font-family: inherit;
     cursor: pointer;
     text-align: right;
+  }
+
+  .card-actions .card-link:hover,
+  .card-actions button.card-link:hover {
+    text-decoration: underline;
   }
 
   .tip-panel {

@@ -73,7 +73,12 @@
 
             <div class="field" id="cityField">
               <label for="taskCity">Город <span id="cityReq" style="display:none" class="req">*</span></label>
-              <input class="input" id="taskCity" type="text" placeholder="Для оффлайн или смешанного формата">
+              <div class="autocomplete">
+                <input class="input autocomplete-input" id="taskCity" type="text"
+                  placeholder="Начните вводить город" autocomplete="off">
+                <button class="autocomplete-toggle" id="cityToggle" type="button" aria-label="Показать все города"></button>
+                <div class="suggestions" id="citySuggestions"></div>
+              </div>
             </div>
 
             <div class="edit-grid">
@@ -132,6 +137,7 @@
   <script src="./js/supabase-config.js"></script>
   <script src="./js/app-db.js"></script>
   <script src="./js/tag-select.js"></script>
+  <script src="./js/cities.js"></script>
   <script>
     const SKILL_OPTIONS = [
       'Аналитика', 'SMM', 'Дизайн', 'Копирайтинг',
@@ -156,6 +162,12 @@
     const saveBtn = document.getElementById('save-btn');
     const saveStatus = document.getElementById('save-status');
     let currentTask = null;
+
+    CitySelect({
+      inputEl: document.getElementById('taskCity'),
+      toggleEl: document.getElementById('cityToggle'),
+      dropdownEl: document.getElementById('citySuggestions')
+    });
 
     const skillsSelect = TagSelect({
       inputEl: document.getElementById('skillsInput'),
@@ -241,6 +253,14 @@
       setNav();
       if (!profileId || !taskId) {
         saveStatus.textContent = 'Задача или профиль НКО не выбраны.';
+        saveBtn.disabled = true;
+        return;
+      }
+
+      // Проверяем что залогиненный пользователь — владелец этого НКО-профиля
+      const currentProfile = await helperaDb.getCurrentUserProfile('ngo');
+      if (!currentProfile || currentProfile.profileId !== profileId) {
+        saveStatus.textContent = 'Доступ запрещён.';
         saveBtn.disabled = true;
         return;
       }

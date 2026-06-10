@@ -313,6 +313,12 @@
     background: var(--white);
   }
 
+  .chip.active {
+    background: var(--green-light);
+    border-color: transparent;
+    color: var(--green-dark);
+  }
+
   .chip.green {
     background: var(--green-light);
     border-color: transparent;
@@ -328,7 +334,7 @@
   /* Правило 13: метка срочной задачи */
   .chip.urgent {
     background: #FEF2F2;
-    border-color: transparent;
+    border-color: #FECACA;
     color: #991B1B;
     font-weight: 700;
   }
@@ -444,6 +450,10 @@
 
   .task-title a {
     color: inherit;
+    text-decoration: none;
+  }
+
+  .task-title a:hover {
     text-decoration: underline;
   }
 

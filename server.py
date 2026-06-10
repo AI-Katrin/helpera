@@ -462,7 +462,7 @@ def _check_application_eligibility(sb_url, sb_key, task_id, volunteer_id):
 
     # Дедлайн
     payload = task.get("payload") or {}
-    deadline_str = task.get("date_end") or payload.get("dateEnd") or payload.get("deadline")
+    deadline_str = task.get("date_end") or payload.get("dateEnd")
     if deadline_str:
         try:
             from datetime import date as _d
@@ -686,7 +686,7 @@ def _fetch_expiring_task_ids(supabase_url, supabase_key):
     endpoint = (
         f"{supabase_url.rstrip('/')}/rest/v1/tasks"
         f"?status=eq.published"
-        f"&or=(deadline.lt.{today},date_end.lt.{today})"
+        f"&date_end=lt.{today}"
         f"&select=id"
         f"&limit=500"
     )

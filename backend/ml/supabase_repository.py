@@ -5,6 +5,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from .data_repository import pre_filter_tasks
 from .normalization import safe_float, safe_int
 
 
@@ -369,7 +370,8 @@ class SupabaseRecommendationRepository:
             "date_start,date_end,status,payload,created_at,updated_at,"
             "ngo_profiles(id,org_name,about,avg_response_time_hours,ngo_reliability_score,complaint_rate)",
         )
-        return [self._map_task(row) for row in (rows or [])]
+        tasks = [self._map_task(row) for row in (rows or [])]
+        return pre_filter_tasks(tasks)
 
     def _map_task(self, row):
         payload = _safe_task_payload(row.get("payload") or {})

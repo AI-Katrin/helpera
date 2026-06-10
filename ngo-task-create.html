@@ -120,7 +120,12 @@
 
         <div class="field" id="cityField" style="display:none">
           <label class="label" for="taskCity">Город <span class="req">*</span></label>
-          <input id="taskCity" class="input title-input" type="text" placeholder="Москва" autocomplete="off">
+          <div class="autocomplete">
+            <input id="taskCity" class="input autocomplete-input" type="text"
+              placeholder="Начните вводить город" autocomplete="off">
+            <button class="autocomplete-toggle" id="cityToggle" type="button" aria-label="Показать все города"></button>
+            <div class="suggestions" id="citySuggestions"></div>
+          </div>
         </div>
 
         <div class="field">
@@ -197,6 +202,7 @@
 <script src="./js/supabase-config.js"></script>
 <script src="./js/app-db.js"></script>
 <script src="./js/tag-select.js"></script>
+<script src="./js/cities.js"></script>
 <script>
   const nativeAlert = window.alert.bind(window);
   window.alert = (message, ...args) => {
@@ -219,6 +225,11 @@
   const taskAgreement = document.getElementById('taskAgreement');
   const cityField = document.getElementById('cityField');
   const cityInput = document.getElementById('taskCity');
+  CitySelect({
+    inputEl: cityInput,
+    toggleEl: document.getElementById('cityToggle'),
+    dropdownEl: document.getElementById('citySuggestions')
+  });
   const chips = document.querySelectorAll('.chip');
   const taskFileInput = document.getElementById('taskFileInput');
   const taskDropzone = document.getElementById('taskDropzone');
@@ -387,6 +398,12 @@
 
   async function ensureNgoProfileId() {
     if (!profileId) return null;
+    const sessionProfile = await helperaDb.getCurrentUserProfile('ngo');
+    if (!sessionProfile || sessionProfile.id !== profileId) {
+      alert('Доступ запрещён.');
+      window.location.href = 'index.html';
+      return null;
+    }
     const profile = await helperaDb.getNgoProfile(profileId);
     if (profile || !helperaDb.isSupabaseEnabled) return profileId;
 

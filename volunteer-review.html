@@ -322,6 +322,11 @@
   submitButton.addEventListener('click', async () => {
     validateForm();
     if (submitButton.disabled || !applicationId) return;
+    const sessionProfile = await helperaDb.getCurrentUserProfile('volunteer');
+    if (!sessionProfile || (profileId && sessionProfile.id !== profileId)) {
+      alert('Доступ запрещён.');
+      return;
+    }
     submitButton.disabled = true;
     submitButton.textContent = 'Отправляем...';
     try {

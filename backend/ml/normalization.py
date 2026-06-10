@@ -1,7 +1,7 @@
 import re
 import unicodedata
 
-from .taxonomy import CANONICAL_SKILLS, FORMAT_ALIASES, SKILL_ALIASES
+from .taxonomy import CANONICAL_DIRECTIONS, CANONICAL_SKILLS, FORMAT_ALIASES, SKILL_ALIASES
 
 try:
     import pymorphy3 as _pymorphy3
@@ -115,6 +115,38 @@ def normalize_skills(value):
             normalized.append(cleaned)
 
     return list(dict.fromkeys(normalized)), list(dict.fromkeys(unknown))
+
+
+_DIRECTIONS_LOWER = [d.lower() for d in CANONICAL_DIRECTIONS]
+_DIR_FUZZY_THRESHOLD = 70
+# Короткие слова, которые fuzzy не берёт из-за разной длины
+_DIR_EXACT_FALLBACK = {
+    "спорт": "спорт и зож",
+    "культура": "культура и искусство",
+    "медицина": "здравоохранение",
+    "дети": "дети и молодёжь",
+    "молодёжь": "дети и молодёжь",
+    "молодежь": "дети и молодёжь",
+    "бездомные": "люди без жилья",
+    "пожилые": "помощь пожилым",
+}
+
+
+def normalize_direction(value: str) -> str:
+    key = normalize_text(value)
+    if not key:
+        return key
+    if key in _DIRECTIONS_LOWER:
+        return key
+    if key in _DIR_EXACT_FALLBACK:
+        return _DIR_EXACT_FALLBACK[key]
+    if _USE_MORPH:
+        result = _rfprocess.extractOne(key, _DIRECTIONS_LOWER, scorer=_fuzz.token_sort_ratio)
+        if result is not None:
+            match, score, _ = result
+            if score >= _DIR_FUZZY_THRESHOLD:
+                return match
+    return key
 
 
 def normalize_format(value):

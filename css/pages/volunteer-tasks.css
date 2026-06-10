@@ -573,6 +573,13 @@
     margin-top: 8px;
   }
 
+  .chip.urgent {
+    background: #FEF2F2;
+    border-color: #FECACA;
+    color: #991B1B;
+    font-weight: 700;
+  }
+
   .btn-show-more {
     display: inline-flex;
     align-items: center;

@@ -112,7 +112,11 @@
 
         <div class="field" id="cityField" style="display:none">
           <label class="label" for="taskCity">Город <span class="req">*</span></label>
-          <input id="taskCity" class="input" type="text" placeholder="Москва" autocomplete="off">
+          <div class="autocomplete">
+            <input id="taskCity" class="input autocomplete-input" type="text" placeholder="Начните вводить город..." autocomplete="off">
+            <button class="autocomplete-toggle" id="cityToggle" type="button" aria-label="Показать все города"></button>
+            <div class="suggestions" id="citySuggestions"></div>
+          </div>
         </div>
 
         <div class="field">
@@ -507,6 +511,13 @@
   (async () => {
     if (!ngoProfileId) return;
     try {
+      // Проверяем что залогиненный пользователь — владелец этого НКО-профиля
+      const currentProfile = await helperaDb.getCurrentUserProfile('ngo');
+      if (!currentProfile || currentProfile.profileId !== ngoProfileId) {
+        alert('Доступ запрещён.');
+        window.location.href = 'index.html';
+        return;
+      }
       const profile = await helperaDb.getNgoProfile(ngoProfileId);
       const name = profile?.account?.orgName || profile?.about?.shortName || 'Н';
       document.getElementById('avatarMini').textContent = name.slice(0, 1).toUpperCase();
@@ -555,5 +566,7 @@
     }
   })();
 </script>
+<script src="/js/cities.js"></script>
+<script>CitySelect({ inputEl: document.getElementById('taskCity'), toggleEl: document.getElementById('cityToggle'), dropdownEl: document.getElementById('citySuggestions') });</script>
 </body>
 </html>

@@ -85,7 +85,7 @@ def _parse_date(value):
 
 
 def _task_urgency(task):
-    deadline = _parse_date(task.get("deadline") or task.get("date_end"))
+    deadline = _parse_date(task.get("date_end"))
     if not deadline:
         return 0.0
     today = date.today()
@@ -151,7 +151,11 @@ def _stage1_score(volunteer, task, cosine_sim):
     task_city = normalize_city(task.get("city_clean") or task.get("region") or task.get("city_raw") or "")
 
     format_match = int(
-        bool(vol_fmt and task_fmt and (vol_fmt == task_fmt or task_fmt == "Смешанный"))
+        bool(vol_fmt and task_fmt and (
+            vol_fmt == task_fmt
+            or task_fmt == "Смешанный"
+            or vol_fmt == "Смешанный"
+        ))
     )
     city_match = int(
         (bool(vol_city and task_city and vol_city == task_city)) or task_fmt == "Онлайн"

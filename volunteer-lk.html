@@ -94,10 +94,6 @@
           <a class="btn-outline-green" href="volunteer-tasks.html" id="all-tasks-small-link">Поиск задач</a>
         </div>
 
-        <div class="desc-hint info" id="cold-start-hint" style="display:none">
-          Подборка пока основана на общей популярности задач — заполните профиль (навыки, формат, город), чтобы рекомендации стали персональными.
-          <a href="volunteer-account.html" style="color:inherit;font-weight:700;"> Дополнить профиль →</a>
-        </div>
 
         <div class="relaxed-notice" id="relaxed-notice" style="display:none">
           Строгие фильтры не нашли полных совпадений — показываем задачи с ослабленными ограничениями по разнообразию.
@@ -290,7 +286,10 @@
 
     function renderTask(task, profile) {
       const orgName = task.ngo_profiles?.org_name || task.ngo_profiles?.about?.shortName || 'НКО';
-      const skills = splitSkills(task.skills || task.payload?.skills).slice(0, 3);
+      const payload = task.payload || {};
+      const format = task.format || payload.format || '';
+      const skills = String(task.skills || payload.skills || '')
+        .split(',').map(s => s.trim()).filter(Boolean).slice(0, 3);
       const score = scoreTask(task, profile);
       const rawMatchPercent = Number(task.recommendation?.matchPercent);
       const rawRank = Number(task.recommendation?.rank);
@@ -302,29 +301,24 @@
       const urgentChip = task.recommendation?.isUrgent
         ? `<span class="chip urgent">Срочно</span>`
         : '';
-      const recommendationChip = task.recommendation
-        ? `<span class="chip blue" title="${escapeHtml(task.recommendation.reason || '')}">Подходит вам на ${escapeHtml(matchPercent)}%</span>`
-        : `<span class="chip blue">Подходит на ${score}%</span>`;
-      const explorationChip = task.recommendation?.isExploration
-        ? `<span class="chip exploration" title="Задача появилась недавно и ещё мало кому показывалась — возможно, она вам подойдёт">Новая задача</span>`
+      const matchChip = matchPercent
+        ? `<span class="chip active" title="${escapeHtml(task.recommendation?.reason || '')}" style="background: var(--blue-light); color: var(--blue-dark);">Подходит вам на ${escapeHtml(matchPercent)}%</span>`
         : '';
-      const format = task.format || task.payload?.format || 'Формат не указан';
       const dates = taskDates(task);
-      const metaParts = [orgName, format, dates].filter(Boolean);
+      const metaParts = [orgName, format || 'Формат не указан', dates].filter(Boolean);
       return `
-        <article class="task-card" data-task-id="${escapeHtml(task.id)}">
+        <article class="task-card task-item" data-task-id="${escapeHtml(task.id)}">
           <div>
-            <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}&matchPercent=${encodeURIComponent(matchPercent)}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
-            <p class="task-sub">${metaParts.map(escapeHtml).join(' • ')}</p>
-            <div class="chips">
+            <h3 class="task-title"><a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}${matchPercent ? `&matchPercent=${matchPercent}` : ''}`)}">${escapeHtml(task.title || 'Задача без названия')}</a></h3>
+            <p class="task-meta">${metaParts.map(escapeHtml).join(' • ')}</p>
+            <div class="chip-row">
               ${urgentChip}
-              ${explorationChip}
-              ${recommendationChip}
-              ${skills.map((skill) => `<span class="chip green">${escapeHtml(skill)}</span>`).join('')}
+              ${matchChip}
+              ${skills.map(skill => `<span class="chip active">${escapeHtml(skill)}</span>`).join('')}
             </div>
           </div>
           <div class="task-actions">
-            <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}&matchPercent=${encodeURIComponent(matchPercent)}`)}" class="task-link blue">Подробнее</a>
+            <a href="${withProfileId(`task-details.html?taskId=${encodeURIComponent(task.id)}${matchPercent ? `&matchPercent=${matchPercent}` : ''}`)}" class="task-link blue">Подробнее</a>
             <a href="${withProfileId(`task-apply.html?taskId=${encodeURIComponent(task.id)}`)}" class="task-link green">Откликнуться</a>
             <a href="#" class="task-link blue small hide-task-btn" data-task-id="${escapeHtml(task.id)}">Не показывать</a>
           </div>
@@ -366,12 +360,17 @@
       if (helperaDb.listRecommendedTasks) {
         try {
           recommendations = await helperaDb.listRecommendedTasks(profileId, 600);
-          topTasks = (recommendations.tasks || []).filter((t) => !isExpiredTask(t)).slice(0, 5);
+          const _seenTitles = new Set();
+          topTasks = (recommendations.tasks || [])
+            .filter((t) => !isExpiredTask(t))
+            .filter((t) => {
+              const key = String(t.title || '').trim().toLowerCase().replace(/[^а-яёa-z0-9\s]/gi, ' ').replace(/\s+/g, ' ').split(' ').slice(0, 6).join(' ');
+              if (!key || _seenTitles.has(key)) return false;
+              _seenTitles.add(key);
+              return true;
+            })
+            .slice(0, 5);
           recommendationSessionId = recommendations.recommendation_session_id || '';
-          // Правило 7: показываем подсказку волонтёру в cold-start режиме
-          if (recommendations.is_cold_start) {
-            document.getElementById('cold-start-hint').style.display = '';
-          }
           // Правило 10: ослабленная диверсификация
           if (recommendations.fallback_mode === 'relaxed_diversity' && topTasks.length) {
             document.getElementById('relaxed-notice').style.display = '';

@@ -173,6 +173,14 @@
 
   const saveInterestsToProfile = async () => {
     const profileId = await getOrCreateProfileId();
+    if (activeProfileId && profileId === activeProfileId) {
+      const sessionProfile = await helperaDb.getCurrentUserProfile('volunteer');
+      if (!sessionProfile || sessionProfile.id !== profileId) {
+        alert('Доступ запрещён.');
+        window.location.href = 'index.html';
+        return null;
+      }
+    }
     await helperaDb.updateVolunteerProfile(profileId, {
       interests: {
       tasks: collectSelectedChips(document.getElementById('tasks-group')),

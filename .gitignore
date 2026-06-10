@@ -24,3 +24,5 @@ node_modules/
 
 # Experiments
 experiments/
+
+migrate_volunteer_ml_columns.py
